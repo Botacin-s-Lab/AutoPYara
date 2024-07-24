@@ -4,10 +4,12 @@
 class AutoYara:
     def __init__(self, params):
         # our classifiers/clustering/datastructures will be the ones from capymoa
+        #self.kilogram = Kilogram()
         #self.clustering = BiClustering()
         self.params = params
 
     def train(self, goodware_files):
+        # self.kilogram.extract(goodware_files)
         return True
 
     def generate(self, malware_files):
