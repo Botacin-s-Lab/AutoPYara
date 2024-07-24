@@ -9,7 +9,7 @@ from capymoasec.detectors.andropermbin import *
 
 # instantiate the dataset and model
 dataset = DREBIN()
-detector = ANDROPERMBIN()
+detector = ANDROPERMBIN(classifier='ARF')
 
 # Batch testing
 # BatchEvaluator(detector,dataset)
