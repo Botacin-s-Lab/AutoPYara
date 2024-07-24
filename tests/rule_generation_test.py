@@ -1,3 +1,7 @@
+import os, sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+basePath = os.path.abspath(os.path.join(os.path.dirname(__file__), '..')) + '/'
+
 # we import the new framework
 from capymoasec.rule_generators import autoyara
 
