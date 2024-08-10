@@ -3,7 +3,7 @@ name: Java CI with Maven
 on:
   push:
     branches:
-      - main
+      - test_build
   workflow_dispatch:  # Allows manual trigger
 
 permissions:
