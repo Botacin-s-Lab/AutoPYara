@@ -5,6 +5,10 @@ on:
     branches:
       - test_build
   workflow_dispatch:  # This adds a manual trigger option
+
+permissions:
+  contents: write  # Grants write access to the repository
+
 jobs:
   build:
     runs-on: ubuntu-latest
