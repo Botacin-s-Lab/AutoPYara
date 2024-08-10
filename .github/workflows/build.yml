@@ -46,6 +46,9 @@ jobs:
         draft: false
         prerelease: false
 
+    - name: List files in target directory
+      run: ls -la target
+
     - name: Upload JAR file to Release
       uses: actions/upload-release-asset@v1
       env:
