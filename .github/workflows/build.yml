@@ -4,13 +4,6 @@ on:
   push:
     branches:
       - main
-      - test_build
-  pull_request:
-    branches:
-      - main
-      - test_build
-  release:
-    types: [created]
 
 jobs:
   build:
@@ -29,31 +22,31 @@ jobs:
     - name: Build with Maven
       run: mvn -B package
 
-    - name: Upload JAR file as release artifact
-      if: github.event_name == 'release'
-      uses: actions/upload-artifact@v3
-      with:
-        name: AutoYara-1.0-SNAPSHOT.jar
-        path: target/*.jar
+    - name: Get current date
+      id: date
+      run: echo "RELEASE_TAG=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
+
+    - name: Create GitHub Tag
+      run: |
+        git tag ${{ env.RELEASE_TAG }}
+        git push origin ${{ env.RELEASE_TAG }}
 
     - name: Create GitHub Release
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: v${{ github.run_number }}
-        release_name: "Release ${{ github.run_number }}"
+        tag_name: ${{ env.RELEASE_TAG }}
+        release_name: "Release ${{ env.RELEASE_TAG }}"
         draft: false
         prerelease: false
 
     - name: Upload JAR file to Release
-      if: github.ref == 'refs/heads/main'
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        upload_url: ${{ steps.create-release.outputs.upload_url }}
         asset_path: target/*.jar
-        asset_name: my-java-app-${{ github.run_number }}.jar
+        asset_name: AutoYara-1.0-SNAPSHOT-${{ env.RELEASE_TAG }}.jar
         asset_content_type: application/java-archive
