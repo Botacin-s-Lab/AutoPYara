@@ -5,11 +5,10 @@ import os
 import gc
 
 # parent directory containing folders input_testing, input_training, intermediate, output
-parent_directory = "src/python"
+parent_directory = "/home/nick/Desktop/github mlsec-prototype/CapyMOASec/mlsec-prototype"
 
 # directory containing the autoyara jar file, i recommend to point it directly to the maven package output location
-autoyara_jar_directory = "AutoYara-1.0-SNAPSHOT.jar"
-
+autoyara_jar_directory = "/home/nick/Desktop/github mlsec-java/CapyMOASec/target/AutoYara-1.0-SNAPSHOT.jar"#"AutoYara-1.0-SNAPSHOT.jar"
 
 # Function to start JVM
 def start_jvm():
@@ -73,7 +72,19 @@ def train_and_predict():
                    fromDirectory("intermediate/bloom_filters/malicious"),
                    fromDirectory("intermediate/bloom_filters/benign"))
 
+def getSignature():
+    myYara = AutoYara.AutoYara(top_k=100)
+    myList = myYara.buildCandidateSet(fromDirectory("input_testing/malicious/mw2_lite"),
+                   fromDirectory("intermediate/bloom_filters/malicious"),
+                   fromDirectory("intermediate/bloom_filters/benign"))
+
+    myPyList = list(myList)
+    for sigCandidateJavaObject in myList:
+        print(sigCandidateJavaObject.getSignature())
 
 start_jvm()
-train_and_predict()
+#train_and_predict()
+print("starting test code")
+getSignature()
+print("test code ran, shutting down jvm")
 shutdown_jvm()

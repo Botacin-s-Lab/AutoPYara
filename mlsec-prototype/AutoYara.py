@@ -17,8 +17,12 @@ class AutoYara:
         self.byte2Bloom = Bytes2Bloom()
 
         # Set the parameters
-        self.yaraCluster.max_filter_size = 10000000
+        self.yaraCluster.max_filter_size = 100000
         self.byte2Bloom.tooKeep = top_k
+
+    def buildCandidateSet(self, target_dir, bloom_mal_dir, bloom_beg_dir, ngram_size=8):
+        print("buildCandidateSet directories", target_dir, bloom_beg_dir, bloom_mal_dir)
+        return self.yaraCluster.pythonBuildCandidateSet(File(target_dir), ngram_size, File(bloom_beg_dir), File(bloom_mal_dir))
 
     def train(self, input_dir, output_dir, ngram_size=8):
         input_file = File(input_dir)
@@ -57,6 +61,9 @@ class AutoYara:
             print("testing complete")
         except Exception as e:
             print(f"Exception during run: {e}")
+
+    def predict_proba(self):
+        pass
 
 #myYara = AutoYara()
 #print(myYara.train().stdout)
