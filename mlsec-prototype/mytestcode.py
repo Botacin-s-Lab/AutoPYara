@@ -27,6 +27,11 @@ def start_jvm():
     import AutoYara
     MemoryMonitor = jpype.JClass("edu.lps.acs.ml.autoyara.MemoryMonitor")
 
+# Function to shutdown JVM
+def shutdown_jvm():
+    if jpype.isJVMStarted():
+        jpype.shutdownJVM()
+
 def print_memory_usage(label="Memory"):
     used_memory = MemoryMonitor.getUsedMemory() / (1024 * 1024)  # Convert to MB
     free_memory = MemoryMonitor.getFreeMemory() / (1024 * 1024)  # Convert to MB
@@ -38,19 +43,14 @@ def print_memory_usage(label="Memory"):
     print(f"\tTotal Memory: {total_memory:.2f} MB")
     print(f"\tMax Memory: {max_memory:.2f} MB")
 
-# Function to shutdown JVM
-def shutdown_jvm():
-    if jpype.isJVMStarted():
-        jpype.shutdownJVM()
-
-
 def fromDirectory(subdirectory):
     return parent_directory + "/" + subdirectory
 
-def train_and_predict():
-    myYara = AutoYara.AutoYara(top_k=100)
+def train(myYara=None):
+    if myYara is None:
+        myYara = AutoYara.AutoYara(top_k=100)
 
-    for i in [8, 16, 32, 64]: # n-grams
+    for i in [8, 16]: # n-grams
         print_memory_usage("MEMORY BEFORE")
         myYara.train(fromDirectory("input_training/benign"), fromDirectory("intermediate/bloom_filters/benign"),
                      ngram_size=i)
@@ -66,14 +66,26 @@ def train_and_predict():
         gc.collect()
         jpype.java.lang.System.gc()
 
-    myYara = AutoYara.AutoYara()
+def predict(myYara=None):
+    if myYara is None:
+        myYara = AutoYara.AutoYara(top_k=100)
+
     print("Predictions:")
     myYara.predict(fromDirectory("input_testing/malicious"), fromDirectory("output"),
                    fromDirectory("intermediate/bloom_filters/malicious"),
                    fromDirectory("intermediate/bloom_filters/benign"))
 
-def getSignature():
-    myYara = AutoYara.AutoYara(top_k=100)
+def train_and_predict(myYara=None):
+    if myYara is None:
+        myYara = AutoYara.AutoYara(top_k=100)
+
+    train(myYara)
+    predict(myYara)
+
+def get_signature(myYara=None):
+    if myYara is None:
+        myYara = AutoYara.AutoYara(top_k=100)
+
     myList = myYara.buildCandidateSet(fromDirectory("input_testing/malicious/mw2_lite"),
                    fromDirectory("intermediate/bloom_filters/malicious"),
                    fromDirectory("intermediate/bloom_filters/benign"))
@@ -82,9 +94,17 @@ def getSignature():
     for sigCandidateJavaObject in myList:
         print(sigCandidateJavaObject.getSignature())
 
-start_jvm()
-#train_and_predict()
-print("starting test code")
-getSignature()
-print("test code ran, shutting down jvm")
-shutdown_jvm()
+def main():
+    start_jvm()
+    #train_and_predict()
+    print("starting test code")
+
+    myYara = AutoYara.AutoYara(top_k=100)
+
+    train(myYara)
+    predict(myYara)
+    get_signature(myYara)
+    print("test code ran, shutting down jvm")
+    shutdown_jvm()
+
+main()

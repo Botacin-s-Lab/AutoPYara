@@ -4,7 +4,7 @@ from jpype.types import *
 import os
 
 # Import the AutoYaraCluster class
-AutoYaraCluster = jpype.JPackage("edu.lps.acs.ml.autoyara").AutoYaraCluster
+AutoYaraCluster = jpype.JPackage("edu.lps.acs.ml.autoyara").AutoYaraPython
 Bytes2Bloom = jpype.JPackage("edu.lps.acs.ml.autoyara").Bytes2Bloom
 File = jpype.JClass("java.io.File")
 ArrayList = jpype.JClass("java.util.ArrayList")
@@ -22,7 +22,7 @@ class AutoYara:
 
     def buildCandidateSet(self, target_dir, bloom_mal_dir, bloom_beg_dir, ngram_size=8):
         print("buildCandidateSet directories", target_dir, bloom_beg_dir, bloom_mal_dir)
-        return self.yaraCluster.pythonBuildCandidateSet(File(target_dir), ngram_size, File(bloom_beg_dir), File(bloom_mal_dir))
+        return self.yaraCluster.buildCandidateSet(File(target_dir), ngram_size, File(bloom_beg_dir), File(bloom_mal_dir))
 
     def train(self, input_dir, output_dir, ngram_size=8):
         input_file = File(input_dir)
@@ -61,9 +61,6 @@ class AutoYara:
             print("testing complete")
         except Exception as e:
             print(f"Exception during run: {e}")
-
-    def predict_proba(self):
-        pass
 
 #myYara = AutoYara()
 #print(myYara.train().stdout)
