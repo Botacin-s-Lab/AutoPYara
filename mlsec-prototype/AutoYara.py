@@ -42,7 +42,7 @@ class AutoYara:
         except Exception as e:
             print(f"Exception during {ngram_size}-gram extraction: {e}")
 
-    def predict(self, inputDir, outputDir, bloomMalicious, bloomBenign):
+    def predict(self, inputDir, outputDir, bloomMalicious, bloomBenign, bicluster="SpectralCoCluster", cluster="VBGMM"):
         input_dirs = ArrayList()
         input_dirs.add(File(inputDir))  # Provide the correct path to your input directory
         self.yaraCluster.inDir = input_dirs
@@ -53,6 +53,8 @@ class AutoYara:
 
         # Set the output file
         self.yaraCluster.out_file = File(outputDir)
+        self.yaraCluster.clusterAlg = cluster
+        self.yaraCluster.biclusterAlg = bicluster
 
         # Call the run method
         try:

@@ -104,6 +104,7 @@ def main():
     train(myYara)
     predict(myYara)
     get_signature(myYara)
+
     print("test code ran, shutting down jvm")
     shutdown_jvm()
 
