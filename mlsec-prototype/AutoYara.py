@@ -1,70 +1,67 @@
+from PythonInterface import PythonInterface
 import jpype
-import jpype.imports
+from typing import Literal
 from jpype.types import *
-import os
 
-# Import the AutoYaraCluster class
-AutoYaraCluster = jpype.JPackage("edu.lps.acs.ml.autoyara").AutoYaraCluster
-Bytes2Bloom = jpype.JPackage("edu.lps.acs.ml.autoyara").Bytes2Bloom
-File = jpype.JClass("java.io.File")
-ArrayList = jpype.JClass("java.util.ArrayList")
-Integer = jpype.JClass("java.lang.Integer")
+# Define a custom type for the algorithm options
+BiclusterAlgorithmType = Literal['SpectralCoCluster', 'SpectralCoClusterScale']
 
-class AutoYara:
+class AutoYara(PythonInterface):
     def __init__(self, top_k=1000):
-        # Create an instance of the Java class
-        self.yaraCluster = AutoYaraCluster()
-        self.byte2Bloom = Bytes2Bloom()
+        super().__init__()
+
+        # Import Java classes
+        self.AutoYaraPython = jpype.JPackage("edu.lps.acs.ml.autoyara").AutoYaraPython
+        self.Bytes2Bloom = jpype.JPackage("edu.lps.acs.ml.autoyara").Bytes2Bloom
+        self.File = jpype.JClass("java.io.File")
+        self.ArrayList = jpype.JClass("java.util.ArrayList")
+        self.Integer = jpype.JClass("java.lang.Integer")
+
+        # Create instances of the Java classes
+        self.yara_cluster = self.AutoYaraPython()
+        self.bytes2bloom = self.Bytes2Bloom()
 
         # Set the parameters
-        self.yaraCluster.max_filter_size = 100000
-        self.byte2Bloom.tooKeep = top_k
+        self.yara_cluster.max_filter_size = 100000
+        self.bytes2bloom.tooKeep = top_k
 
-    def buildCandidateSet(self, target_dir, bloom_mal_dir, bloom_beg_dir, ngram_size=8):
-        print("buildCandidateSet directories", target_dir, bloom_beg_dir, bloom_mal_dir)
-        return self.yaraCluster.pythonBuildCandidateSet(File(target_dir), ngram_size, File(bloom_beg_dir), File(bloom_mal_dir))
+    def build_candidate_set(self, target_dir, bloom_mal_dir, bloom_beg_dir, ngram_size=8):
+        return self.yara_cluster.buildCandidateSet(
+            self.File(target_dir), ngram_size, self.File(bloom_beg_dir), self.File(bloom_mal_dir))
 
     def train(self, input_dir, output_dir, ngram_size=8):
-        input_file = File(input_dir)
-        output_file = File(output_dir)
+        input_file = self.File(input_dir)
+        output_file = self.File(output_dir)
 
-        # Set the parameters
-        self.byte2Bloom.inDir = input_file
-        self.byte2Bloom.gramSizes = ArrayList()
-        self.byte2Bloom.gramSizes.add(Integer(ngram_size))
-        self.byte2Bloom.outDir = output_file
+        self.bytes2bloom.inDir = input_file
+        self.bytes2bloom.gramSizes = self.ArrayList()
+        self.bytes2bloom.gramSizes.add(self.Integer(ngram_size))
+        self.bytes2bloom.outDir = output_file
 
-        # Run the Java method
         try:
-            print("starting bloom filter training")
-            self.byte2Bloom.run()
+            print("Starting bloom filter training")
+            self.bytes2bloom.run()
             print(f"{ngram_size}-gram extraction complete for {input_dir}")
         except Exception as e:
             print(f"Exception during {ngram_size}-gram extraction: {e}")
 
-    def predict(self, inputDir, outputDir, bloomMalicious, bloomBenign):
-        input_dirs = ArrayList()
-        input_dirs.add(File(inputDir))  # Provide the correct path to your input directory
-        self.yaraCluster.inDir = input_dirs
+        self.reset_memory()
 
-        # Set the bloom filter directories
-        self.yaraCluster.benign_bloom_dir = File(bloomBenign)
-        self.yaraCluster.malicious_bloom_dir = File(bloomMalicious)
+    def generate(self, input_dir, output_dir, bloom_malicious, bloom_benign,
+                 bicluster_alg: BiclusterAlgorithmType = 'SpectralCoCluster'):
+        input_dirs = self.ArrayList()
+        input_dirs.add(self.File(input_dir))
+        self.yara_cluster.inDir = input_dirs
 
-        # Set the output file
-        self.yaraCluster.out_file = File(outputDir)
+        self.yara_cluster.biclusterAlg = bicluster_alg
 
-        # Call the run method
+        self.yara_cluster.benign_bloom_dir = self.File(bloom_benign)
+        self.yara_cluster.malicious_bloom_dir = self.File(bloom_malicious)
+        self.yara_cluster.out_file = self.File(output_dir)
+
         try:
-            print("starting testing")
-            self.yaraCluster.run()
-            print("testing complete")
+            print("Starting testing")
+            self.yara_cluster.run()
+            print("Testing complete")
         except Exception as e:
             print(f"Exception during run: {e}")
-
-    def predict_proba(self):
-        pass
-
-#myYara = AutoYara()
-#print(myYara.train().stdout)
-#print(myYara.predict().stdout)
