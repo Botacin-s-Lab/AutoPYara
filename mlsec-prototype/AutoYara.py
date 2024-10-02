@@ -29,6 +29,9 @@ class AutoYara(PythonInterface):
         return self.yara_cluster.buildCandidateSet(
             self.File(target_dir), ngram_size, self.File(bloom_beg_dir), self.File(bloom_mal_dir))
 
+    def bicluster(self, final_candidates, bicluster_alg: BiclusterAlgorithmType = 'SpectralCoCluster'):
+        pass
+
     def train(self, input_dir, output_dir, ngram_size=8):
         input_file = self.File(input_dir)
         output_file = self.File(output_dir)

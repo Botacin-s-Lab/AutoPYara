@@ -11,7 +11,7 @@ parent_directory = "/home/vboxuser/Desktop/github-mlsec-python/CapyMOASec/mlsec-
 def from_directory(subdirectory):
     return parent_directory + "/" + subdirectory
 
-def example_train_and_predict_debug():
+def demo_train_and_predict_debug():
     # this demo is used to debug the train/predict pipeline (WIP)
     myYara = AutoYara(top_k=100)
 
@@ -37,7 +37,7 @@ def example_train_and_predict_debug():
                     from_directory("intermediate/bloom_filters/malicious"),
                     from_directory("intermediate/bloom_filters/benign"))
 
-def example_train():
+def demo_train():
     # this example shows how to generate new bloom files (WIP)
     myYara = AutoYara(top_k=100)
 
@@ -47,7 +47,7 @@ def example_train():
         myYara.train(from_directory("input_training/malicious/mw1_lite"), from_directory("intermediate/bloom_filters/malicious"),
                      ngram_size=i)
 
-def example_predict():
+def demo_predict():
     # this example shows how to genreate new yara rules (WIP)
     myYara = AutoYara()
     print("Predictions:")
@@ -56,16 +56,18 @@ def example_predict():
                     from_directory("intermediate/bloom_filters/benign"))
 
 
-def example_get_signatures():
+def demo_get_signatures():
     # this example shows how to retrieve the n-gram byte candidates selected (WIP)
     myYara = AutoYara(top_k=100)
     myList = myYara.build_candidate_set(from_directory("input_testing/malicious/mw2_lite"),
                                         from_directory("intermediate/bloom_filters/malicious"),
                                         from_directory("intermediate/bloom_filters/benign"), ngram_size=8)
 
-    myPyList = list(myList)
-    for sigCandidateJavaObject in myList:
-        print(sigCandidateJavaObject.getSignature())
+    # Now candidate_dicts is a list of Python dictionaries
+    for candidate_dict in myList:
+        # You can work with each candidate_dict as a normal Python dictionary
+        print(candidate_dict['signature'])
+        print(candidate_dict['b_fp'])
 
 def demo_select_bicluster():
     # this demonstrates how bicluster selection works
@@ -81,4 +83,4 @@ def demo_select_bicluster():
                     from_directory("intermediate/bloom_filters/benign"), bicluster_alg="SpectralCoClusterScale")
 
 print("starting test code")
-demo_select_bicluster()
+demo_get_signatures()
