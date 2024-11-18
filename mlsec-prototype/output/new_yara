@@ -1,0 +1,238 @@
+[rule new_yara
+{
+	//Input TP Rate:
+	//33/50
+	strings:
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.0 Found in 33 files
+		$x0 = { 00 74 00 69 00 6F 00 6E } //This might be a string? Looks like:tion
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 10 files
+		$x1 = " informa" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.4056390622295662 Found in 9 files
+		$x2 = { 00 8D 85 2C FF FF FF 50 } 
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 12 files
+		$x3 = "irectory" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 19 files
+		$x4 = { 0C D3 AF CD D0 11 8A 3E } 
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 37 files
+		$x112 = { 69 62 72 61 72 79 41 00 } //This might be a string? Looks like:ibraryA
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.0 Found in 20 files
+		$x5 = { 73 00 69 00 62 00 6C 00 } //This might be a string? Looks like:sibl
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 40 files
+		$x6 = { 50 72 6F 63 65 73 73 00 } //This might be a string? Looks like:Process
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 17 files
+		$x7 = "etWindow" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.0 Found in 9 files
+		$x8 = { 00 45 00 44 00 4C 00 47 } //This might be a string? Looks like:EDLG
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 10 files
+		$x9 = "etProces" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 25 files
+		$x10 = { 00 6F 6C 65 33 32 2E 64 } //This might be a string? Looks like:ole32.d
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.0 Found in 16 files
+		$x11 = { 00 6C 00 69 00 63 00 61 } //This might be a string? Looks like:lica
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 10 files
+		$x12 = { 5D C2 10 00 55 8B EC 51 } 
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 18 files
+		$x13 = "utionLev" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 9 files
+		$x14 = ".microso" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 11 files
+		$x15 = { 5D C2 08 00 55 8B EC 8B } 
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.0 Found in 18 files
+		$x16 = { 00 74 00 65 00 72 00 20 } //This might be a string? Looks like:ter 
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 1.4056390622295665 Found in 11 files
+		$x17 = { 03 03 03 04 04 04 04 05 } 
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.1556390622295662 Found in 48 files
+		$x18 = { 2E 72 73 72 63 00 00 00 } //This might be a string? Looks like:.rsrc
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 1.75 Found in 16 files
+		$x106 = { 34 00 30 00 39 00 30 00 } //This might be a string? Looks like:4090
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 21 files
+		$x107 = { 00 6B 65 72 6E 65 6C 33 } //This might be a string? Looks like:kernel3
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.0 Found in 19 files
+		$x19 = { 69 00 6E 00 64 00 6F 00 } //This might be a string? Looks like:indo
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 10 files
+		$x20 = { 69 6C 65 54 79 70 65 00 } //This might be a string? Looks like:ileType
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 9 files
+		$x21 = "SHGetMal" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 1.5487949406953985 Found in 23 files
+		$x22 = { 3E 0D 0A 20 20 20 20 20 } //This might be a string? Looks like:>\r\n     
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 39 files
+		$x23 = "itProces" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 9 files
+		$x24 = { 5E C2 04 00 55 8B EC 83 } 
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.4056390622295662 Found in 18 files
+		$x108 = { BD 04 EF FE 00 00 01 00 } 
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.0 Found in 14 files
+		$x25 = { 00 72 00 74 00 20 00 61 } //This might be a string? Looks like:rt a
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.0 Found in 17 files
+		$x26 = { 61 00 63 00 74 00 69 00 } //This might be a string? Looks like:acti
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 19 files
+		$x27 = "tionLeve" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 15 files
+		$x28 = "etVersio" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 14 files
+		$x29 = "tTickCou" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.4056390622295662 Found in 15 files
+		$x30 = "itialize" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.5 Found in 14 files
+		$x31 = "teStream" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 20 files
+		$x32 = "RegQuery" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 10 files
+		$x33 = "ronmentV" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.1556390622295662 Found in 11 files
+		$x34 = "o foi po" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 23 files
+		$x35 = "Controls" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.1556390622295662 Found in 24 files
+		$x36 = { 2E 64 61 74 61 00 00 00 } //This might be a string? Looks like:.data
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 16 files
+		$x37 = "RegSetVa" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.0 Found in 9 files
+		$x38 = { 00 66 00 72 00 65 00 73 } //This might be a string? Looks like:fres
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.0 Found in 13 files
+		$x39 = { 00 46 00 49 00 4C 00 45 } //This might be a string? Looks like:FILE
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 1.9056390622295665 Found in 14 files
+		$x40 = "ommonCon" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 12 files
+		$x41 = "NEL32.dl" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.0 Found in 17 files
+		$x42 = { 61 00 69 00 6C 00 65 00 } //This might be a string? Looks like:aile
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 10 files
+		$x43 = { 4E 1B 10 AE 2D 08 00 2B } 
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 10 files
+		$x44 = "onfirmar" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.0 Found in 22 files
+		$x114 = { 64 00 75 00 63 00 74 00 } //This might be a string? Looks like:duct
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 16 files
+		$x45 = "CreateFi" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 10 files
+		$x46 = "MCTL32.d" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 8 files
+		$x47 = { 08 8D 46 FC 33 DB 57 85 } 
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 1.5 Found in 10 files
+		$x48 = { 00 00 01 01 01 01 02 02 } 
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 1.75 Found in 11 files
+		$x49 = { 00 65 00 6C 00 65 00 63 } //This might be a string? Looks like:elec
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 15 files
+		$x50 = "lientRec" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 9 files
+		$x51 = "DVAPI32." ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.0 Found in 13 files
+		$x52 = { 00 6B 00 6E 00 6F 00 77 } //This might be a string? Looks like:know
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.4056390622295662 Found in 13 files
+		$x53 = "CreateKe" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 13 files
+		$x54 = "etCPInfo" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 9 files
+		$x55 = { 2E 76 32 22 3E 0D 0A 20 } //This might be a string? Looks like:.v2">\r\n 
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 9 files
+		$x56 = { 83 B8 ED EB 02 D1 E8 4A } 
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.4056390622295662 Found in 32 files
+		$x57 = { 61 6C 41 6C 6C 6F 63 00 } //This might be a string? Looks like:alAlloc
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 20 files
+		$x58 = "oduleHan" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 11 files
+		$x59 = "ProcessH" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 10 files
+		$x60 = { 74 72 6F 6C 73 45 78 00 } //This might be a string? Looks like:trolsEx
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 22 files
+		$x61 = "xml vers" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 14 files
+		$x62 = "iByteToW" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 18 files
+		$x63 = { 3D 22 31 2E 30 22 3E 0D } //This might be a string? Looks like:="1.0">\r
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 14 files
+		$x64 = "DeviceCa" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.0 Found in 12 files
+		$x65 = { 00 72 00 65 00 20 00 64 } //This might be a string? Looks like:re d
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 20 files
+		$x66 = { 00 43 72 65 61 74 65 46 } //This might be a string? Looks like:CreateF
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 17 files
+		$x67 = "scriptio" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 17 files
+		$x68 = { 65 6E 63 79 3E 0D 0A 20 } //This might be a string? Looks like:ency>\r\n 
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 10 files
+		$x69 = "SER32.dl" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 1.75 Found in 20 files
+		$x70 = { 2E 64 6C 6C 00 00 00 00 } //This might be a string? Looks like:.dll
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.1556390622295662 Found in 24 files
+		$x105 = { 10 00 01 00 04 00 28 01 } 
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 29 files
+		$x71 = "KERNEL32" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 15 files
+		$x72 = "oseHandl" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.0 Found in 25 files
+		$x109 = { 53 00 74 00 72 00 69 00 } //This might be a string? Looks like:Stri
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.0 Found in 12 files
+		$x73 = { 00 68 00 69 00 73 00 20 } //This might be a string? Looks like:his 
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.1556390622295662 Found in 12 files
+		$x74 = { FF 75 0C FF 75 08 FF 15 } 
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.0 Found in 9 files
+		$x75 = { 00 62 00 72 00 65 00 61 } //This might be a string? Looks like:brea
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 12 files
+		$x76 = "spatchMe" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 11 files
+		$x77 = "eStringA" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.5 Found in 14 files
+		$x78 = "applicat" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 20 files
+		$x79 = "lication" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 13 files
+		$x80 = { 76 65 6C 3D 22 61 73 49 } //This might be a string? Looks like:vel="asI
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.0 Found in 15 files
+		$x81 = { 00 65 00 64 00 20 00 77 } //This might be a string? Looks like:ed w
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.0 Found in 17 files
+		$x82 = { 00 65 00 6E 00 63 00 6F } //This might be a string? Looks like:enco
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 32 files
+		$x83 = "QueryVal" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 9 files
+		$x84 = { 74 61 6C 61 E7 E3 6F 20 } //This might be a string? Looks like:talao 
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 39 files
+		$x85 = "GetProcA" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 11 files
+		$x86 = "ileNameW" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.0 Found in 41 files
+		$x110 = { 49 00 4E 00 46 00 4F 00 } //This might be a string? Looks like:INFO
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 13 files
+		$x87 = "amOnHGlo" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 1.061278124459133 Found in 17 files
+		$x88 = "      ui" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 11 files
+		$x89 = "vironmen" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.5 Found in 15 files
+		$x90 = { 2E 72 64 61 74 61 00 00 } //This might be a string? Looks like:.rdata
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 1.75 Found in 12 files
+		$x91 = { 73 00 65 00 20 00 65 00 } //This might be a string? Looks like:se e
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 24 files
+		$x92 = "DOS mode" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 15 files
+		$x93 = "ateFileA" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 1.75 Found in 18 files
+		$x94 = { 63 00 65 00 73 00 73 00 } //This might be a string? Looks like:cess
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.0 Found in 27 files
+		$x111 = { 65 00 72 00 73 00 69 00 } //This might be a string? Looks like:ersi
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 13 files
+		$x95 = { 73 57 69 6E 64 6F 77 00 } //This might be a string? Looks like:sWindow
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.0 Found in 13 files
+		$x96 = { 64 00 20 00 77 00 68 00 } //This might be a string? Looks like:d wh
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 16 files
+		$x97 = "WindowTe" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 23 files
+		$x98 = "Privileg" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.4056390622295662 Found in 13 files
+		$x99 = "balAlloc" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 24 files
+		$x100 = "CloseKey" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.0 Found in 20 files
+		$x113 = { 4E 00 61 00 6D 00 65 00 } //This might be a string? Looks like:Name
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 12 files
+		$x101 = { 6E 73 74 61 6E 63 65 00 } //This might be a string? Looks like:nstance
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 3.0 Found in 50 files
+		$x102 = "This pro" ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.75 Found in 13 files
+		$x103 = "onLevel " ascii
+		//Benign FP est: -0.0 Malicious FP est: -0.0 Entropy: 2.0 Found in 17 files
+		$x104 = { 00 65 00 20 00 61 00 72 } //This might be a string? Looks like:e ar
+
+		condition:
+(105 of ($x0,$x1,$x2,$x3,$x4,$x5,$x6,$x7,$x8,$x9,$x10,$x11,$x12,$x13,$x14,$x15,$x16,$x17,$x18,$x19,$x20,$x21,$x22,$x23,$x24,$x25,$x26,$x27,$x28,$x29,$x30,$x31,$x32,$x33,$x34,$x35,$x36,$x37,$x38,$x39,$x40,$x41,$x42,$x43,$x44,$x45,$x46,$x47,$x48,$x49,$x50,$x51,$x52,$x53,$x54,$x55,$x56,$x57,$x58,$x59,$x60,$x61,$x62,$x63,$x64,$x65,$x66,$x67,$x68,$x69,$x70,$x71,$x72,$x73,$x74,$x75,$x76,$x77,$x78,$x79,$x80,$x81,$x82,$x83,$x84,$x85,$x86,$x87,$x88,$x89,$x90,$x91,$x92,$x93,$x94,$x95,$x96,$x97,$x98,$x99,$x100,$x101,$x102,$x103,$x104) ) or (11 of ($x105,$x0,$x18,$x106,$x107,$x85,$x108,$x23,$x109,$x110,$x111,$x112,$x6,$x113,$x102,$x92,$x114) )}]

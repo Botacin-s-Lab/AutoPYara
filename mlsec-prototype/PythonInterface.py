@@ -2,6 +2,8 @@ import jpype
 import jpype.imports
 import atexit
 import gc
+import os
+
 
 class PythonInterface:
     _jvm_started = False
@@ -14,11 +16,18 @@ class PythonInterface:
                 "-XX:+HeapDumpOnOutOfMemoryError",
                 "-XX:HeapDumpPath=src/python/heapdump",
             ]
+
+            home = os.path.expanduser("~")
+            classpath = [os.path.join(home, "Desktop/github-mlsec-java/CapyMOASec/target/AutoYara-1.0-SNAPSHOT.jar")]
+
             jpype.startJVM(
-                classpath=["/home/vboxuser/Desktop/github-mlsec-java/CapyMOASec/target/AutoYara-1.0-SNAPSHOT.jar"],
+                classpath=classpath,
                 convertStrings=True, *jvm_options)
             cls._jvm_started = True
             atexit.register(cls._shutdown_jvm)
+
+            print("JVM Started")
+            cls.print_memory_usage(cls)
 
     @classmethod
     def _shutdown_jvm(cls):

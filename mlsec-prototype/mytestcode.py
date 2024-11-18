@@ -6,7 +6,9 @@ import gc
 from AutoYara import AutoYara
 
 # parent directory containing folders input_testing, input_training, intermediate, output
-parent_directory = "/home/vboxuser/Desktop/github-mlsec-python/CapyMOASec/mlsec-prototype"
+home = os.path.expanduser("~")
+parent_directory = os.path.join(home, "Desktop/github-mlsec-python/CapyMOASec/mlsec-prototype")
+# parent_directory = "/home/vboxuser/Desktop/github-mlsec-python/CapyMOASec/mlsec-prototype"
 
 def from_directory(subdirectory):
     return parent_directory + "/" + subdirectory
@@ -48,10 +50,10 @@ def demo_train():
                      ngram_size=i)
 
 def demo_predict():
-    # this example shows how to genreate new yara rules (WIP)
+    # this example shows how to generate new yara rules (WIP)
     myYara = AutoYara()
     print("Predictions:")
-    myYara.generate(from_directory("input_testing/malicious/mw2_lite"), from_directory("output"),
+    myYara.generate(from_directory("input_testing/malicious/mw2"), from_directory("output"),
                     from_directory("intermediate/bloom_filters/malicious"),
                     from_directory("intermediate/bloom_filters/benign"))
 
@@ -82,5 +84,19 @@ def demo_select_bicluster():
                     from_directory("intermediate/bloom_filters/malicious"),
                     from_directory("intermediate/bloom_filters/benign"), bicluster_alg="SpectralCoClusterScale")
 
+def demo_compare_new_old():
+    # compare results between new autoyara and old to make sure nothing core was changed
+
+    myYara = AutoYara()
+    # print("Predictions (new):")
+    # myYara.generate(from_directory("input_testing/malicious/mw2"), from_directory("output/new_yara"),
+    #                 from_directory("intermediate/bloom_filters/malicious-bytes"),
+    #                 from_directory("intermediate/bloom_filters/benign-bytes"))
+
+    print("Predictions (legacy):")
+    myYara.generate_legacy(from_directory("input_testing/malicious/mw2"), from_directory("output/legacy_yara"),
+                    from_directory("intermediate/bloom_filters/malicious-bytes"),
+                    from_directory("intermediate/bloom_filters/benign-bytes"))
+
 print("starting test code")
-demo_get_signatures()
+demo_compare_new_old()

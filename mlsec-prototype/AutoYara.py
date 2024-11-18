@@ -5,12 +5,14 @@ from jpype.types import *
 
 # Define a custom type for the algorithm options
 BiclusterAlgorithmType = Literal['SpectralCoCluster', 'SpectralCoClusterScale']
+ClusterAlgorithmType = Literal['VBGMM']
 
 class AutoYara(PythonInterface):
     def __init__(self, top_k=1000):
         super().__init__()
 
         # Import Java classes
+        self.AutoYaraCluster = jpype.JPackage("edu.lps.acs.ml.autoyara").AutoYaraCluster
         self.AutoYaraPython = jpype.JPackage("edu.lps.acs.ml.autoyara").AutoYaraPython
         self.Bytes2Bloom = jpype.JPackage("edu.lps.acs.ml.autoyara").Bytes2Bloom
         self.File = jpype.JClass("java.io.File")
@@ -18,19 +20,18 @@ class AutoYara(PythonInterface):
         self.Integer = jpype.JClass("java.lang.Integer")
 
         # Create instances of the Java classes
+        self.yara_cluster_legacy = self.AutoYaraCluster()
         self.yara_cluster = self.AutoYaraPython()
         self.bytes2bloom = self.Bytes2Bloom()
 
         # Set the parameters
-        self.yara_cluster.max_filter_size = 100000
+        self.yara_cluster.max_filter_size = 10000000
+        self.yara_cluster_legacy.max_filter_size = 10000000
         self.bytes2bloom.tooKeep = top_k
 
     def build_candidate_set(self, target_dir, bloom_mal_dir, bloom_beg_dir, ngram_size=8):
         return self.yara_cluster.buildCandidateSet(
             self.File(target_dir), ngram_size, self.File(bloom_beg_dir), self.File(bloom_mal_dir))
-
-    def bicluster(self, final_candidates, bicluster_alg: BiclusterAlgorithmType = 'SpectralCoCluster'):
-        pass
 
     def train(self, input_dir, output_dir, ngram_size=8):
         input_file = self.File(input_dir)
@@ -51,12 +52,13 @@ class AutoYara(PythonInterface):
         self.reset_memory()
 
     def generate(self, input_dir, output_dir, bloom_malicious, bloom_benign,
-                 bicluster_alg: BiclusterAlgorithmType = 'SpectralCoCluster'):
+                 bicluster_alg: BiclusterAlgorithmType = 'SpectralCoCluster', cluster_alg: ClusterAlgorithmType = 'VBGMM'):
         input_dirs = self.ArrayList()
         input_dirs.add(self.File(input_dir))
         self.yara_cluster.inDir = input_dirs
 
-        self.yara_cluster.biclusterAlg = bicluster_alg
+        self.yara_cluster.biclusterPipelineAlg = bicluster_alg
+        self.yara_cluster.clusterAlg = cluster_alg
 
         self.yara_cluster.benign_bloom_dir = self.File(bloom_benign)
         self.yara_cluster.malicious_bloom_dir = self.File(bloom_malicious)
@@ -65,6 +67,23 @@ class AutoYara(PythonInterface):
         try:
             print("Starting testing")
             self.yara_cluster.run()
+            print("Testing complete")
+        except Exception as e:
+            print(f"Exception during run: {e}")
+
+    def generate_legacy(self, input_dir, output_dir, bloom_malicious, bloom_benign):
+        # Issue: generate_legacy isn't generating the same file as the original yara or new yara algorithm
+        input_dirs = self.ArrayList()
+        input_dirs.add(self.File(input_dir))
+        self.yara_cluster_legacy.inDir = input_dirs
+
+        self.yara_cluster_legacy.benign_bloom_dir = self.File(bloom_benign)
+        self.yara_cluster_legacy.malicious_bloom_dir = self.File(bloom_malicious)
+        self.yara_cluster_legacy.out_file = self.File(output_dir)
+
+        try:
+            print("Starting testing")
+            self.yara_cluster_legacy.run()
             print("Testing complete")
         except Exception as e:
             print(f"Exception during run: {e}")
