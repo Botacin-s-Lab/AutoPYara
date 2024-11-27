@@ -3,7 +3,11 @@ import jpype.imports
 from jpype.types import *
 import os
 import gc
+
+from sympy.series.sequences import SeqExpr
+
 from AutoYara import AutoYara
+from difflib import SequenceMatcher
 
 # parent directory containing folders input_testing, input_training, intermediate, output
 home = os.path.expanduser("~")
@@ -35,9 +39,10 @@ def demo_train_and_predict_debug():
 
     myYara = AutoYara()
     print("Predictions:")
-    myYara.generate(from_directory("input_testing/malicious"), from_directory("output"),
+    output = myYara.generate(from_directory("input_testing/malicious"),
                     from_directory("intermediate/bloom_filters/malicious"),
                     from_directory("intermediate/bloom_filters/benign"))
+    print(output)
 
 def demo_train():
     # this example shows how to generate new bloom files (WIP)
@@ -53,9 +58,10 @@ def demo_predict():
     # this example shows how to generate new yara rules (WIP)
     myYara = AutoYara()
     print("Predictions:")
-    myYara.generate(from_directory("input_testing/malicious/mw2"), from_directory("output"),
+    output = myYara.generate(from_directory("input_testing/malicious/mw2"),
                     from_directory("intermediate/bloom_filters/malicious"),
                     from_directory("intermediate/bloom_filters/benign"))
+    print(output)
 
 
 def demo_get_signatures():
@@ -75,28 +81,62 @@ def demo_select_bicluster():
     # this demonstrates how bicluster selection works
     myYara = AutoYara()
     print("Predictions (spectral):")
-    myYara.generate(from_directory("input_testing/malicious/mw2_lite"), from_directory("output/spectral"),
+    output = myYara.generate(from_directory("input_testing/malicious/mw2_lite"),
                     from_directory("intermediate/bloom_filters/malicious"),
                     from_directory("intermediate/bloom_filters/benign"), bicluster_alg="SpectralCoCluster")
+    print(output)
 
     print("Predictions (spectral scaled):")
-    myYara.generate(from_directory("input_testing/malicious/mw2_lite"), from_directory("output/spectral_scaled"),
+    output = myYara.generate(from_directory("input_testing/malicious/mw2_lite"),
                     from_directory("intermediate/bloom_filters/malicious"),
                     from_directory("intermediate/bloom_filters/benign"), bicluster_alg="SpectralCoClusterScale")
+    print(output)
 
 def demo_compare_new_old():
-    # compare results between new autoyara and old to make sure nothing core was changed
+    # compare results between new autoyara and old
+    # Note: we route the legacy call to the new pipeline
+    # for a true legacy call to the original AutoYara, please download AutoYara and call it via CLI
 
     myYara = AutoYara()
-    # print("Predictions (new):")
-    # myYara.generate(from_directory("input_testing/malicious/mw2"), from_directory("output/new_yara"),
-    #                 from_directory("intermediate/bloom_filters/malicious-bytes"),
-    #                 from_directory("intermediate/bloom_filters/benign-bytes"))
-
-    print("Predictions (legacy):")
-    myYara.generate_legacy(from_directory("input_testing/malicious/mw2"), from_directory("output/legacy_yara"),
+    print("Predictions (new):")
+    output = myYara.generate(from_directory("input_testing/malicious/mw2"),
                     from_directory("intermediate/bloom_filters/malicious-bytes"),
                     from_directory("intermediate/bloom_filters/benign-bytes"))
+    print(output)
+
+    print("Predictions (legacy):")
+    output = myYara.generate(from_directory("input_testing/malicious/mw2"),
+                    from_directory("intermediate/bloom_filters/malicious-bytes"),
+                    from_directory("intermediate/bloom_filters/benign-bytes"), bicluster_alg="SpectralCoCluster", cluster_alg="VBGMM")
+    print(output)
+
+def demo_kmeans_vs_VBGMM():
+    # use spectral coclustering with kmeans or VBGMM for comparison
+    # the demo will output a score betwen 0-1 for similiarity between the output of the two methods
+
+    myYara = AutoYara()
+
+    print("Predictions (Random):")
+    output1 = myYara.generate(from_directory("input_testing/malicious/mw2_lite"),
+                    from_directory("intermediate/bloom_filters/malicious"),
+                    from_directory("intermediate/bloom_filters/benign"), bicluster_alg="SpectralCoCluster", cluster_alg="Random")
+    print(output1)
+
+    print("Predictions (KMeans):")
+    output2 = myYara.generate(from_directory("input_testing/malicious/mw2_lite"),
+                    from_directory("intermediate/bloom_filters/malicious"),
+                    from_directory("intermediate/bloom_filters/benign"), bicluster_alg="SpectralCoCluster", cluster_alg="KMeans")
+    print(output2)
+
+    print("Predictions (VBGMM):")
+    output3 = myYara.generate(from_directory("input_testing/malicious/mw2_lite"),
+                    from_directory("intermediate/bloom_filters/malicious"),
+                    from_directory("intermediate/bloom_filters/benign"), bicluster_alg="SpectralCoCluster", cluster_alg="VBGMM")
+    print(output3)
+
+    print("Output similarity (Random vs KMeans):", SequenceMatcher(None, output1, output2).ratio())
+    print("Output similarity (Random vs VBGMM): ", SequenceMatcher(None, output1, output3).ratio())
+    print("Output similarity (KMeans vs VBGMM): ", SequenceMatcher(None, output2, output3).ratio())
 
 print("starting test code")
-demo_compare_new_old()
+demo_kmeans_vs_VBGMM()

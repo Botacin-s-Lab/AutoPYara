@@ -5,7 +5,7 @@ from jpype.types import *
 
 # Define a custom type for the algorithm options
 BiclusterAlgorithmType = Literal['SpectralCoCluster', 'SpectralCoClusterScale']
-ClusterAlgorithmType = Literal['VBGMM']
+ClusterAlgorithmType = Literal['VBGMM', 'KMeans', 'Random']
 
 class AutoYara(PythonInterface):
     def __init__(self, top_k=1000):
@@ -51,7 +51,7 @@ class AutoYara(PythonInterface):
 
         self.reset_memory()
 
-    def generate(self, input_dir, output_dir, bloom_malicious, bloom_benign,
+    def legacy_generate(self, input_dir, output_dir, bloom_malicious, bloom_benign,
                  bicluster_alg: BiclusterAlgorithmType = 'SpectralCoCluster', cluster_alg: ClusterAlgorithmType = 'VBGMM'):
         input_dirs = self.ArrayList()
         input_dirs.add(self.File(input_dir))
@@ -65,25 +65,23 @@ class AutoYara(PythonInterface):
         self.yara_cluster.out_file = self.File(output_dir)
 
         try:
-            print("Starting testing")
             self.yara_cluster.run()
-            print("Testing complete")
         except Exception as e:
             print(f"Exception during run: {e}")
 
-    def generate_legacy(self, input_dir, output_dir, bloom_malicious, bloom_benign):
-        # Issue: generate_legacy isn't generating the same file as the original yara or new yara algorithm
+    def generate(self, input_dir, bloom_malicious, bloom_benign,
+                 bicluster_alg: BiclusterAlgorithmType = 'SpectralCoCluster', cluster_alg: ClusterAlgorithmType = 'VBGMM'):
         input_dirs = self.ArrayList()
         input_dirs.add(self.File(input_dir))
-        self.yara_cluster_legacy.inDir = input_dirs
+        self.yara_cluster.inDir = input_dirs
 
-        self.yara_cluster_legacy.benign_bloom_dir = self.File(bloom_benign)
-        self.yara_cluster_legacy.malicious_bloom_dir = self.File(bloom_malicious)
-        self.yara_cluster_legacy.out_file = self.File(output_dir)
+        self.yara_cluster.biclusterPipelineAlg = bicluster_alg
+        self.yara_cluster.clusterAlg = cluster_alg
+
+        self.yara_cluster.benign_bloom_dir = self.File(bloom_benign)
+        self.yara_cluster.malicious_bloom_dir = self.File(bloom_malicious)
 
         try:
-            print("Starting testing")
-            self.yara_cluster_legacy.run()
-            print("Testing complete")
+            return self.yara_cluster.pythonRun()
         except Exception as e:
             print(f"Exception during run: {e}")
