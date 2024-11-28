@@ -6,7 +6,7 @@ from utils.evaluation import *
 directory = "/tmp/malware/"
 
 # Cluster samples with a similarity threshold of 80% and a minimum of 2 samples per cluster
-s_clusters = cluster_malware_samples_LSH(directory, similarity_threshold=80, min_samples=2)
+s_clusters = cluster_files_LSH(directory, similarity_threshold=80, min_samples=2)
 
 print(s_clusters)
 
@@ -31,13 +31,13 @@ yara_rules = [
 ]
 
 # Test the YARA rules
-matches = test_yara_rule(yara_rules, directory)
+matches = match_yara_rule(yara_rules, directory)
 print(matches)
 
 y_clusters = cluster_samples_by_yara(matches)
 print(y_clusters)
 
-global_accuracy, cluster_accuracies = evaluate_clustering_simple(s_clusters, y_clusters)
+global_accuracy, cluster_accuracies = evaluate_clustering(s_clusters, y_clusters)
 
 print(f"Global Clustering Accuracy: {global_accuracy}%")
 print("Cluster-by-cluster Accuracy:")

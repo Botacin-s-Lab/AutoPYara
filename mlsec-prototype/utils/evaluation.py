@@ -1,17 +1,4 @@
-def evaluate_clustering_simple(ssdeep_clusters, yara_clusters):
-    """
-    Evaluates the accuracy of clustering by comparing SSDeep clusters and YARA rule-based clusters.
-    Returns both a global and cluster-by-cluster accuracy.
-
-    Parameters:
-        ssdeep_clusters (dict): A dictionary where keys are SSDeep cluster IDs and values are lists of file paths (samples) in the same SSDeep cluster.
-        yara_clusters (dict): A dictionary where keys are YARA cluster IDs and values are lists of file paths (samples) in the same YARA cluster.
-
-    Returns:
-        tuple: A tuple containing:
-            - global_accuracy (float): The overall clustering accuracy as a percentage.
-            - cluster_accuracies (dict): A dictionary where the key is the SSDeep cluster ID, and the value is the accuracy percentage for each SSDeep cluster.
-    """
+def evaluate_clustering(ssdeep_clusters, yara_clusters):
     # Reverse the yara_clusters to map samples to their YARA cluster IDs
     sample_to_yara_cluster = {}
     for cluster_id, samples in yara_clusters.items():

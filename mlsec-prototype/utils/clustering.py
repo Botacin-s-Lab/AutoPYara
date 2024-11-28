@@ -3,7 +3,7 @@ import ssdeep
 import numpy as np
 from sklearn.cluster import DBSCAN
 
-def cluster_malware_samples_LSH(directory, similarity_threshold=80, min_samples=2):
+def cluster_files_LSH(directory, similarity_threshold=80, min_samples=2):
     # List all files in the directory
     file_paths = [os.path.join(directory, f) for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
     n_files = len(file_paths)

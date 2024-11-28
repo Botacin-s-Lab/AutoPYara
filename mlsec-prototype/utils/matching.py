@@ -1,7 +1,7 @@
 import os
 import yara
 
-def test_yara_rule(rules, directory):
+def match_yara_rule(rules, directory):
     # Create a dictionary for rule sources
     rule_sources = {}
     for idx, rule_str in enumerate(rules):

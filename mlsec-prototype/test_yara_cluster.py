@@ -25,7 +25,7 @@ yara_rules = [
 directory = "/tmp/malware/"
 
 # Test the YARA rules
-matches = test_yara_rule(yara_rules, directory)
+matches = match_yara_rule(yara_rules, directory)
 
 clusters = cluster_samples_by_yara(matches)
 print(clusters)

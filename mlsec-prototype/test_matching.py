@@ -24,7 +24,7 @@ yara_rules = [
 directory = "/tmp/malware/"
 
 # Test the YARA rules
-matches = test_yara_rule(yara_rules, directory)
+matches = match_yara_rule(yara_rules, directory)
 
 # Print the results
 for file, matched_rules in matches.items():
