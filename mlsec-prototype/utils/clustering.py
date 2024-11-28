@@ -37,3 +37,30 @@ def cluster_malware_samples_LSH(directory, similarity_threshold=80, min_samples=
         clusters[label].append(file)
 
     return clusters
+
+from collections import defaultdict
+
+def cluster_samples_by_yara(yara_matches):
+    # Step 1: Group samples by the set of rules they match
+    rule_to_samples = defaultdict(list)
+
+    for sample, rules in yara_matches.items():
+        # Convert the list of rules to a frozenset (immutable set) for proper comparison
+        rule_set = frozenset(rules)
+        rule_to_samples[rule_set].append(sample)
+
+    # Step 2: Assign a cluster ID to each set of rules and cluster the samples
+    clusters = {}
+    cluster_id = 0
+    for rule_set, samples in rule_to_samples.items():
+        # Assign a unique cluster ID to this set of rules
+        for sample in samples:
+            clusters[sample] = cluster_id
+        cluster_id += 1
+
+    # Step 3: Group samples by their cluster IDs
+    cluster_dict = defaultdict(list)
+    for sample, cluster_id in clusters.items():
+        cluster_dict[cluster_id].append(sample)
+
+    return cluster_dict
