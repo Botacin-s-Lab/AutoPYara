@@ -2,13 +2,17 @@ from PythonInterface import PythonInterface
 import jpype
 from typing import Literal
 from jpype.types import *
+import yara
 
 # Define a custom type for the algorithm options
 BiclusterAlgorithmType = Literal['SpectralCoCluster', 'SpectralCoClusterScale']
-ClusterAlgorithmType = Literal['VBGMM', 'KMeans', 'Random']
+ClusterAlgorithmType = Literal['VBGMM', 'KMeans', 'Random', 'AugmentedKMeans']
 
 class AutoYara(PythonInterface):
-    def __init__(self, top_k=1000):
+    def __init__(self, ngram_top_k=1000):
+        '''
+            ngram_top_k: used by KiloGram to extract the kth most common ngrams for bloom filters
+        '''
         super().__init__()
 
         # Import Java classes
@@ -27,7 +31,7 @@ class AutoYara(PythonInterface):
         # Set the parameters
         self.yara_cluster.max_filter_size = 10000000
         self.yara_cluster_legacy.max_filter_size = 10000000
-        self.bytes2bloom.tooKeep = top_k
+        self.bytes2bloom.tooKeep = ngram_top_k
 
     def build_candidate_set(self, target_dir, bloom_mal_dir, bloom_beg_dir, ngram_size=8):
         return self.yara_cluster.buildCandidateSet(
@@ -70,7 +74,12 @@ class AutoYara(PythonInterface):
             print(f"Exception during run: {e}")
 
     def generate(self, input_dir, bloom_malicious, bloom_benign,
-                 bicluster_alg: BiclusterAlgorithmType = 'SpectralCoCluster', cluster_alg: ClusterAlgorithmType = 'VBGMM'):
+                 bicluster_alg: BiclusterAlgorithmType = 'SpectralCoCluster', cluster_alg: ClusterAlgorithmType = 'VBGMM',
+                 predictor_labels=None, k_cluster=0, rule_name=None):
+        '''
+            predictor_labels: a list of predicted clusters for each sample given by an external predictor for augmented kmeans
+            k_cluster: number of clusters to separate the samples into. Only used by some algorithms that require k
+        '''
         input_dirs = self.ArrayList()
         input_dirs.add(self.File(input_dir))
         self.yara_cluster.inDir = input_dirs
@@ -81,7 +90,13 @@ class AutoYara(PythonInterface):
         self.yara_cluster.benign_bloom_dir = self.File(bloom_benign)
         self.yara_cluster.malicious_bloom_dir = self.File(bloom_malicious)
 
+        if k_cluster:
+            self.yara_cluster.k = k_cluster
+        if predictor_labels:
+            self.yara_cluster.predictorLabels = predictor_labels
+
         try:
-            return self.yara_cluster.pythonRun()
+            yara_string = self.yara_cluster.pythonRun()
+            return yara.compile(source=yara_string), yara_string
         except Exception as e:
             print(f"Exception during run: {e}")

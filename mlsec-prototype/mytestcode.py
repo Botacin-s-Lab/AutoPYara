@@ -22,7 +22,7 @@ def get_project_path(*paths):
 
 
 def demo_train():
-    myYara = AutoYara(top_k=100)
+    myYara = AutoYara(ngram_top_k=100)
 
     for i in [8, 16]:  # n-grams
         myYara.train(
@@ -40,7 +40,7 @@ def demo_train():
 def demo_predict():
     myYara = AutoYara()
     print("Predictions:")
-    output = myYara.generate(
+    yara_obj, output = myYara.generate(
         get_project_path("input_testing", "malicious", "mw2"),
         get_project_path("intermediate", "bloom_filters", "malicious"),
         get_project_path("intermediate", "bloom_filters", "benign")
@@ -49,7 +49,7 @@ def demo_predict():
 
 
 def demo_get_signatures():
-    myYara = AutoYara(top_k=100)
+    myYara = AutoYara(ngram_top_k=100)
     myList = myYara.build_candidate_set(
         get_project_path("input_testing", "malicious", "mw2_lite"),
         get_project_path("intermediate", "bloom_filters", "malicious"),
@@ -65,7 +65,7 @@ def demo_get_signatures():
 def demo_select_bicluster():
     myYara = AutoYara()
     print("Predictions (spectral):")
-    output = myYara.generate(
+    yara_obj, output = myYara.generate(
         get_project_path("input_testing", "malicious", "mw2_lite"),
         get_project_path("intermediate", "bloom_filters", "malicious"),
         get_project_path("intermediate", "bloom_filters", "benign"),
@@ -74,7 +74,7 @@ def demo_select_bicluster():
     print(output)
 
     print("Predictions (spectral scaled):")
-    output = myYara.generate(
+    yara_obj, output = myYara.generate(
         get_project_path("input_testing", "malicious", "mw2_lite"),
         get_project_path("intermediate", "bloom_filters", "malicious"),
         get_project_path("intermediate", "bloom_filters", "benign"),
@@ -86,7 +86,7 @@ def demo_select_bicluster():
 def demo_compare_new_old():
     myYara = AutoYara()
     print("Predictions (new):")
-    output = myYara.generate(
+    yara_obj, output = myYara.generate(
         get_project_path("input_testing", "malicious", "mw2"),
         get_project_path("intermediate", "bloom_filters", "malicious-bytes"),
         get_project_path("intermediate", "bloom_filters", "benign-bytes")
@@ -94,7 +94,7 @@ def demo_compare_new_old():
     print(output)
 
     print("Predictions (legacy):")
-    output = myYara.generate(
+    yara_obj, output = myYara.generate(
         get_project_path("input_testing", "malicious", "mw2"),
         get_project_path("intermediate", "bloom_filters", "malicious-bytes"),
         get_project_path("intermediate", "bloom_filters", "benign-bytes"),
@@ -108,7 +108,7 @@ def demo_kmeans_vs_VBGMM():
     myYara = AutoYara()
 
     print("Predictions (Random):")
-    output1 = myYara.generate(
+    yara_obj, output1 = myYara.generate(
         get_project_path("input_testing", "malicious", "mw2_lite"),
         get_project_path("intermediate", "bloom_filters", "malicious"),
         get_project_path("intermediate", "bloom_filters", "benign"),
@@ -118,7 +118,7 @@ def demo_kmeans_vs_VBGMM():
     print(output1)
 
     print("Predictions (KMeans):")
-    output2 = myYara.generate(
+    yara_obj, output2 = myYara.generate(
         get_project_path("input_testing", "malicious", "mw2_lite"),
         get_project_path("intermediate", "bloom_filters", "malicious"),
         get_project_path("intermediate", "bloom_filters", "benign"),
@@ -128,7 +128,7 @@ def demo_kmeans_vs_VBGMM():
     print(output2)
 
     print("Predictions (VBGMM):")
-    output3 = myYara.generate(
+    yara_obj, output3 = myYara.generate(
         get_project_path("input_testing", "malicious", "mw2_lite"),
         get_project_path("intermediate", "bloom_filters", "malicious"),
         get_project_path("intermediate", "bloom_filters", "benign"),
@@ -141,7 +141,21 @@ def demo_kmeans_vs_VBGMM():
     print("Output similarity (Random vs VBGMM): ", SequenceMatcher(None, output1, output3).ratio())
     print("Output similarity (KMeans vs VBGMM): ", SequenceMatcher(None, output2, output3).ratio())
 
+def demo_test_augmented_kmeans():
+    myYara = AutoYara()
+
+    print("Predictions (AugmentedKMeans):")
+    yara_obj, yara_string = myYara.generate(
+        get_project_path("input_testing", "malicious", "mw2_lite"),
+        get_project_path("intermediate", "bloom_filters", "malicious"),
+        get_project_path("intermediate", "bloom_filters", "benign"),
+        bicluster_alg="SpectralCoCluster",
+        cluster_alg="AugmentedKMeans",
+        predictor_labels= [0] * 11
+    )
+    print("yara object:", yara_obj)
+    print("yara string:", yara_string)
 
 if __name__ == "__main__":
     print("starting test code")
-    demo_kmeans_vs_VBGMM()
+    demo_test_augmented_kmeans()
