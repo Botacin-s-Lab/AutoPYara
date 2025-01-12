@@ -82,28 +82,6 @@ def demo_select_bicluster():
     )
     print(output)
 
-
-def demo_compare_new_old():
-    myYara = AutoYara()
-    print("Predictions (new):")
-    yara_obj, output = myYara.generate(
-        get_project_path("input_testing", "malicious", "mw2"),
-        get_project_path("intermediate", "bloom_filters", "malicious-bytes"),
-        get_project_path("intermediate", "bloom_filters", "benign-bytes")
-    )
-    print(output)
-
-    print("Predictions (legacy):")
-    yara_obj, output = myYara.generate(
-        get_project_path("input_testing", "malicious", "mw2"),
-        get_project_path("intermediate", "bloom_filters", "malicious-bytes"),
-        get_project_path("intermediate", "bloom_filters", "benign-bytes"),
-        bicluster_alg="SpectralCoCluster",
-        cluster_alg="VBGMM"
-    )
-    print(output)
-
-
 def demo_kmeans_vs_VBGMM():
     myYara = AutoYara()
 
@@ -150,7 +128,7 @@ def demo_test_augmented_kmeans():
         get_project_path("intermediate", "bloom_filters", "malicious"),
         get_project_path("intermediate", "bloom_filters", "benign"),
         bicluster_alg="SpectralCoCluster",
-        cluster_alg="AugmentedKMeans",
+        cluster_alg="VBGMM",
         predictor_labels= [0] * 11
     )
     print("yara object:", yara_obj)

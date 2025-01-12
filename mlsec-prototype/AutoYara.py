@@ -6,12 +6,14 @@ import yara
 
 # Define a custom type for the algorithm options
 BiclusterAlgorithmType = Literal['SpectralCoCluster', 'SpectralCoClusterScale']
-ClusterAlgorithmType = Literal['VBGMM', 'KMeans', 'Random', 'AugmentedKMeans']
+ClusterAlgorithmType = Literal['VBGMM', 'KMeans', 'Random', 'AugmentedKMeansDBSCAN', 'AugmentedKMeansVT']
+
+augmented_algorithms = ['AugmentedKMeansDBSCAN', 'AugmentedKMeansVT']
 
 class AutoYara(PythonInterface):
     def __init__(self, ngram_top_k=1000):
         '''
-            ngram_top_k: used by KiloGram to extract the kth most common ngrams for bloom filters
+            ngram_top_k: used by KiloGram to extract the kth most common ngrams during bloom filter generation
         '''
         super().__init__()
 
@@ -55,30 +57,13 @@ class AutoYara(PythonInterface):
 
         self.reset_memory()
 
-    def legacy_generate(self, input_dir, output_dir, bloom_malicious, bloom_benign,
-                 bicluster_alg: BiclusterAlgorithmType = 'SpectralCoCluster', cluster_alg: ClusterAlgorithmType = 'VBGMM'):
-        input_dirs = self.ArrayList()
-        input_dirs.add(self.File(input_dir))
-        self.yara_cluster.inDir = input_dirs
-
-        self.yara_cluster.biclusterPipelineAlg = bicluster_alg
-        self.yara_cluster.clusterAlg = cluster_alg
-
-        self.yara_cluster.benign_bloom_dir = self.File(bloom_benign)
-        self.yara_cluster.malicious_bloom_dir = self.File(bloom_malicious)
-        self.yara_cluster.out_file = self.File(output_dir)
-
-        try:
-            self.yara_cluster.run()
-        except Exception as e:
-            print(f"Exception during run: {e}")
-
     def generate(self, input_dir, bloom_malicious, bloom_benign,
                  bicluster_alg: BiclusterAlgorithmType = 'SpectralCoCluster', cluster_alg: ClusterAlgorithmType = 'VBGMM',
                  predictor_labels=None, k_cluster=0, rule_name=None):
         '''
             predictor_labels: a list of predicted clusters for each sample given by an external predictor for augmented kmeans
             k_cluster: number of clusters to separate the samples into. Only used by some algorithms that require k
+            rule_name: the name of the yara rule, leave empty to automatically generate one
         '''
         input_dirs = self.ArrayList()
         input_dirs.add(self.File(input_dir))
@@ -90,10 +75,18 @@ class AutoYara(PythonInterface):
         self.yara_cluster.benign_bloom_dir = self.File(bloom_benign)
         self.yara_cluster.malicious_bloom_dir = self.File(bloom_malicious)
 
+        if rule_name:
+            self.yara_cluster.name = rule_name
+
         if k_cluster:
             self.yara_cluster.k = k_cluster
+
         if predictor_labels:
             self.yara_cluster.predictorLabels = predictor_labels
+        elif cluster_alg in augmented_algorithms:
+            # these algorithms require a predictor label, we have to generate it for this pass
+            if cluster_alg == "AugmentedKMeansDBSCAN":
+                self.yara_cluster.findBestRulePipelineInit() # process the loaded values first
 
         try:
             yara_string = self.yara_cluster.pythonRun()
