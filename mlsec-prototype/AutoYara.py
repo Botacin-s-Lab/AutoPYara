@@ -3,6 +3,7 @@ import jpype
 from typing import Literal
 from jpype.types import *
 import yara
+from augmented_predictor.DBSCAN_SSDEEP import AugmentedDBScan
 
 # Define a custom type for the algorithm options
 BiclusterAlgorithmType = Literal['SpectralCoCluster', 'SpectralCoClusterScale']
@@ -81,15 +82,32 @@ class AutoYara(PythonInterface):
         if k_cluster:
             self.yara_cluster.k = k_cluster
 
-        if predictor_labels:
-            self.yara_cluster.predictorLabels = predictor_labels
-        elif cluster_alg in augmented_algorithms:
-            # these algorithms require a predictor label, we have to generate it for this pass
+        # file directory filling is done at this point, load the values for preprocessing
+        self.yara_cluster.findBestRulePipelineInit() # process the loaded values first
+
+        # we can do preprocessing now
+        if cluster_alg in augmented_algorithms and not predictor_labels:
+            # these algorithms require a predictor label and we didn't provide one, we have to generate it
+            print(self.yara_cluster.bloomSizes)
+            print(self.yara_cluster.targets)
+
             if cluster_alg == "AugmentedKMeansDBSCAN":
-                self.yara_cluster.findBestRulePipelineInit() # process the loaded values first
+                augmented_predictor = AugmentedDBScan()
+            else:
+                augmented_predictor = AugmentedDBScan()
+
+            predictor_labels = augmented_predictor.predict(self.yara_cluster.targets)
+
+        if predictor_labels:
+            assert len(predictor_labels) == len(self.yara_cluster.targets), \
+                f"predictor labels must be the same size as file corpus! {len(predictor_labels)} =/= {len(self.yara_cluster.targets)}"
+
+            # now that we have the predictors, set it in java
+            self.yara_cluster.predictorLabels = predictor_labels
 
         try:
             yara_string = self.yara_cluster.pythonRun()
+            print("getting paths", self.yara_cluster.getPathsPython())
             return yara.compile(source=yara_string), yara_string
         except Exception as e:
             print(f"Exception during run: {e}")

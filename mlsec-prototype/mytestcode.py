@@ -2,6 +2,7 @@ import os
 from sympy.series.sequences import SeqExpr
 from AutoYara import AutoYara
 from difflib import SequenceMatcher
+from utils.clustering import cluster_files_LSH
 
 # Get the directory containing the current script
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -124,15 +125,21 @@ def demo_test_augmented_kmeans():
 
     print("Predictions (AugmentedKMeans):")
     yara_obj, yara_string = myYara.generate(
-        get_project_path("input_testing", "malicious", "mw2_lite"),
+        get_project_path("input_testing", "malicious", "mw2"),
         get_project_path("intermediate", "bloom_filters", "malicious"),
         get_project_path("intermediate", "bloom_filters", "benign"),
         bicluster_alg="SpectralCoCluster",
-        cluster_alg="VBGMM",
-        predictor_labels= [0] * 11
+        cluster_alg="AugmentedKMeansDBSCAN",
     )
     print("yara object:", yara_obj)
     print("yara string:", yara_string)
+
+def demo_test_evaluation():
+    result = cluster_files_LSH(
+        get_project_path("input_testing", "malicious", "mw2_lite"),
+    )
+
+    print(result)
 
 if __name__ == "__main__":
     print("starting test code")
