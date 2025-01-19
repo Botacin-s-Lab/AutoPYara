@@ -87,6 +87,8 @@ class AutoYara(PythonInterface):
 
         # we can do preprocessing now
         if cluster_alg in augmented_algorithms and not predictor_labels:
+            assert not k_cluster, "you cannot specify k clusters for Augmented Learning clustering"
+
             # these algorithms require a predictor label and we didn't provide one, we have to generate it
             print(self.yara_cluster.bloomSizes)
             print(self.yara_cluster.targets)
@@ -97,6 +99,7 @@ class AutoYara(PythonInterface):
                 augmented_predictor = AugmentedDBScan()
 
             predictor_labels = augmented_predictor.predict(self.yara_cluster.targets)
+            self.yara_cluster.k = len(set(predictor_labels)) # k is the # of unique labels
 
         if predictor_labels:
             assert len(predictor_labels) == len(self.yara_cluster.targets), \
