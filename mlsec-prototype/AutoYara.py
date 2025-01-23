@@ -1,13 +1,28 @@
+from audioop import error
+
 from PythonInterface import PythonInterface
 import jpype
 from typing import Literal
 from jpype.types import *
 import yara
+import yaramod
 from augmented_predictor.DBSCAN_SSDEEP import AugmentedDBScan
 
-# Define a custom type for the algorithm options
 BiclusterAlgorithmType = Literal['SpectralCoCluster', 'SpectralCoClusterScale']
+# SpectralCoCluster: spectral cocluster algorithm using bistochastization normalization
+# SpectralCoClusterScale: same spectral cocluster algorithm using scale normalization
+
 ClusterAlgorithmType = Literal['VBGMM', 'KMeans', 'Random', 'AugmentedKMeansDBSCAN', 'AugmentedKMeansVT']
+# VBGMM: variational bayesian gaussian mixture model
+# KMeans: k-means, k can be specified or automatically chosen by the pipeline
+# Random: designate samples to a random cluster, used to verify correctness of other algorithms and as baseline
+# AugmentedKMeansDBSCAN: augmented kmeans, uses DBSCAN to cluster + SSDEEP distance metric to generate predictor labels
+# AugmentedKMeansVT: augmented kmeans, uses virustotal labels to generate predictor labels
+
+RuleOutputType = Literal['yara-python', 'yaramod', 'raw']
+# yara-python: format using virustotal package, see https://github.com/VirusTotal/yara-python
+# yaramod: format useful for evaluations since members can be easily accessed https://github.com/avast/yaramod
+# raw: yara rule as string format
 
 augmented_algorithms = ['AugmentedKMeansDBSCAN', 'AugmentedKMeansVT']
 
@@ -36,6 +51,9 @@ class AutoYara(PythonInterface):
         self.yara_cluster_legacy.max_filter_size = 10000000
         self.bytes2bloom.tooKeep = ngram_top_k
 
+        # Yara Package Init
+        self.yaramod = yaramod.Yaramod(yaramod.Features.AllCurrent)
+
     def build_candidate_set(self, target_dir, bloom_mal_dir, bloom_beg_dir, ngram_size=8):
         return self.yara_cluster.buildCandidateSet(
             self.File(target_dir), ngram_size, self.File(bloom_beg_dir), self.File(bloom_mal_dir))
@@ -60,7 +78,7 @@ class AutoYara(PythonInterface):
 
     def generate(self, input_dir, bloom_malicious, bloom_benign,
                  bicluster_alg: BiclusterAlgorithmType = 'SpectralCoCluster', cluster_alg: ClusterAlgorithmType = 'VBGMM',
-                 predictor_labels=None, k_cluster=0, rule_name=None):
+                 output_format: RuleOutputType = 'string', predictor_labels=None, k_cluster=0, rule_name=None):
         '''
             predictor_labels: a list of predicted clusters for each sample given by an external predictor for augmented kmeans
             k_cluster: number of clusters to separate the samples into. Only used by some algorithms that require k
@@ -88,6 +106,7 @@ class AutoYara(PythonInterface):
         # we can do preprocessing now
         if cluster_alg in augmented_algorithms and not predictor_labels:
             assert not k_cluster, "you cannot specify k clusters for Augmented Learning clustering"
+            print(cluster_alg, "requires a predictor label, generating...")
 
             # these algorithms require a predictor label and we didn't provide one, we have to generate it
             print(self.yara_cluster.bloomSizes)
@@ -111,6 +130,14 @@ class AutoYara(PythonInterface):
         try:
             yara_string = self.yara_cluster.pythonRun()
             print("getting paths", self.yara_cluster.getPathsPython())
-            return yara.compile(source=yara_string), yara_string
+
+            if output_format == "string":
+                return yara_string
+            elif output_format == "yara-python":
+                return yara.compile(source=yara_string)
+            elif output_format == "yaramod":
+                return self.yaramod.parse_string(yara_string)
+            else:
+                raise ValueError(f"invalid output format: {output_format}")
         except Exception as e:
             print(f"Exception during run: {e}")
