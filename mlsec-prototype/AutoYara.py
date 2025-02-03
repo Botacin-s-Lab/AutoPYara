@@ -15,14 +15,14 @@ BiclusterAlgorithmType = Literal['SpectralCoCluster', 'SpectralCoClusterScale']
 ClusterAlgorithmType = Literal['VBGMM', 'KMeans', 'Random', 'AugmentedKMeansDBSCAN', 'AugmentedKMeansVT']
 # VBGMM: variational bayesian gaussian mixture model
 # KMeans: k-means, k can be specified or automatically chosen by the pipeline
-# Random: designate samples to a random cluster, used to verify correctness of other algorithms and as baseline
+# Random: designate samples to a random cluster, used to verify correctness of other algorithms and tested as baseline
 # AugmentedKMeansDBSCAN: augmented kmeans, uses DBSCAN to cluster + SSDEEP distance metric to generate predictor labels
 # AugmentedKMeansVT: augmented kmeans, uses virustotal labels to generate predictor labels
 
-RuleOutputType = Literal['yara-python', 'yaramod', 'raw']
+RuleOutputType = Literal['yara-python', 'yaramod', 'string']
 # yara-python: format using virustotal package, see https://github.com/VirusTotal/yara-python
 # yaramod: format useful for evaluations since members can be easily accessed https://github.com/avast/yaramod
-# raw: yara rule as string format
+# string: yara rule as string format
 
 augmented_algorithms = ['AugmentedKMeansDBSCAN', 'AugmentedKMeansVT']
 

@@ -8,12 +8,13 @@ from utils.preprocessing import java_to_python_paths
 
 # noise labeling:
 # Zeroes: samples not grouped by DBSCAN
-NoiseLabelling = Literal['Zeroes', 'Ascending']
+NoiseLabelling = Literal['Zeros', 'Ascending']
 
 class AugmentedDBScan():
-    def __init__(self, epsilon=0.5, min_samples=5):
+    def __init__(self, epsilon=0.5, min_samples=5, noise_labeling: NoiseLabelling = 'Ascending'):
         self.epsilon = epsilon
         self.min_samples = min_samples
+        self.noise_labeling = noise_labeling
 
     def DBSCAN_Cluster(self, file_paths, similarity_threshold=80, min_samples=2):
         n_files = len(file_paths)
@@ -54,20 +55,29 @@ class AugmentedDBScan():
         print("predicting", file_paths)
         clusters = self.DBSCAN_Cluster(
             file_paths,
-            similarity_threshold=30,
+            similarity_threshold=50,
             min_samples=2,
         )
-        print("clusters", clusters)
         for key, value in clusters.items():
             print("cluster", key, value)
 
         path_to_cluster = {}
-        for cluster_num, paths in clusters.items():
-            # Transform -1 to 0 and shift other numbers up by 1
-            transformed_cluster_num = 0 if cluster_num == -1 else cluster_num + 1
 
+        noise_cluster = len(clusters.keys())
+        for cluster_num, paths in clusters.items():
             # Map each path to its transformed cluster number
             for path in paths:
+                if cluster_num == -1: # DBSCAN could not put this into a cluster, we give it its own cluster
+                    if self.noise_labeling == "Zeros":
+                        transformed_cluster_num = noise_cluster
+                    elif self.noise_labeling == "Ascending":
+                        transformed_cluster_num = noise_cluster
+                        noise_cluster += 1
+                    else:
+                        raise ValueError(f"invalid noise_labeling format: {self.noise_labeling}")
+                else:
+                    transformed_cluster_num = cluster_num
+
                 path_to_cluster[path] = transformed_cluster_num
 
         # Create the predictor_labels list in the same order as file_paths

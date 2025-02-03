@@ -25,6 +25,11 @@ def get_project_path(*paths):
     return os.path.join(PROJECT_ROOT, *paths)
 
 def evaluate_rule(yara_file, rule_name):
+    if isinstance(yara_file, str):
+        print("rule eval for", rule_name)
+        print(yara_file)
+        return
+
     if len(yara_file.rules) <= 0:
         print("rule eval for", rule_name, "... has no rule!")
         return
@@ -146,7 +151,7 @@ def demo_compare_kmeans_vbgmm_augmented():
         get_project_path("intermediate", "bloom_filters", "benign"),
         bicluster_alg="SpectralCoCluster",
         cluster_alg="Random",
-        output_format="yaramod",
+        output_format="string",
     )
 
     print("AutoYara Cluster: (KMeans)")
@@ -156,7 +161,7 @@ def demo_compare_kmeans_vbgmm_augmented():
         get_project_path("intermediate", "bloom_filters", "benign"),
         bicluster_alg="SpectralCoCluster",
         cluster_alg="KMeans",
-        output_format="yaramod",
+        output_format="string",
     )
 
     print("AutoYara Cluster: (VBGMM)")
@@ -166,7 +171,7 @@ def demo_compare_kmeans_vbgmm_augmented():
         get_project_path("intermediate", "bloom_filters", "benign"),
         bicluster_alg="SpectralCoCluster",
         cluster_alg="VBGMM",
-        output_format="yaramod",
+        output_format="string",
     )
 
     print("AutoYara Cluster: (AugmentedKMeansDBSCAN)")
@@ -176,13 +181,40 @@ def demo_compare_kmeans_vbgmm_augmented():
         get_project_path("intermediate", "bloom_filters", "benign"),
         bicluster_alg="SpectralCoCluster",
         cluster_alg="AugmentedKMeansDBSCAN",
-        output_format="yaramod",
+        output_format="string",
     )
 
     evaluate_rule(yara_obj1, "Random")
     evaluate_rule(yara_obj2, "KMeans")
     evaluate_rule(yara_obj3, "VBGMM")
     evaluate_rule(yara_obj4, "AugmentedKMeansDBSCAN")
+
+def demo_augmented_clustering():
+    myYara = AutoYara()
+
+    print("AutoYara Cluster: (VBGMM)")
+    yara_obj3 = myYara.generate(
+        get_project_path("input_testing", "malicious", "mw2"),
+        get_project_path("intermediate", "bloom_filters", "malicious"),
+        get_project_path("intermediate", "bloom_filters", "benign"),
+        bicluster_alg="SpectralCoCluster",
+        cluster_alg="VBGMM",
+        output_format="string",
+    )
+
+    print("final rule:", yara_obj3)
+
+    print("AutoYara Cluster: (AugmentedKMeansDBSCAN)")
+    yara_obj4 = myYara.generate(
+        get_project_path("input_testing", "malicious", "mw2"),
+        get_project_path("intermediate", "bloom_filters", "malicious"),
+        get_project_path("intermediate", "bloom_filters", "benign"),
+        bicluster_alg="SpectralCoCluster",
+        cluster_alg="AugmentedKMeansDBSCAN",
+        output_format="string",
+    )
+
+    print("final rule:", yara_obj4)
 
 def demo_test_evaluation():
     result = cluster_files_LSH(
@@ -193,4 +225,5 @@ def demo_test_evaluation():
 
 if __name__ == "__main__":
     print("starting test code")
-    demo_compare_kmeans_vbgmm_augmented()
+    demo_augmented_clustering()
+    # demo_compare_kmeans_vbgmm_augmented()
