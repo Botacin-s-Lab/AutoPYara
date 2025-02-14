@@ -55,7 +55,7 @@ class AugmentedDBScan():
         print("predicting", file_paths)
         clusters = self.DBSCAN_Cluster(
             file_paths,
-            similarity_threshold=50,
+            similarity_threshold=90,
             min_samples=2,
         )
         for key, value in clusters.items():

@@ -26,7 +26,7 @@ RuleOutputType = Literal['yara-python', 'yaramod', 'string']
 
 augmented_algorithms = ['AugmentedKMeansDBSCAN', 'AugmentedKMeansVT']
 
-class AutoYara(PythonInterface):
+class AutoPYara(PythonInterface):
     def __init__(self, ngram_top_k=1000):
         '''
             ngram_top_k: used by KiloGram to extract the kth most common ngrams during bloom filter generation
@@ -77,6 +77,7 @@ class AutoYara(PythonInterface):
         self.reset_memory()
 
     def generate(self, input_dir, bloom_malicious, bloom_benign,
+                 output_dir=None,
                  bicluster_alg: BiclusterAlgorithmType = 'SpectralCoCluster', cluster_alg: ClusterAlgorithmType = 'VBGMM',
                  output_format: RuleOutputType = 'string', predictor_labels=None, k_cluster=0, rule_name=None):
         '''
@@ -94,11 +95,15 @@ class AutoYara(PythonInterface):
         self.yara_cluster.benign_bloom_dir = self.File(bloom_benign)
         self.yara_cluster.malicious_bloom_dir = self.File(bloom_malicious)
 
-        if rule_name:
+        if rule_name: # if blank, will generate a name
             self.yara_cluster.name = rule_name
 
-        if k_cluster:
+        if k_cluster: # Used by KMeans, Random
             self.yara_cluster.k = k_cluster
+
+        if output_dir: # if blank, will not save
+            print("setting output file", output_dir)
+            self.yara_cluster.out_dir = output_dir
 
         # file directory filling is done at this point, load the values for preprocessing
         self.yara_cluster.findBestRulePipelineInit() # process the loaded values first
@@ -129,15 +134,17 @@ class AutoYara(PythonInterface):
 
         try:
             yara_string = self.yara_cluster.pythonRun()
-            print("getting paths", self.yara_cluster.getPathsPython())
+            # print("getting paths", self.yara_cluster.getPathsPython())
 
+            self.yara_cluster.resetYaraState()
             if output_format == "string":
                 return yara_string
             elif output_format == "yara-python":
-                return yara.compile(source=yara_string)
+                return yara.compile(source=yara_string), yara_string
             elif output_format == "yaramod":
-                return self.yaramod.parse_string(yara_string)
+                return self.yaramod.parse_string(yara_string), yara_string
             else:
                 raise ValueError(f"invalid output format: {output_format}")
         except Exception as e:
+            self.yara_cluster.resetYaraState()
             print(f"Exception during run: {e}")

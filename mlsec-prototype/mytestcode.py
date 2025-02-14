@@ -2,10 +2,11 @@ import os
 
 import yara
 from sympy.series.sequences import SeqExpr
-from AutoYara import AutoYara
+from AutoYara import AutoPYara
 from difflib import SequenceMatcher
 from utils.clustering import cluster_files_LSH
 import yaramod
+import random
 
 # Get the directory containing the current script
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -44,7 +45,7 @@ def evaluate_rule(yara_file, rule_name):
     })
 
 def demo_train():
-    myYara = AutoYara(ngram_top_k=100)
+    myYara = AutoPYara(ngram_top_k=100)
 
     for i in [8, 16]:  # n-grams
         myYara.train(
@@ -60,7 +61,7 @@ def demo_train():
 
 
 def demo_predict():
-    myYara = AutoYara()
+    myYara = AutoPYara()
     print("Predictions:")
     yara_obj, output = myYara.generate(
         get_project_path("input_testing", "malicious", "mw2"),
@@ -71,7 +72,7 @@ def demo_predict():
 
 
 def demo_get_signatures():
-    myYara = AutoYara(ngram_top_k=100)
+    myYara = AutoPYara(ngram_top_k=100)
     myList = myYara.build_candidate_set(
         get_project_path("input_testing", "malicious", "mw2_lite"),
         get_project_path("intermediate", "bloom_filters", "malicious"),
@@ -85,7 +86,7 @@ def demo_get_signatures():
 
 
 def demo_select_bicluster():
-    myYara = AutoYara()
+    myYara = AutoPYara()
     print("Predictions (spectral):")
     output = myYara.generate(
         get_project_path("input_testing", "malicious", "mw2_lite"),
@@ -105,7 +106,7 @@ def demo_select_bicluster():
     print(output)
 
 def demo_kmeans_vs_VBGMM():
-    myYara = AutoYara()
+    myYara = AutoPYara()
 
     print("AutoYara Cluster: (Random)")
     output1 = myYara.generate(
@@ -142,27 +143,7 @@ def demo_kmeans_vs_VBGMM():
     print("Output similarity (KMeans vs VBGMM): ", SequenceMatcher(None, output2, output3).ratio())
 
 def demo_compare_kmeans_vbgmm_augmented():
-    myYara = AutoYara()
-
-    print("AutoYara Cluster: (Random)")
-    yara_obj1 = myYara.generate(
-        get_project_path("input_testing", "malicious", "mw2"),
-        get_project_path("intermediate", "bloom_filters", "malicious"),
-        get_project_path("intermediate", "bloom_filters", "benign"),
-        bicluster_alg="SpectralCoCluster",
-        cluster_alg="Random",
-        output_format="string",
-    )
-
-    print("AutoYara Cluster: (KMeans)")
-    yara_obj2 = myYara.generate(
-        get_project_path("input_testing", "malicious", "mw2"),
-        get_project_path("intermediate", "bloom_filters", "malicious"),
-        get_project_path("intermediate", "bloom_filters", "benign"),
-        bicluster_alg="SpectralCoCluster",
-        cluster_alg="KMeans",
-        output_format="string",
-    )
+    myYara = AutoPYara()
 
     print("AutoYara Cluster: (VBGMM)")
     yara_obj3 = myYara.generate(
@@ -184,13 +165,33 @@ def demo_compare_kmeans_vbgmm_augmented():
         output_format="string",
     )
 
+    print("AutoYara Cluster: (Random)")
+    yara_obj1 = myYara.generate(
+        get_project_path("input_testing", "malicious", "mw2"),
+        get_project_path("intermediate", "bloom_filters", "malicious"),
+        get_project_path("intermediate", "bloom_filters", "benign"),
+        bicluster_alg="SpectralCoCluster",
+        cluster_alg="Random",
+        output_format="string",
+    )
+
+    print("AutoYara Cluster: (KMeans)")
+    yara_obj2 = myYara.generate(
+        get_project_path("input_testing", "malicious", "mw2"),
+        get_project_path("intermediate", "bloom_filters", "malicious"),
+        get_project_path("intermediate", "bloom_filters", "benign"),
+        bicluster_alg="SpectralCoCluster",
+        cluster_alg="KMeans",
+        output_format="string",
+    )
+
     evaluate_rule(yara_obj1, "Random")
     evaluate_rule(yara_obj2, "KMeans")
     evaluate_rule(yara_obj3, "VBGMM")
     evaluate_rule(yara_obj4, "AugmentedKMeansDBSCAN")
 
 def demo_augmented_clustering():
-    myYara = AutoYara()
+    myYara = AutoPYara()
 
     print("AutoYara Cluster: (VBGMM)")
     yara_obj3 = myYara.generate(
@@ -215,6 +216,43 @@ def demo_augmented_clustering():
     )
 
     print("final rule:", yara_obj4)
+    
+def demo_test_ordering_bug():
+    myYara = AutoPYara()
+    myYara2 = AutoPYara()
+
+    # print("AutoYara Cluster: (Random)")
+    # output1 = myYara.generate(
+    #     get_project_path("input_testing", "malicious", "mw2"),
+    #     get_project_path("intermediate", "bloom_filters", "malicious-bytes"),
+    #     get_project_path("intermediate", "bloom_filters", "benign-bytes"),
+    #     bicluster_alg="SpectralCoCluster",
+    #     cluster_alg="Random"
+    # )
+    # print(output1)
+
+    print("AutoYara Cluster: (AugmentedKMeansDBSCAN)")
+    yara_obj3, raw_string = myYara.generate(
+        get_project_path("input_testing", "malicious", "mw2"),
+        get_project_path("intermediate", "bloom_filters", "malicious-bytes"),
+        get_project_path("intermediate", "bloom_filters", "benign-bytes"),
+        bicluster_alg="SpectralCoCluster",
+        cluster_alg="AugmentedKMeansDBSCAN",
+        output_format="string",
+    )
+    print(yara_obj3)
+    print("type", type(yara_obj3))
+
+    # print("AutoYara Cluster: (AugmentedKMeansDBSCAN)")
+    # yara_obj3B = myYara2.generate(
+    #     get_project_path("input_testing", "malicious", "mw2"),
+    #     get_project_path("intermediate", "bloom_filters", "malicious-bytes"),
+    #     get_project_path("intermediate", "bloom_filters", "benign-bytes"),
+    #     bicluster_alg="SpectralCoCluster",
+    #     cluster_alg="AugmentedKMeansDBSCAN",
+    #     output_format="string",
+    # )
+    # print(yara_obj3B)
 
 def demo_test_evaluation():
     result = cluster_files_LSH(
@@ -223,7 +261,52 @@ def demo_test_evaluation():
 
     print(result)
 
+def demo_test_realworld():
+    myYara = AutoPYara()
+
+    for cluster_folder in ["Cluster0_Size134", "Cluster10_Size10"]:
+        # print("AutoYara Cluster: (AugmentedKMeansDBSCAN)")
+        yara_obj3 = myYara.generate(
+            get_project_path("input_testing", "malicious", "output_preprocessed", cluster_folder),
+            get_project_path("intermediate", "bloom_filters", "malicious-bytes"),
+            get_project_path("intermediate", "bloom_filters", "benign-bytes"),
+            output_dir=get_project_path("output", cluster_folder),
+            bicluster_alg="SpectralCoCluster",
+            cluster_alg="AugmentedKMeansDBSCAN",
+            output_format="string",
+        )
+        # print(yara_obj3)
+        # print("type", type(yara_obj3))
+
+        # print("AutoYara Cluster: (VBGMM)")
+        yara_obj4 = myYara.generate(
+            get_project_path("input_testing", "malicious", "output_preprocessed", cluster_folder),
+            get_project_path("intermediate", "bloom_filters", "malicious-bytes"),
+            get_project_path("intermediate", "bloom_filters", "benign-bytes"),
+            output_dir=get_project_path("output", cluster_folder),
+            bicluster_alg="SpectralCoCluster",
+            cluster_alg="VBGMM",
+            output_format="string",
+        )
+        # print(yara_obj4)
+        # print("type", type(yara_obj4))
+
+        for k in range(2, 40, 2):
+            yara_obj = myYara.generate(
+                get_project_path("input_testing", "malicious", "output_preprocessed", cluster_folder),
+                get_project_path("intermediate", "bloom_filters", "malicious-bytes"),
+                get_project_path("intermediate", "bloom_filters", "benign-bytes"),
+                output_dir=get_project_path("output", cluster_folder),
+                bicluster_alg="SpectralCoCluster",
+                cluster_alg="KMeans",
+                output_format="string",
+                k_cluster=k,
+            )
+            # print(f"K-Means (k = {k}):", yara_obj)
+
 if __name__ == "__main__":
     print("starting test code")
-    demo_augmented_clustering()
+    # demo_augmented_clustering()
     # demo_compare_kmeans_vbgmm_augmented()
+
+    demo_test_realworld()
