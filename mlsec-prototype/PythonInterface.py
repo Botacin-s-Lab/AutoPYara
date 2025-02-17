@@ -4,6 +4,8 @@ import atexit
 import gc
 import os
 
+from typing import Any, Dict, List
+from jpype.types import *
 
 def get_repo_paths():
     """
@@ -79,6 +81,61 @@ class PythonInterface:
         # avoid the heap overflowing
         gc.collect()
         jpype.java.lang.System.gc()
+
+    def convert_java_to_python(self, obj: Any) -> Any:
+        """
+        Recursively converts Java objects to Python native types.
+
+        Args:
+            obj: Any Java or Python object
+
+        Returns:
+            The converted Python native object
+        """
+        # Handle None
+        if obj is None:
+            return None
+
+        # Get the Java class if it's a Java object
+        java_class = getattr(obj, "getClass", lambda: None)()
+
+        # Handle Java collections
+        if java_class and java_class.getName() in [
+            "java.util.ArrayList",
+            "java.util.LinkedList",
+            "java.util.Vector",
+            "java.util.Stack"
+        ]:
+            return [self.convert_java_to_python(item) for item in obj]
+
+        if java_class and java_class.getName() in [
+            "java.util.HashMap",
+            "java.util.LinkedHashMap",
+            "java.util.TreeMap",
+            "java.util.Hashtable"
+        ]:
+            return {str(k): self.convert_java_to_python(v) for k, v in obj.items()}
+
+        # Handle Java arrays
+        if isinstance(obj, JArray):
+            return [self.convert_java_to_python(item) for item in obj]
+
+        # Handle Java primitive wrappers
+        if isinstance(obj, (JBoolean, JByte, JChar, JDouble, JFloat, JInt, JLong, JShort)):
+            return obj.value
+
+        # Handle Java String
+        if isinstance(obj, JString):
+            return str(obj)
+
+        # Handle Python collections
+        if isinstance(obj, dict):
+            return {k: self.convert_java_to_python(v) for k, v in obj.items()}
+        if isinstance(obj, (list, tuple)):
+            return [self.convert_java_to_python(item) for item in obj]
+
+        # Return other types as-is
+        return obj
 
     @classmethod
     def get_python_repo_path(cls, *paths):

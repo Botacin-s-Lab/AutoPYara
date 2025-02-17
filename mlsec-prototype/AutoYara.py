@@ -133,18 +133,22 @@ class AutoPYara(PythonInterface):
             self.yara_cluster.predictorLabels = predictor_labels
 
         try:
-            yara_string = self.yara_cluster.pythonRun()
+            yara_out = dict(self.yara_cluster.pythonRun()) # we need to clone since resetYaraState() will wipe the original
+            yara_out = self.convert_java_to_python(yara_out) # convert all members into python friendly objects
+
             # print("getting paths", self.yara_cluster.getPathsPython())
 
             self.yara_cluster.resetYaraState()
             if output_format == "string":
-                return yara_string
+                yara_out["output"] = yara_out['rule_string']
             elif output_format == "yara-python":
-                return yara.compile(source=yara_string), yara_string
+                yara_out["output"] = yara.compile(source=yara_out['rule_string'])
             elif output_format == "yaramod":
-                return self.yaramod.parse_string(yara_string), yara_string
+                yara_out["output"] = self.yaramod.parse_string(yara_out['rule_string'])
             else:
                 raise ValueError(f"invalid output format: {output_format}")
+
+            return yara_out
         except Exception as e:
-            self.yara_cluster.resetYaraState()
-            print(f"Exception during run: {e}")
+           self.yara_cluster.resetYaraState()
+           print(f"Exception during run: {e}")
