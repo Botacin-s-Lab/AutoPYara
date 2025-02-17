@@ -440,17 +440,42 @@ def eval_test():
     box_plot_set['VBGMM'] = extract_box_plot(eval2, count=10)
     box_plot_set['AugmentedKMeansDBSCAN'] = extract_box_plot(eval1, count=10)
 
-def eval_full_algorithm_test1():
+def get_integer_interval(start, max, count):
+    # Adjust count if there aren't enough numbers in range
+    available_numbers = max - start + 1  # Count of numbers from min to max
+    count = min(count, available_numbers)
+
+    if count <= 0:
+        return []
+
+    if count == 1:
+        return [start]
+
+    # Generate evenly spaced indices
+    indices = [i * (available_numbers - 1) // (count - 1) for i in range(count)]
+
+    # Convert indices to actual numbers in range [min, max]
+    result = [start + i for i in indices]
+
+    return result
+
+def count_files_in_directory(directory_path):
+    # Using list comprehension to count only files (not directories)
+    return len([f for f in os.listdir(directory_path) if os.path.isfile(os.path.join(directory_path, f))])
+
+def eval_full_algorithm_test1(algorithm_tries=10):
     myYara = AutoPYara()
 
-    algorithm_tries = 10
+    for dataset_series in ["Cluster10_Size10", "Cluster0_Size134"]:
+        directory_path = get_project_path("input_testing", "malicious", "output_preprocessed", dataset_series)
+        bloom_filter_malicious_path = get_project_path("intermediate", "bloom_filters", "malicious-bytes")
+        bloom_filter_benign_path = get_project_path("intermediate", "bloom_filters", "benign-bytes")
 
-    for dataset_series in ["Cluster0_Size134", "Cluster10_Size10"]:
         def eval1():
             return myYara.generate(
-                get_project_path("input_testing", "malicious", "output_preprocessed", dataset_series),
-                get_project_path("intermediate", "bloom_filters", "malicious-bytes"),
-                get_project_path("intermediate", "bloom_filters", "benign-bytes"),
+                directory_path,
+                bloom_filter_malicious_path,
+                bloom_filter_benign_path,
                 bicluster_alg="SpectralCoCluster",
                 cluster_alg="AugmentedKMeansDBSCAN",
                 output_format="string",
@@ -458,9 +483,9 @@ def eval_full_algorithm_test1():
 
         def eval2():
             return myYara.generate(
-                get_project_path("input_testing", "malicious", "output_preprocessed", dataset_series),
-                get_project_path("intermediate", "bloom_filters", "malicious-bytes"),
-                get_project_path("intermediate", "bloom_filters", "benign-bytes"),
+                directory_path,
+                bloom_filter_malicious_path,
+                bloom_filter_benign_path,
                 bicluster_alg="SpectralCoCluster",
                 cluster_alg="VBGMM",
                 output_format="string",
@@ -470,12 +495,14 @@ def eval_full_algorithm_test1():
         box_plot_set['VBGMM'] = extract_box_plot(eval2, count=algorithm_tries)
         box_plot_set['AugmentedKMeansDBSCAN'] = extract_box_plot(eval1, count=algorithm_tries)
 
-        for k in range(2, 42 + 1, 4):
+        file_count = count_files_in_directory(directory_path)
+
+        for k in get_integer_interval(2, min(file_count, 50), 12):
             def eval3():
                 return myYara.generate(
-                    get_project_path("input_testing", "malicious", "output_preprocessed", dataset_series),
-                    get_project_path("intermediate", "bloom_filters", "malicious-bytes"),
-                    get_project_path("intermediate", "bloom_filters", "benign-bytes"),
+                    directory_path,
+                    bloom_filter_malicious_path,
+                    bloom_filter_benign_path,
                     bicluster_alg="SpectralCoCluster",
                     cluster_alg="KMeans",
                     output_format="string",
@@ -492,4 +519,5 @@ if __name__ == "__main__":
     # demo_compare_kmeans_vbgmm_augmented()
 
     # demo_test_realworld()
-    eval_full_algorithm_test1()
+
+    eval_full_algorithm_test1(algorithm_tries=10)
