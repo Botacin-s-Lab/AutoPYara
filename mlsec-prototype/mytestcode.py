@@ -1,4 +1,5 @@
 import os
+import json
 
 import yara
 from sympy.series.sequences import SeqExpr
@@ -304,6 +305,37 @@ def demo_test_realworld():
             )
             # print(f"K-Means (k = {k}):", yara_obj)
 
+def save_box_plot_data(box_plot_set, dataset_series):
+    # Create output directory if it doesn't exist
+    os.makedirs(get_project_path("output", "graphs", dataset_series), exist_ok=True)
+
+    # Create filename with dataset series name
+    filename = get_project_path("output", "graphs", dataset_series, "Evaluation Results.json")
+
+    # Convert any numpy arrays to lists for JSON serialization
+    serializable_data = {}
+    for algorithm, metrics in box_plot_set.items():
+        serializable_data[algorithm] = {
+            metric: list(values) if hasattr(values, '__iter__') else values
+            for metric, values in metrics.items()
+        }
+
+    # Save to file with nice formatting
+    with open(filename, 'w') as f:
+        json.dump(serializable_data, f, indent=4)
+
+    print(f"Saved box plot data to: {filename}")
+
+def load_box_plot_data(dataset_series):
+    filename = get_project_path("output", "graphs", dataset_series, "Evaluation Results.json")
+
+    try:
+        with open(filename, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print(f"No saved data found at: {filename}")
+        return None
+
 def plot_yara_metrics(box_plot_set, targeted_metric="TP", save_path=None, series_name="Generic"):
     # Set up the plot
     plt.figure(figsize=(12, 6))
@@ -335,7 +367,7 @@ def plot_yara_metrics(box_plot_set, targeted_metric="TP", save_path=None, series
     else:
         plt.show()
 
-def generate_fullscale_plots(series_name, box_plot_set):
+def generate_fullscale_plots(box_plot_set, series_name):
     for algorithm, dataset in box_plot_set.items():
         for metric, list in dataset.items():
             plot_yara_metrics(
@@ -511,7 +543,8 @@ def eval_full_algorithm_test1(algorithm_tries=10):
             box_plot_set[f"K-Means(k={k})"] = extract_box_plot(eval3, count=algorithm_tries)
 
         print("PLOTTING", box_plot_set)
-        generate_fullscale_plots(dataset_series, box_plot_set)
+        save_box_plot_data(box_plot_set, dataset_series)
+        generate_fullscale_plots(box_plot_set, dataset_series)
 
 if __name__ == "__main__":
     print("starting test code")
