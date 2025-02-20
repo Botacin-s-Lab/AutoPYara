@@ -1,0 +1,8 @@
+JPype1
+yaramod
+yara-python
+ssdeep
+sympy
+matplotlib
+scikit-learn
+numpy
