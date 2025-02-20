@@ -36,7 +36,9 @@ RUN pip3 install -r requirements.txt
 # wget releases
 
 # Copy the current directory contents into the container
-COPY . .
+COPY *.py /usr/src/app/
+COPY utils utils
+COPY augmented_predictor augmented_predictor
 
 # Run the application
 CMD ["bash"]
