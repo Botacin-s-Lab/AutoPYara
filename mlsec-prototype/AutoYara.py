@@ -1,5 +1,4 @@
-from audioop import error
-
+import re
 from PythonInterface import PythonInterface
 import jpype
 from typing import Literal
@@ -12,19 +11,26 @@ BiclusterAlgorithmType = Literal['SpectralCoCluster', 'SpectralCoClusterScale']
 # SpectralCoCluster: spectral cocluster algorithm using bistochastization normalization
 # SpectralCoClusterScale: same spectral cocluster algorithm using scale normalization
 
-ClusterAlgorithmType = Literal['VBGMM', 'KMeans', 'Random', 'AugmentedKMeansDBSCAN', 'AugmentedKMeansVT']
-# VBGMM: variational bayesian gaussian mixture model
-# KMeans: k-means, k can be specified or automatically chosen by the pipeline
-# Random: designate samples to a random cluster, used to verify correctness of other algorithms and tested as baseline
-# AugmentedKMeansDBSCAN: augmented kmeans, uses DBSCAN to cluster + SSDEEP distance metric to generate predictor labels
-# AugmentedKMeansVT: augmented kmeans, uses virustotal labels to generate predictor labels
+ClusterAlgorithmType = Literal[
+    'VBGMM', # variational bayesian gaussian mixture model
+    'KMeans', # k-means, k can be specified or automatically chosen by the pipeline
+    'Random', # designate samples to a random cluster, used to verify correctness of other algorithms and tested as baseline
+    'AugmentedKMeansDBSCAN', # augmented kmeans, uses DBSCAN to cluster + SSDEEP distance metric to generate predictor labels
+    'AugmentedKMeansDBSCANSoft', # AugmentedKMeansDBSCAN but with mixture assignments (euclidean distance from centroid as weight)
+    'AugmentedKMeansVT', # augmented kmeans, uses virustotal labels to generate predictor labels
+    'AugmentedKMeansVTSoft', # AugmentedKMeansVT but with mixture assignments (euclidean distance from centroid as weight)
+]
 
 RuleOutputType = Literal['yara-python', 'yaramod', 'string']
 # yara-python: format using virustotal package, see https://github.com/VirusTotal/yara-python
 # yaramod: format useful for evaluations since members can be easily accessed https://github.com/avast/yaramod
 # string: yara rule as string format
 
-augmented_algorithms = ['AugmentedKMeansDBSCAN', 'AugmentedKMeansVT']
+SelectionHeuristic = Literal['AutoYara', 'PYara']
+# AutoYara: uses the old selection heuristic from the original AutoYara code
+# PYara: uses the new select heuristic that
+
+augmented_algorithms = ['AugmentedKMeansDBSCAN', 'AugmentedKMeansDBSCANSoft', 'AugmentedKMeansVT', 'AugmentedKMeansVTSoft']
 
 class AutoPYara(PythonInterface):
     def __init__(self, ngram_top_k=1000):
@@ -79,10 +85,13 @@ class AutoPYara(PythonInterface):
     def generate(self, input_dir, bloom_malicious, bloom_benign,
                  output_dir=None,
                  bicluster_alg: BiclusterAlgorithmType = 'SpectralCoCluster', cluster_alg: ClusterAlgorithmType = 'VBGMM',
-                 output_format: RuleOutputType = 'string', predictor_labels=None, k_cluster=0, rule_name=None):
+                 output_format: RuleOutputType = 'string', predictor_labels=None, k_cluster=0, similarity_threshold=90,
+                 rule_name=None, selection_heuristic: SelectionHeuristic = "PYara", bicluster_feature_prune_coverage=50,
+                 ):
         '''
             predictor_labels: a list of predicted clusters for each sample given by an external predictor for augmented kmeans
             k_cluster: number of clusters to separate the samples into. Only used by some algorithms that require k
+            similarity_threshold: used by augmented kmeans's dbscan
             rule_name: the name of the yara rule, leave empty to automatically generate one
         '''
         input_dirs = self.ArrayList()
@@ -94,6 +103,9 @@ class AutoPYara(PythonInterface):
 
         self.yara_cluster.benign_bloom_dir = self.File(bloom_benign)
         self.yara_cluster.malicious_bloom_dir = self.File(bloom_malicious)
+
+        self.yara_cluster.selectionHeuristic = selection_heuristic
+        self.yara_cluster.biclusterFeaturePruneCoverage = bicluster_feature_prune_coverage/100
 
         if rule_name: # if blank, will generate a name
             self.yara_cluster.name = rule_name
@@ -117,13 +129,14 @@ class AutoPYara(PythonInterface):
             print(self.yara_cluster.bloomSizes)
             print(self.yara_cluster.targets)
 
-            if cluster_alg == "AugmentedKMeansDBSCAN":
-                augmented_predictor = AugmentedDBScan()
+            if cluster_alg:
+                augmented_predictor = AugmentedDBScan(dbscan_threshold=similarity_threshold)
             else:
-                augmented_predictor = AugmentedDBScan()
+                augmented_predictor = AugmentedDBScan(dbscan_threshold=similarity_threshold)
 
             predictor_labels = augmented_predictor.predict(self.yara_cluster.targets)
             self.yara_cluster.k = len(set(predictor_labels)) # k is the # of unique labels
+            print("PYARA: got k =", self.yara_cluster.k)
 
         if predictor_labels:
             assert len(predictor_labels) == len(self.yara_cluster.targets), \
@@ -148,7 +161,9 @@ class AutoPYara(PythonInterface):
             else:
                 raise ValueError(f"invalid output format: {output_format}")
 
+            self.reset_memory()
             return yara_out
         except Exception as e:
-           self.yara_cluster.resetYaraState()
-           print(f"Exception during run: {e}")
+            self.yara_cluster.resetYaraState()
+            self.reset_memory()
+            print(f"Exception during run: {e}")

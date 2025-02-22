@@ -1,7 +1,11 @@
 import os
 import json
+import re
+import math
+import time
 
 import yara
+from sympy import ceiling
 from sympy.series.sequences import SeqExpr
 from sympy.strategies.branch import condition
 import matplotlib.pyplot as plt
@@ -305,12 +309,13 @@ def demo_test_realworld():
             )
             # print(f"K-Means (k = {k}):", yara_obj)
 
-def save_box_plot_data(box_plot_set, dataset_series):
+def save_box_plot_data(box_plot_set, dataset_series, container_directory="graphs"):
     # Create output directory if it doesn't exist
-    os.makedirs(get_project_path("output", "graphs", dataset_series), exist_ok=True)
+    os.makedirs(get_project_path("output", container_directory), exist_ok=True)
+    os.makedirs(get_project_path("output", container_directory, dataset_series), exist_ok=True)
 
     # Create filename with dataset series name
-    filename = get_project_path("output", "graphs", dataset_series, "Evaluation Results.json")
+    filename = get_project_path("output", container_directory, dataset_series, "Evaluation Results.json")
 
     # Convert any numpy arrays to lists for JSON serialization
     serializable_data = {}
@@ -326,8 +331,8 @@ def save_box_plot_data(box_plot_set, dataset_series):
 
     print(f"Saved box plot data to: {filename}")
 
-def load_box_plot_data(dataset_series):
-    filename = get_project_path("output", "graphs", dataset_series, "Evaluation Results.json")
+def load_box_plot_data(dataset_series, container_directory="graphs"):
+    filename = get_project_path("output", container_directory, dataset_series, "Evaluation Results.json")
 
     try:
         with open(filename, 'r') as f:
@@ -336,13 +341,231 @@ def load_box_plot_data(dataset_series):
         print(f"No saved data found at: {filename}")
         return None
 
-def plot_yara_metrics(box_plot_set, targeted_metric="TP", save_path=None, series_name="Generic"):
+def save_plot(save_path=None):
+    # Adjust layout to prevent label cutoff
+    plt.tight_layout()
+
+    # Save or display the plot
+    if save_path:
+        # Save as PDF for vector graphics
+        if not save_path.endswith('.pdf'):
+            save_path = save_path.rsplit('.', 1)[0] + '.pdf'
+
+        plt.savefig(save_path,
+                    format='pdf',
+                    bbox_inches='tight',  # Ensures no labels are cut off
+                    pad_inches=0.1,  # Adds small padding around the plot
+                    dpi=300)  # High DPI for quality
+    else:
+        plt.show()
+
+    # Close the figure to free memory
+    plt.close()
+
+def setup_plot_style():
+    # Update plot to be LaTex friendly
+    # plt.rcParams.update({
+    #     "text.usetex": True,
+    #     "font.family": "serif",
+    #     "font.serif": ["Computer Modern Roman"],
+    # })
+
+    # Use a paper style
+    plt.style.use('seaborn-v0_8-paper')
+
+    # Increase font sizes
+    plt.rcParams.update({
+        'font.size': 14,          # Base font size
+        'axes.titlesize': 16,     # Title font size
+        'axes.labelsize': 14,     # Axis label size
+        'xtick.labelsize': 12,    # X-axis tick label size
+        'ytick.labelsize': 12,    # Y-axis tick label size
+        'legend.fontsize': 12,    # Legend font size
+        'figure.titlesize': 18    # Figure title size
+    })
+
+def human_readable_formatter(x, p):
+    """Convert bytes to human readable string"""
+    if x < 2**10:
+        return f"{x:.0f}B"
+    elif x < 2**20:
+        return f"{x/2**10:.0f}KB"
+    elif x < 2**30:
+        return f"{x/2**20:.0f}MB"
+    else:
+        return f"{x/2**30:.0f}GB"
+
+def truncate_string(text, max_length=20, suffix='...'):
+    """Cuts off strings if they're too long"""
+    if len(text) <= max_length:
+        return text
+    return text[:max_length - len(suffix)] + suffix
+
+def get_directory_size_histogram(directory_path, series_name="Generic", save_path=None):
+    sizes = []
+    names = []
+    for file_name in os.listdir(directory_path):
+        sizes.append(os.path.getsize(os.path.join(directory_path, file_name)))
+        names.append(truncate_string(file_name, 15))
+
+    print("name before", names)
+    sizes, names = zip(*sorted(zip(sizes, names)))
+    sizes = list(sizes)
+    names = list(names)
+
     # Set up the plot
-    plt.figure(figsize=(12, 6))
+    setup_plot_style()
+    plt.figure(figsize=(12, 6), dpi=300)
+
+    # Create the bar plot
+    # Using bar instead of hist to avoid interpolation
+    print("labels", names)
+    print("values", sizes)
+    plt.bar(names, sizes, width=1, align='center')
+
+    # Customize the plot
+    plt.title(f"Size distribution of {series_name} dataset")
+    plt.xlabel("Sample")
+    plt.ylabel("File Size")
+    plt.grid(True, axis='y', alpha=0.7)
+    plt.yscale("log", base=2)
+
+    # Rotate x-axis labels for better readability
+    plt.xticks(rotation=90)
+
+    # Set custom y-axis formatter
+    ax = plt.gca()
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(human_readable_formatter))
+
+    # Save the plot
+    save_plot(save_path)
+
+def get_global_clusters_average_size(directory_path, save_path=None):
+    # Get all directory names
+    directories = os.listdir(directory_path)
+
+    # For each cluster's average size box plot
+    cluster_index = []
+    size_dataset = []
+
+    # For average file size per cluster
+
+    for dir_name in directories:
+        # Pattern matches "ClusterN_SizeX" and captures X
+        match = re.match(r'Cluster\d+_Size(\d+)', dir_name)
+        if match:
+            index = match.group(0)
+            cluster_index.append(str(index))
+
+        file_sizes = []
+        directory_files_path = os.path.join(directory_path, dir_name)
+        directory_files = os.listdir(directory_files_path)
+        for file in directory_files:
+            size = os.path.getsize(os.path.join(directory_files_path, file))
+            # file_sizes.append(size)
+            size_dataset.append(size)
+
+        # size_dataset.append(file_sizes)
+
+    # Set up the plot
+    setup_plot_style()
+    plt.figure(figsize=(12, 6), dpi=300)
+
+    # Create box plots
+    plt.boxplot(
+        size_dataset,
+        # tick_labels=cluster_index,
+    )
+
+    # Customize the plot
+    plt.title("Average File Size per Cluster")
+    plt.xlabel("Cluster Index")
+    plt.ylabel("File Size")
+    plt.grid(True, axis='y', alpha=0.7)
+    plt.yscale("log", base=2)
+
+    # Rotate x-axis labels for better readability
+    plt.xticks(rotation=90)
+
+    # Set custom y-axis formatter
+    ax = plt.gca()
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(human_readable_formatter))
+
+    # Save the plot
+    save_plot(save_path)
+
+def get_clusters_histogram(directory_path, save_path=None):
+    # Get all directory names
+    directories = os.listdir(directory_path)
+
+    # For frequency histogram
+    size_counts = {}
+    bin_keys = []
+
+    # For average file size per cluster
+
+    for dir_name in directories:
+        # Pattern matches "ClusterN_SizeX" and captures X
+        match = re.match(r'Cluster\d+_Size(\d+)', dir_name)
+        if match:
+            size = int(match.group(1))
+            if not str(size) in size_counts:
+                size_counts[str(size)] = 0
+                bin_keys.append(size)
+            size_counts[str(size)] += 1
+
+    # Sort sizes and counts for plotting
+    # Converting to sorted lists to ensure proper ordering
+    labels = [str(key) for key in sorted(bin_keys)]  # Sizes for x-axis
+    frequencies = [size_counts[str(size)] for size in sorted(bin_keys)]  # Frequencies for y-axis
+
+    # Set up the plot
+    setup_plot_style()
+    plt.figure(figsize=(12, 6), dpi=300)
+
+    # Create the bar plot
+    # Using bar instead of hist to avoid interpolation
+    print("labels", labels)
+    print("frequencies", frequencies)
+    plt.bar(labels, frequencies, width=1, align='center')
+
+    # Customize the plot
+    plt.title("Distribution of Cluster Sizes")
+    plt.xlabel("Cluster Size")
+    plt.ylabel("Frequency")
+    plt.grid(True, axis='y', alpha=0.7)
+
+    # Rotate x-axis labels for better readability
+    plt.xticks(rotation=90)
+
+    # Save the plot
+    save_plot(save_path)
+
+def normalize_number_list(list, min_val, max_val):
+    if not list:
+        return []
+
+    # Avoid division by zero if all numbers are the same
+    if max_val == min_val:
+        return [50] * len(list)  # Or another default value
+
+    return [((x - min_val) / (max_val - min_val)) * 100 for x in list]
+
+def plot_yara_metrics(box_plot_set, targeted_metric="TP", save_path=None, series_name="Generic", yscale="linear", file_count=0):
+    setup_plot_style()
+
+    # Set up the plot with higher DPI for better quality
+    plt.figure(figsize=(12, 6), dpi=300)
 
     box_plot_data = []
     for algorithm, data in box_plot_set.items():
-        box_plot_data.append(data[targeted_metric])
+        box_plot_data.append(
+            normalize_number_list(
+                data[targeted_metric],
+                0,
+                file_count
+            ) if targeted_metric == "TP" else data[targeted_metric]
+        )
 
     # Create box plots
     plt.boxplot(
@@ -351,37 +574,45 @@ def plot_yara_metrics(box_plot_set, targeted_metric="TP", save_path=None, series
     )
 
     # Customize the plot
+    if yscale == "log2":
+        plt.yscale("log", base=2)
+        tick_values = [1, 8, 16, 32, 64, 128, 256, 512, 1024]
+        plt.yticks(tick_values, tick_values)
+
+    if targeted_metric == "TP":
+        plt.ylim(0, 105)
+
     plt.title(f"YARA Rules {targeted_metric} Distribution ({series_name} dataset)", pad=20)
-    plt.ylabel(targeted_metric)
+    plt.ylabel("TP % Coverage" if targeted_metric == "TP" else targeted_metric)
     plt.grid(True, axis='y', alpha=0.7)
 
     # Rotate x-axis labels for better readability
-    plt.xticks(rotation=45)
+    plt.xticks(rotation=90)
 
-    # Adjust layout to prevent label cutoff
-    plt.tight_layout()
+    save_plot(save_path)
 
-    # Save or display the plot
-    if save_path:
-        plt.savefig(save_path)
-    else:
-        plt.show()
+def generate_fullscale_plots(box_plot_set, series_name, file_count, container_directory="graphs"):
+    get_directory_size_histogram(
+        get_project_path("input_testing", "malicious", "output_preprocessed", series_name),
+        series_name=series_name,
+        save_path=get_project_path("output", container_directory, series_name, f"Directory Size"),
+    )
 
-def generate_fullscale_plots(box_plot_set, series_name):
-    for algorithm, dataset in box_plot_set.items():
+    for algorithm, dataset in box_plot_set.items(): # we just need this to get the list of metrics
         for metric, list in dataset.items():
             plot_yara_metrics(
                 box_plot_set,
                 targeted_metric=metric,
-                save_path=get_project_path("output", "graphs", series_name, f"{metric}.png"),
+                save_path=get_project_path("output", container_directory, series_name, f"{metric}"),
                 series_name=series_name,
+                yscale='log2' if metric == "Gram Size" else 'linear',
+                file_count=file_count,
             )
         break
 
-def extract_box_plot(f, count=20):
+def extract_box_plot(f, count=21):
     # Run function f() COUNT times and collect metrics for box plot visualization
-
-    # Initialize lists to store metrics
+    # count defaults to 21 to allow for a smooth median
 
     # suppose we have
     # testrule =
@@ -409,14 +640,18 @@ def extract_box_plot(f, count=20):
     # Estimated K: estimated # of clusters
     # K will depend on the size and complexity of the dataset. It is used only to compare with kmeans.
 
+    # Conditions per File Count: number of conditions per number of files
+    # for small file count, it's fine if the number is 1, for large file sizes, values >= 1 might indicate overfitting or poor rule quality
+
     data_dict = {
         'TP': [],
         'Conditions Count': [],
         'Average Strings per Condition': [],
-        'Average Condition Ratio': [], #
+        'Average Condition Ratio': [],
         'Gram Size': [],
         'Strings Generated': [],
         'Estimated K': [],
+        'Conditions per File Count': [],
     }
 
     # Collect data from multiple runs
@@ -424,9 +659,10 @@ def extract_box_plot(f, count=20):
         yara_out = f()
         if not yara_out:
             for entry, list in data_dict.items():
-                list.append(0)
+                list.append(0 if entry != "Gram Size" else 1)
             continue
 
+        # print("got rule", yara_out['output'])
         condition_ratios = []
         for i in range(len(yara_out['conditions_max'])):
             condition_ratios.append(yara_out['conditions_min'][i] / yara_out['conditions_max'][i])
@@ -434,11 +670,12 @@ def extract_box_plot(f, count=20):
         # Extract and store metrics
         data_dict['TP'].append(yara_out['TP'])
         data_dict['Conditions Count'].append(len(yara_out['conditions_max']))
-        data_dict['Average Strings per Condition'].append(sum(yara_out['conditions_max']) / len(yara_out['conditions_max']))
-        data_dict['Average Condition Ratio'].append(sum(condition_ratios) / len(condition_ratios))
+        data_dict['Average Strings per Condition'].append(sum(yara_out['conditions_max']) / max(1, len(yara_out['conditions_max'])))
+        data_dict['Average Condition Ratio'].append(sum(condition_ratios) / max(1, len(condition_ratios)))
         data_dict['Gram Size'].append(yara_out['gram_size'])
         data_dict['Strings Generated'].append(yara_out['strings'])
         data_dict['Estimated K'].append(yara_out['k_clusters'])
+        data_dict['Conditions per File Count'].append(len(yara_out['conditions_max']) / yara_out['file_count'])
 
     # Return dictionary with collected metrics
     return data_dict
@@ -495,42 +732,47 @@ def count_files_in_directory(directory_path):
     # Using list comprehension to count only files (not directories)
     return len([f for f in os.listdir(directory_path) if os.path.isfile(os.path.join(directory_path, f))])
 
-def eval_full_algorithm_test1(algorithm_tries=10):
-    myYara = AutoPYara()
 
-    for dataset_series in ["Cluster10_Size10", "Cluster0_Size134"]:
+def eval_kmeans_sweep(algorithm_tries=10):
+    myYara = AutoPYara()
+    input_directory = get_project_path("input_testing", "malicious", "output_preprocessed")
+
+    for dataset_series in os.listdir(input_directory):
+        match = re.match(r'Cluster\d+_Size(\d+)', dataset_series)
+        if match:
+            size = int(match.group(1))
+            if size <= 4:
+                continue
+
         directory_path = get_project_path("input_testing", "malicious", "output_preprocessed", dataset_series)
         bloom_filter_malicious_path = get_project_path("intermediate", "bloom_filters", "malicious-bytes")
         bloom_filter_benign_path = get_project_path("intermediate", "bloom_filters", "benign-bytes")
 
-        def eval1():
-            return myYara.generate(
-                directory_path,
-                bloom_filter_malicious_path,
-                bloom_filter_benign_path,
-                bicluster_alg="SpectralCoCluster",
-                cluster_alg="AugmentedKMeansDBSCAN",
-                output_format="string",
-            )
-
-        def eval2():
-            return myYara.generate(
-                directory_path,
-                bloom_filter_malicious_path,
-                bloom_filter_benign_path,
-                bicluster_alg="SpectralCoCluster",
-                cluster_alg="VBGMM",
-                output_format="string",
-            )
-
-        box_plot_set = {}
-        box_plot_set['VBGMM'] = extract_box_plot(eval2, count=algorithm_tries)
-        box_plot_set['AugmentedKMeansDBSCAN'] = extract_box_plot(eval1, count=algorithm_tries)
-
         file_count = count_files_in_directory(directory_path)
+        box_plot_set = {}
 
-        for k in get_integer_interval(2, min(file_count, 50), 12):
-            def eval3():
+        loaded_box_plot = load_box_plot_data(dataset_series, container_directory="kmeans")
+        if loaded_box_plot:
+            print(f"already generated results for {dataset_series}! skipping experiment... updating plots...")
+            #generate_fullscale_plots(loaded_box_plot, dataset_series, file_count, container_directory="kmeans")
+            #box_plot_set = loaded_box_plot
+            continue
+
+        k_interval = [2, 3, 4, 5, 6, 7, 9, 12, 16, 21, 28, 35, 45, 60, 85, 120]
+        if file_count not in k_interval:
+            k_interval.append(file_count)
+            k_interval = sorted(k_interval)
+
+        random_k_estimate = 0
+        for k in k_interval: # get the largest k possible for this file size, but also consider the set intervals
+            if k <= file_count:
+                random_k_estimate = k
+
+        for k in k_interval:
+            if k > file_count:
+                continue
+
+            def kmeans():
                 return myYara.generate(
                     directory_path,
                     bloom_filter_malicious_path,
@@ -540,11 +782,245 @@ def eval_full_algorithm_test1(algorithm_tries=10):
                     output_format="string",
                     k_cluster=k,
                 )
-            box_plot_set[f"K-Means(k={k})"] = extract_box_plot(eval3, count=algorithm_tries)
+
+            start_time = time.time()
+            box_plot_set[f"K-Means(k={k})"] = extract_box_plot(kmeans, count=algorithm_tries)
+            print(f"Completed k={k}! Took {round(time.time() - start_time, 2)} seconds!")
+
+        print("PLOTTING", box_plot_set)
+        save_box_plot_data(box_plot_set, dataset_series, container_directory="kmeans")
+        generate_fullscale_plots(box_plot_set, dataset_series, file_count, container_directory="kmeans")
+
+def eval_full_algorithm_test1(algorithm_tries=10):
+    myYara = AutoPYara()
+
+    for dataset_series in ["Cluster5_Size23"] or list(reversed([
+        "Cluster0_Size134",
+        "Cluster1_Size111",
+        "Cluster2_Size100",
+        "Cluster3_Size53",
+        "Cluster5_Size23",
+        "Cluster10_Size10",
+        "Cluster46_Size4",
+    ])):
+        directory_path = get_project_path("input_testing", "malicious", "output_preprocessed", dataset_series)
+        bloom_filter_malicious_path = get_project_path("intermediate", "bloom_filters", "malicious-bytes")
+        bloom_filter_benign_path = get_project_path("intermediate", "bloom_filters", "benign-bytes")
+
+        file_count = count_files_in_directory(directory_path)
+        box_plot_set = {}
+
+        loaded_box_plot = load_box_plot_data(dataset_series)
+        if loaded_box_plot:
+            print(f"already generated results for {dataset_series}! skipping experiment... updating plots...")
+            generate_fullscale_plots(loaded_box_plot, dataset_series, file_count)
+            box_plot_set = loaded_box_plot
+            continue
+
+        k_interval = [2, 3, 4, 5, 6, 7, 9]
+        random_k_estimate = 0
+        for k in k_interval: # get the largest k possible for this file size, but also consider the set intervals
+            if k <= file_count:
+                random_k_estimate = k
+
+        for k in k_interval:
+            if k > file_count:
+                continue
+
+            def kmeans():
+                return myYara.generate(
+                    directory_path,
+                    bloom_filter_malicious_path,
+                    bloom_filter_benign_path,
+                    bicluster_alg="SpectralCoCluster",
+                    cluster_alg="KMeans",
+                    output_format="string",
+                    k_cluster=k,
+                )
+
+            start_time = time.time()
+            box_plot_set[f"K-Means(k={k})"] = extract_box_plot(kmeans, count=algorithm_tries)
+            print(f"Completed k={k}! Took {round(time.time() - start_time, 2)} seconds!")
+
+        def random_cluster():
+            return myYara.generate(
+                directory_path,
+                bloom_filter_malicious_path,
+                bloom_filter_benign_path,
+                bicluster_alg="SpectralCoCluster",
+                cluster_alg="Random",
+                output_format="string",
+                k_cluster=random_k_estimate,
+            )
+
+        def random_cluster2():
+            return myYara.generate(
+                directory_path,
+                bloom_filter_malicious_path,
+                bloom_filter_benign_path,
+                bicluster_alg="SpectralCoCluster",
+                cluster_alg="Random",
+                output_format="string",
+                k_cluster=2,
+            )
+
+        def vbgmm():
+            return myYara.generate(
+                directory_path,
+                bloom_filter_malicious_path,
+                bloom_filter_benign_path,
+                bicluster_alg="SpectralCoCluster",
+                cluster_alg="VBGMM",
+                output_format="string",
+            )
+
+        start_time = time.time()
+        box_plot_set[f"Random(k={2})"] = extract_box_plot(random_cluster2, count=algorithm_tries)
+        print(f"Completed Random(k={2})! Took {round(time.time() - start_time, 2)} seconds!")
+
+        start_time = time.time()
+        box_plot_set[f"Random(k={random_k_estimate})"] = extract_box_plot(random_cluster, count=algorithm_tries)
+        print(f"Completed Random(k={random_k_estimate})! Took {round(time.time() - start_time, 2)} seconds!")
+
+        for threshold in [80, 81, 83, 85, 87, 90]:#[80, 80.5, 81, 81.5, 82, 82.5, 83, 85, 88, 90, 92, 95, 98]:
+            def augmented_DBSCAN():
+                return myYara.generate(
+                    directory_path,
+                    bloom_filter_malicious_path,
+                    bloom_filter_benign_path,
+                    bicluster_alg="SpectralCoCluster",
+                    cluster_alg="AugmentedKMeansDBSCAN",
+                    output_format="string",
+                    similarity_threshold=threshold
+                )
+
+            start_time = time.time()
+            box_plot_set[f'AugmentedKMeans\nDBSCAN(similarity={threshold})'] = extract_box_plot(augmented_DBSCAN, count=algorithm_tries)
+            print(f"Completed threshold={threshold}! Took {round(time.time() - start_time, 2)} seconds!")
+
+        start_time = time.time()
+        box_plot_set['VBGMM'] = extract_box_plot(vbgmm, count=algorithm_tries)
+        print(f"Completed VBGMM! Took {round(time.time() - start_time, 2)} seconds!")
 
         print("PLOTTING", box_plot_set)
         save_box_plot_data(box_plot_set, dataset_series)
-        generate_fullscale_plots(box_plot_set, dataset_series)
+        generate_fullscale_plots(box_plot_set, dataset_series, file_count)
+
+def eval_random_vs_vbgmm_vs_augmented(algorithm_tries=10):
+    myYara = AutoPYara()
+
+    for dataset_series in ["Cluster2_Size100"] ["Cluster46_Size4", "Cluster10_Size10", "Cluster5_Size23", "Cluster3_Size53", "Cluster2_Size100", "Cluster0_Size134"] or list(reversed([
+        "Cluster0_Size134",
+        "Cluster1_Size111",
+        "Cluster2_Size100",
+        "Cluster3_Size53",
+        "Cluster5_Size23",
+        "Cluster10_Size10",
+        "Cluster46_Size4",
+    ])):
+        directory_path = get_project_path("input_testing", "malicious", "output_preprocessed", dataset_series)
+        bloom_filter_malicious_path = get_project_path("intermediate", "bloom_filters", "malicious-bytes")
+        bloom_filter_benign_path = get_project_path("intermediate", "bloom_filters", "benign-bytes")
+
+        file_count = count_files_in_directory(directory_path)
+        box_plot_set = {}
+
+        loaded_box_plot = load_box_plot_data(dataset_series)
+        if loaded_box_plot:
+            print(f"already generated results for {dataset_series}! skipping experiment... updating plots...")
+            generate_fullscale_plots(loaded_box_plot, dataset_series, file_count)
+            box_plot_set = loaded_box_plot
+            continue
+
+        k_interval = [2, 3, 4, 5, 6, 7, 9]
+        random_k_estimate = 0
+        for k in k_interval: # get the largest k possible for this file size, but also consider the set intervals
+            if k <= file_count:
+                random_k_estimate = k
+
+        def random_cluster():
+            return myYara.generate(
+                directory_path,
+                bloom_filter_malicious_path,
+                bloom_filter_benign_path,
+                bicluster_alg="SpectralCoCluster",
+                cluster_alg="Random",
+                output_format="string",
+                k_cluster=random_k_estimate,
+            )
+
+        def random_cluster2():
+            return myYara.generate(
+                directory_path,
+                bloom_filter_malicious_path,
+                bloom_filter_benign_path,
+                bicluster_alg="SpectralCoCluster",
+                cluster_alg="Random",
+                output_format="string",
+                k_cluster=2,
+            )
+
+        def vbgmm():
+            return myYara.generate(
+                directory_path,
+                bloom_filter_malicious_path,
+                bloom_filter_benign_path,
+                bicluster_alg="SpectralCoCluster",
+                cluster_alg="VBGMM",
+                output_format="string",
+                selection_heuristic="AutoYara",
+            )
+
+        start_time = time.time()
+        box_plot_set[f"Random(k={2})"] = extract_box_plot(random_cluster2, count=algorithm_tries)
+        print(f"Completed Random(k={2})! Took {round(time.time() - start_time, 2)} seconds!")
+
+        start_time = time.time()
+        box_plot_set[f"Random(k={random_k_estimate})"] = extract_box_plot(random_cluster, count=algorithm_tries)
+        print(f"Completed Random(k={random_k_estimate})! Took {round(time.time() - start_time, 2)} seconds!")
+
+        for threshold in [80, 90, 95]:
+            def augmented_DBSCAN():
+                return myYara.generate(
+                    directory_path,
+                    bloom_filter_malicious_path,
+                    bloom_filter_benign_path,
+                    bicluster_alg="SpectralCoCluster",
+                    cluster_alg="AugmentedKMeansDBSCAN",
+                    output_format="string",
+                    similarity_threshold=threshold
+                )
+
+            start_time = time.time()
+            box_plot_set[f'AugmentedKMeans\nDBSCAN(similarity={threshold})'] = extract_box_plot(augmented_DBSCAN, count=algorithm_tries)
+            print(f"Completed threshold={threshold}! Took {round(time.time() - start_time, 2)} seconds!")
+
+        for prune_factor in (50, 90):
+            for threshold in [80, 81, 85, 92]:
+                def augmented_DBSCAN():
+                    return myYara.generate(
+                        directory_path,
+                        bloom_filter_malicious_path,
+                        bloom_filter_benign_path,
+                        bicluster_alg="SpectralCoCluster",
+                        cluster_alg="AugmentedKMeansDBSCANSoft",
+                        output_format="string",
+                        similarity_threshold=threshold,
+                        bicluster_feature_prune_coverage=prune_factor,
+                    )
+
+                start_time = time.time()
+                box_plot_set[f'AugmentedKMeansSoft\nDBSCAN(similarity={threshold}, prune={prune_factor})'] = extract_box_plot(augmented_DBSCAN,
+                                                                                                    count=algorithm_tries)
+                print(f"Completed threshold={threshold}! Took {round(time.time() - start_time, 2)} seconds!")
+
+        start_time = time.time()
+        box_plot_set['VBGMM'] = extract_box_plot(vbgmm, count=algorithm_tries)
+        print(f"Completed VBGMM! Took {round(time.time() - start_time, 2)} seconds!")
+
+        print("PLOTTING", box_plot_set)
+        save_box_plot_data(box_plot_set, dataset_series)
+        generate_fullscale_plots(box_plot_set, dataset_series, file_count)
 
 if __name__ == "__main__":
     print("starting test code")
@@ -553,4 +1029,14 @@ if __name__ == "__main__":
 
     # demo_test_realworld()
 
-    eval_full_algorithm_test1(algorithm_tries=10)
+    # get_clusters_histogram(
+    #     get_project_path("input_testing", "malicious", "output_preprocessed"),
+    #     save_path=get_project_path("output", "graphs", "supplementary_graphs", "cluster_histogram")
+    # )
+    # get_clusters_global_average_size(
+    #     get_project_path("input_testing", "malicious", "output_preprocessed"),
+    #     save_path=get_project_path("output", "graphs", "supplementary_graphs", "cluster_average_size")
+    # )
+    # eval_kmeans_sweep(algorithm_tries=21) # use an odd number so that the median doesn't have to be averaged
+
+    eval_random_vs_vbgmm_vs_augmented(algorithm_tries=21) # use an odd number so that the median doesn't have to be averaged

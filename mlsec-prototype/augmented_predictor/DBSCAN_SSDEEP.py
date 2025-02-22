@@ -11,16 +11,20 @@ from utils.preprocessing import java_to_python_paths
 NoiseLabelling = Literal['Zeros', 'Ascending']
 
 class AugmentedDBScan():
-    def __init__(self, epsilon=0.5, min_samples=5, noise_labeling: NoiseLabelling = 'Ascending'):
+    def __init__(self, epsilon=0.5, min_samples=5, dbscan_threshold=90, noise_labeling: NoiseLabelling = 'Ascending'):
         self.epsilon = epsilon
         self.min_samples = min_samples
         self.noise_labeling = noise_labeling
+        self.dbscan_threshold = dbscan_threshold
 
     def DBSCAN_Cluster(self, file_paths, similarity_threshold=80, min_samples=2):
         n_files = len(file_paths)
 
         if n_files < 2:
             raise ValueError("The directory must contain at least two files to perform clustering.")
+
+        if similarity_threshold >= 100:
+            similarity_threshold = 99.9 # at large similarity thresholds, approximate
 
         # Compute ssdeep hashes for all files
         hashes = {file: ssdeep.hash_from_file(file) for file in file_paths}
@@ -55,7 +59,7 @@ class AugmentedDBScan():
         print("predicting", file_paths)
         clusters = self.DBSCAN_Cluster(
             file_paths,
-            similarity_threshold=90,
+            similarity_threshold=self.dbscan_threshold,
             min_samples=2,
         )
         for key, value in clusters.items():
@@ -63,7 +67,7 @@ class AugmentedDBScan():
 
         path_to_cluster = {}
 
-        noise_cluster = len(clusters.keys())
+        noise_cluster = len(clusters.keys())-1
         for cluster_num, paths in clusters.items():
             # Map each path to its transformed cluster number
             for path in paths:
