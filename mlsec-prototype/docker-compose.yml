@@ -1,0 +1,12 @@
+version: '3'
+
+services:
+  autopyara:
+    stdin_open: true
+    tty: true
+    build: .
+    command: bash
+    container_name: autopyara_docker
+    volumes:
+      - ./intermediate:/usr/src/app/intermediate/
+      - ./output:/usr/src/app/output/
