@@ -5,10 +5,12 @@ import math
 import time
 
 import yara
+from CommandNotFound.db.creator import measure
 from sympy import ceiling
 from sympy.series.sequences import SeqExpr
 from sympy.strategies.branch import condition
 import matplotlib.pyplot as plt
+import numpy as np
 
 from AutoYara import AutoPYara
 from difflib import SequenceMatcher
@@ -440,6 +442,74 @@ def get_directory_size_histogram(directory_path, series_name="Generic", save_pat
     # Save the plot
     save_plot(save_path)
 
+def get_rule_fp_bar(box_plot_set, series_name="Generic", save_path=None):
+    fp_global = []
+    fp_small = []
+    fp_medium = []
+    fp_large = []
+
+    fp_global_good = []
+
+    label_algorithm = []
+
+    width = 0.2
+
+    def average(list):
+        return sum(list) / len(list)
+
+    for algorithm, dataset in box_plot_set.items(): # we just need this to get the list of metrics
+        fp_global.append(average(dataset['FP Labeled Global (malware)']))
+        fp_small.append(average(dataset['FP Labeled Small (malware)']))
+        fp_medium.append(average(dataset['FP Labeled Medium (malware)']))
+        fp_large.append(average(dataset['FP Labeled Large (malware)']))
+        fp_global_good.append(average(dataset['FP Labeled Global (benign)']))
+        label_algorithm.append(algorithm)
+
+    # Set up the plot
+    setup_plot_style()
+
+    # malicious bar graph
+    plt.figure(figsize=(12, 6), dpi=300)
+
+    x = np.arange(len(label_algorithm))
+    plt.bar(x-width*0.75, fp_small, width=width*0.5)
+    plt.bar(x-width*0.25, fp_medium, width=width*0.5)
+    plt.bar(x+width*0.25, fp_large, width=width*0.5)
+    plt.bar(x+width*0.75, fp_global, width=width*0.5)
+
+    # Customize the plot
+    plt.title(f"Malicious FP: {series_name}")
+    plt.xlabel("Samples")
+    plt.ylabel("Average FP")
+    plt.grid(True, axis='y', alpha=0.7)
+    plt.xticks(x, label_algorithm)
+    plt.legend(["Small", "Medium", "Large", "Global Malware"])
+
+    # Rotate x-axis labels for better readability
+    plt.xticks(rotation=90)
+
+    # Save the plot
+    save_plot(save_path + " Malicious")
+
+    # benign bar graph
+    plt.figure(figsize=(12, 6), dpi=300)
+
+    x = np.arange(len(label_algorithm))
+    plt.bar(x, fp_global_good, width=width)
+
+    # Customize the plot
+    plt.title(f"Benign FP: {series_name}")
+    plt.xlabel("Samples")
+    plt.ylabel("Average FP")
+    plt.grid(True, axis='y', alpha=0.7)
+    plt.xticks(x, label_algorithm)
+
+    # Rotate x-axis labels for better readability
+    plt.xticks(rotation=90)
+
+    # Save the plot
+    save_plot(save_path + " Benign")
+
 def get_global_clusters_average_size(directory_path, save_path=None):
     # Get all directory names
     directories = os.listdir(directory_path)
@@ -527,7 +597,7 @@ def get_clusters_histogram(directory_path, save_path=None):
     # Using bar instead of hist to avoid interpolation
     print("labels", labels)
     print("frequencies", frequencies)
-    plt.bar(labels, frequencies, width=1, align='center')
+    bars = plt.bar(labels, frequencies, width=1, align='center')
 
     # Customize the plot
     plt.title("Distribution of Cluster Sizes")
@@ -535,8 +605,14 @@ def get_clusters_histogram(directory_path, save_path=None):
     plt.ylabel("Frequency")
     plt.grid(True, axis='y', alpha=0.7)
 
+    for bar in bars:
+        height = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width() / 2., height,
+                f'{height}',
+                ha='center', va='bottom')
+
     # Rotate x-axis labels for better readability
-    plt.xticks(rotation=90)
+    # plt.xticks(rotation=90)
 
     # Save the plot
     save_plot(save_path)
@@ -551,7 +627,10 @@ def normalize_number_list(list, min_val, max_val):
 
     return [((x - min_val) / (max_val - min_val)) * 100 for x in list]
 
-def plot_yara_metrics(box_plot_set, targeted_metric="TP", save_path=None, series_name="Generic", yscale="linear", file_count=0):
+def plot_yara_metrics(box_plot_set, targeted_metric="TP", save_path=None, series_name="Generic", yscale="linear", file_count=0, measure_fp=False):
+    if not measure_fp and re.match("FP Label", targeted_metric):
+        return
+
     setup_plot_style()
 
     # Set up the plot with higher DPI for better quality
@@ -576,11 +655,10 @@ def plot_yara_metrics(box_plot_set, targeted_metric="TP", save_path=None, series
     # Customize the plot
     if yscale == "log2":
         plt.yscale("log", base=2)
-        tick_values = [1, 8, 16, 32, 64, 128, 256, 512, 1024]
-        plt.yticks(tick_values, tick_values)
+        plt.yticks([1, 8, 16, 32, 64, 128, 256, 512, 1024])
 
-    if targeted_metric == "TP":
-        plt.ylim(0, 105)
+    #if targeted_metric == "TP":
+        #plt.ylim(0, 105)
 
     plt.title(f"YARA Rules {targeted_metric} Distribution ({series_name} dataset)", pad=20)
     plt.ylabel("TP % Coverage" if targeted_metric == "TP" else targeted_metric)
@@ -591,12 +669,19 @@ def plot_yara_metrics(box_plot_set, targeted_metric="TP", save_path=None, series
 
     save_plot(save_path)
 
-def generate_fullscale_plots(box_plot_set, series_name, file_count, container_directory="graphs"):
+def generate_fullscale_plots(box_plot_set, series_name, file_count, container_directory="graphs", measure_fp=False):
     get_directory_size_histogram(
         get_project_path("input_testing", "malicious", "output_preprocessed", series_name),
         series_name=series_name,
         save_path=get_project_path("output", container_directory, series_name, f"Directory Size"),
     )
+
+    if measure_fp:
+        get_rule_fp_bar(
+            box_plot_set,
+            series_name=series_name,
+            save_path=get_project_path("output", container_directory, series_name, f"FP Bar"),
+        )
 
     for algorithm, dataset in box_plot_set.items(): # we just need this to get the list of metrics
         for metric, list in dataset.items():
@@ -607,10 +692,26 @@ def generate_fullscale_plots(box_plot_set, series_name, file_count, container_di
                 series_name=series_name,
                 yscale='log2' if metric == "Gram Size" else 'linear',
                 file_count=file_count,
+                measure_fp=measure_fp,
             )
         break
 
-def extract_box_plot(f, count=21):
+def test_rule(yara_python_rule, directory):
+    # Runs the rule on all samples in a directory
+    matches = 0
+    total = 0
+
+    for sample_directory in os.listdir(directory):
+        if sample_directory.endswith(".exe"):
+            match = yara_python_rule.match(os.path.join(directory, sample_directory))
+            total += 1
+            if match:
+                matches += 1
+
+    # print(directory, "matched", matches, "out of", total)
+    return matches/total
+
+def extract_box_plot(f, dataset_series=None, count=21, measure_fp=False):
     # Run function f() COUNT times and collect metrics for box plot visualization
     # count defaults to 21 to allow for a smooth median
 
@@ -643,6 +744,10 @@ def extract_box_plot(f, count=21):
     # Conditions per File Count: number of conditions per number of files
     # for small file count, it's fine if the number is 1, for large file sizes, values >= 1 might indicate overfitting or poor rule quality
 
+    # FP Labeled ...: how the rule performed on labeled malware/goodware it was not supposed to detect
+    # ideally, should be 0 for all
+    # in practice, FPs tend to be higher for other malware files (~1%), FPs tend to be low (<0.1%) for benign files
+
     data_dict = {
         'TP': [],
         'Conditions Count': [],
@@ -652,17 +757,58 @@ def extract_box_plot(f, count=21):
         'Strings Generated': [],
         'Estimated K': [],
         'Conditions per File Count': [],
+
+        'FP Labeled Large (malware)': [], # family sizes of 25+
+        'FP Labeled Medium (malware)': [], # family sizes 6-25
+        'FP Labeled Small (malware)': [], # family sizes of 5 or less
+        'FP Labeled Global (malware)': [], # compare against all malware family sizes
+        'FP Labeled Global (benign)': [], # compare against benign exe files
+
+        'Execution Time': [], # compare against benign exe files
     }
 
     # Collect data from multiple runs
     for i in range(count):
+        start_time = time.time()
         yara_out = f()
+        if i > 0: # we don't consider the first run since it extract bytes and caches them
+            data_dict['Execution Time'].append(time.time() - start_time)
+
         if not yara_out:
             for entry, list in data_dict.items():
                 list.append(0 if entry != "Gram Size" else 1)
             continue
 
-        # print("got rule", yara_out['output'])
+        if dataset_series and measure_fp:
+            yara_rule = yara_out['output']
+
+            goodware_file_list = get_project_path("input_testing", "benign", "goodware")
+            for validation_dataset in os.listdir(goodware_file_list):
+                ratio = test_rule(yara_python_rule=yara_rule, directory=os.path.join(goodware_file_list, validation_dataset))
+                data_dict['FP Labeled Global (benign)'].append(ratio)
+
+            malware_file_list = get_project_path("input_testing", "malicious", "output_preprocessed")
+            for validation_dataset in os.listdir(malware_file_list):
+                if validation_dataset == dataset_series:
+                    continue # we don't validate with ourself
+
+                match = re.match(r'Cluster(\d+)_Size(\d+)', validation_dataset)
+                if match:
+                    id = int(match.group(1))
+                    size = int(match.group(2))
+                    if size <= 2 or id < 0:
+                        continue # we don't test on small datasets or the mega 7k dataset
+
+                    ratio = test_rule(yara_python_rule=yara_rule, directory=os.path.join(malware_file_list, validation_dataset))
+
+                    data_dict['FP Labeled Global (malware)'].append(ratio)
+                    if size <= 5:
+                        data_dict['FP Labeled Small (malware)'].append(ratio)
+                    elif size <= 25:
+                        data_dict['FP Labeled Medium (malware)'].append(ratio)
+                    else:
+                        data_dict['FP Labeled Large (malware)'].append(ratio)
+
         condition_ratios = []
         for i in range(len(yara_out['conditions_max'])):
             condition_ratios.append(yara_out['conditions_min'][i] / yara_out['conditions_max'][i])
@@ -732,7 +878,6 @@ def count_files_in_directory(directory_path):
     # Using list comprehension to count only files (not directories)
     return len([f for f in os.listdir(directory_path) if os.path.isfile(os.path.join(directory_path, f))])
 
-
 def eval_kmeans_sweep(algorithm_tries=10):
     myYara = AutoPYara()
     input_directory = get_project_path("input_testing", "malicious", "output_preprocessed")
@@ -754,7 +899,7 @@ def eval_kmeans_sweep(algorithm_tries=10):
         loaded_box_plot = load_box_plot_data(dataset_series, container_directory="kmeans")
         if loaded_box_plot:
             print(f"already generated results for {dataset_series}! skipping experiment... updating plots...")
-            #generate_fullscale_plots(loaded_box_plot, dataset_series, file_count, container_directory="kmeans")
+            # generate_fullscale_plots(loaded_box_plot, dataset_series, file_count, container_directory="kmeans")
             #box_plot_set = loaded_box_plot
             continue
 
@@ -778,7 +923,7 @@ def eval_kmeans_sweep(algorithm_tries=10):
                     bloom_filter_malicious_path,
                     bloom_filter_benign_path,
                     bicluster_alg="SpectralCoCluster",
-                    cluster_alg="KMeans",
+                    cluster_alg="KMeansSoft",
                     output_format="string",
                     k_cluster=k,
                 )
@@ -909,14 +1054,128 @@ def eval_full_algorithm_test1(algorithm_tries=10):
 def eval_random_vs_vbgmm_vs_augmented(algorithm_tries=10):
     myYara = AutoPYara()
 
-    for dataset_series in ["Cluster2_Size100"] ["Cluster46_Size4", "Cluster10_Size10", "Cluster5_Size23", "Cluster3_Size53", "Cluster2_Size100", "Cluster0_Size134"] or list(reversed([
+    container_directory = "full_experiment2"
+    test_fp = True
+
+    input_directory = get_project_path("input_testing", "malicious", "output_preprocessed")
+
+    for dataset_series in ["Cluster169_Size2", "Cluster170_Size2", "Cluster46_Size4", "Cluster10_Size10", "Cluster3_Size53", "Cluster0_Size134", "Cluster2_Size100"] or os.listdir(input_directory):
+        match = re.match(r'Cluster\d+_Size(\d+)', dataset_series)
+        if match:
+            size = int(match.group(1))
+            if size <= 1:
+                continue
+
+        directory_path = get_project_path("input_testing", "malicious", "output_preprocessed", dataset_series)
+        bloom_filter_malicious_path = get_project_path("intermediate", "bloom_filters", "malicious-bytes")
+        bloom_filter_benign_path = get_project_path("intermediate", "bloom_filters", "benign-bytes")
+
+        file_count = count_files_in_directory(directory_path)
+        box_plot_set = {}
+
+        loaded_box_plot = load_box_plot_data(dataset_series, container_directory=container_directory)
+        if loaded_box_plot:
+            print(f"already generated results for {dataset_series}! skipping experiment... updating plots...")
+            generate_fullscale_plots(loaded_box_plot, dataset_series, file_count, container_directory=container_directory, measure_fp=test_fp)
+            box_plot_set = loaded_box_plot
+            continue
+
+        k_interval = [2, 3, 4, 5, 6, 7, 9]
+        random_k_estimate = 0
+        for k in k_interval: # get the largest k possible for this file size, but also consider the set intervals
+            if k <= file_count:
+                random_k_estimate = k
+
+        def random_cluster():
+            return myYara.generate(
+                directory_path,
+                bloom_filter_malicious_path,
+                bloom_filter_benign_path,
+                bicluster_alg="SpectralCoCluster",
+                cluster_alg="Random",
+                output_format="yara-python",
+                k_cluster=random_k_estimate,
+            )
+
+        def random_cluster2():
+            return myYara.generate(
+                directory_path,
+                bloom_filter_malicious_path,
+                bloom_filter_benign_path,
+                bicluster_alg="SpectralCoCluster",
+                cluster_alg="Random",
+                output_format="yara-python",
+                k_cluster=2,
+            )
+
+        def vbgmm():
+            return myYara.generate(
+                directory_path,
+                bloom_filter_malicious_path,
+                bloom_filter_benign_path,
+                bicluster_alg="SpectralCoCluster",
+                cluster_alg="VBGMM",
+                output_format="yara-python",
+                selection_heuristic="AutoYara",
+            )
+
+        start_time = time.time()
+        box_plot_set[f"Random(k={2})"] = extract_box_plot(random_cluster2, dataset_series=dataset_series, count=algorithm_tries, measure_fp=test_fp)
+        print(f"Completed Random(k={2})! Took {round(time.time() - start_time, 2)} seconds!")
+
+        start_time = time.time()
+        box_plot_set[f"Random(k={random_k_estimate})"] = extract_box_plot(random_cluster, dataset_series=dataset_series, count=algorithm_tries, measure_fp=test_fp)
+        print(f"Completed Random(k={random_k_estimate})! Took {round(time.time() - start_time, 2)} seconds!")
+
+        target_k = math.ceil(file_count * 0.10) # we do this since we did a kmeans sweep
+        if file_count > 25:
+            target_k = math.ceil(file_count * 0.15)
+        elif file_count > 100:
+            target_k = math.ceil(file_count * 0.20)
+
+        target_k = max(target_k, 2)
+
+        for prune_factor in [30, 40, 50, 60, 70, 80, 90, 95, 100]:
+            def augmented_DBSCAN():
+                return myYara.generate(
+                    directory_path,
+                    bloom_filter_malicious_path,
+                    bloom_filter_benign_path,
+                    bicluster_alg="SpectralCoCluster",
+                    cluster_alg="AugmentedKMeansDBSCANSoft",
+                    output_format="yara-python",
+                    augmented_target_k=target_k,
+                    bicluster_feature_prune_coverage=prune_factor,
+                )
+
+            start_time = time.time()
+            box_plot_set[f'AKMS(cov={prune_factor})'] = extract_box_plot(
+                augmented_DBSCAN, dataset_series=dataset_series, count=algorithm_tries, measure_fp=test_fp)
+            print(f"Completed cov={prune_factor}! Took {round(time.time() - start_time, 2)} seconds!")
+
+        start_time = time.time()
+        box_plot_set['VBGMM'] = extract_box_plot(vbgmm, dataset_series=dataset_series, count=algorithm_tries, measure_fp=test_fp)
+        print(f"Completed VBGMM! Took {round(time.time() - start_time, 2)} seconds!")
+
+        print("PLOTTING", box_plot_set)
+        save_box_plot_data(box_plot_set, dataset_series, container_directory=container_directory)
+        generate_fullscale_plots(box_plot_set, dataset_series, file_count, container_directory=container_directory, measure_fp=test_fp)
+
+def eval_cross_validation(algorithm_tries=10):
+    myYara = AutoPYara()
+
+    for dataset_series in ["Cluster2_Size100"] or list(reversed([
         "Cluster0_Size134",
-        "Cluster1_Size111",
+        # "Cluster1_Size111",
         "Cluster2_Size100",
         "Cluster3_Size53",
+        "Cluster4_Size48",
         "Cluster5_Size23",
+        "Cluster6_Size23",
+        "Cluster7_Size14",
         "Cluster10_Size10",
         "Cluster46_Size4",
+        "Cluster169_Size2",
     ])):
         directory_path = get_project_path("input_testing", "malicious", "output_preprocessed", dataset_series)
         bloom_filter_malicious_path = get_project_path("intermediate", "bloom_filters", "malicious-bytes")
@@ -945,7 +1204,7 @@ def eval_random_vs_vbgmm_vs_augmented(algorithm_tries=10):
                 bloom_filter_benign_path,
                 bicluster_alg="SpectralCoCluster",
                 cluster_alg="Random",
-                output_format="string",
+                output_format="yara-python",
                 k_cluster=random_k_estimate,
             )
 
@@ -956,7 +1215,7 @@ def eval_random_vs_vbgmm_vs_augmented(algorithm_tries=10):
                 bloom_filter_benign_path,
                 bicluster_alg="SpectralCoCluster",
                 cluster_alg="Random",
-                output_format="string",
+                output_format="yara-python",
                 k_cluster=2,
             )
 
@@ -967,33 +1226,32 @@ def eval_random_vs_vbgmm_vs_augmented(algorithm_tries=10):
                 bloom_filter_benign_path,
                 bicluster_alg="SpectralCoCluster",
                 cluster_alg="VBGMM",
-                output_format="string",
-                selection_heuristic="AutoYara",
+                output_format="yara-python",
             )
 
         start_time = time.time()
-        box_plot_set[f"Random(k={2})"] = extract_box_plot(random_cluster2, count=algorithm_tries)
+        box_plot_set[f"Random(k={2})"] = extract_box_plot(random_cluster2, dataset_series=dataset_series, count=algorithm_tries)
         print(f"Completed Random(k={2})! Took {round(time.time() - start_time, 2)} seconds!")
 
         start_time = time.time()
-        box_plot_set[f"Random(k={random_k_estimate})"] = extract_box_plot(random_cluster, count=algorithm_tries)
+        box_plot_set[f"Random(k={random_k_estimate})"] = extract_box_plot(random_cluster, dataset_series=dataset_series, count=algorithm_tries)
         print(f"Completed Random(k={random_k_estimate})! Took {round(time.time() - start_time, 2)} seconds!")
 
-        for threshold in [80, 90, 95]:
-            def augmented_DBSCAN():
-                return myYara.generate(
-                    directory_path,
-                    bloom_filter_malicious_path,
-                    bloom_filter_benign_path,
-                    bicluster_alg="SpectralCoCluster",
-                    cluster_alg="AugmentedKMeansDBSCAN",
-                    output_format="string",
-                    similarity_threshold=threshold
-                )
-
-            start_time = time.time()
-            box_plot_set[f'AugmentedKMeans\nDBSCAN(similarity={threshold})'] = extract_box_plot(augmented_DBSCAN, count=algorithm_tries)
-            print(f"Completed threshold={threshold}! Took {round(time.time() - start_time, 2)} seconds!")
+        # for threshold in [80, 81, 85, 92]: # no reason to waste additional time/resources on the inferior implementation
+        #     def augmented_DBSCAN():
+        #         return myYara.generate(
+        #             directory_path,
+        #             bloom_filter_malicious_path,
+        #             bloom_filter_benign_path,
+        #             bicluster_alg="SpectralCoCluster",
+        #             cluster_alg="AugmentedKMeansDBSCAN",
+        #             output_format="yara-python",
+        #             similarity_threshold=threshold
+        #         )
+        #
+        #     start_time = time.time()
+        #     box_plot_set[f'AugmentedKMeans\nDBSCAN(similarity={threshold})'] = extract_box_plot(augmented_DBSCAN, count=algorithm_tries)
+        #     print(f"Completed threshold={threshold}! Took {round(time.time() - start_time, 2)} seconds!")
 
         for prune_factor in (50, 90):
             for threshold in [80, 81, 85, 92]:
@@ -1004,23 +1262,26 @@ def eval_random_vs_vbgmm_vs_augmented(algorithm_tries=10):
                         bloom_filter_benign_path,
                         bicluster_alg="SpectralCoCluster",
                         cluster_alg="AugmentedKMeansDBSCANSoft",
-                        output_format="string",
+                        output_format="yara-python",
                         similarity_threshold=threshold,
                         bicluster_feature_prune_coverage=prune_factor,
                     )
 
                 start_time = time.time()
-                box_plot_set[f'AugmentedKMeansSoft\nDBSCAN(similarity={threshold}, prune={prune_factor})'] = extract_box_plot(augmented_DBSCAN,
-                                                                                                    count=algorithm_tries)
+                box_plot_set[f'AugmentedKMeansSoft\nDBSCAN(similarity={threshold}, prune={prune_factor})'] = extract_box_plot(
+                    augmented_DBSCAN, dataset_series=dataset_series, count=algorithm_tries)
                 print(f"Completed threshold={threshold}! Took {round(time.time() - start_time, 2)} seconds!")
 
         start_time = time.time()
-        box_plot_set['VBGMM'] = extract_box_plot(vbgmm, count=algorithm_tries)
+        box_plot_set['VBGMM'] = extract_box_plot(vbgmm, dataset_series=dataset_series, count=algorithm_tries)
         print(f"Completed VBGMM! Took {round(time.time() - start_time, 2)} seconds!")
 
         print("PLOTTING", box_plot_set)
         save_box_plot_data(box_plot_set, dataset_series)
         generate_fullscale_plots(box_plot_set, dataset_series, file_count)
+
+def eval_global_results(parent_directory):
+    pass
 
 if __name__ == "__main__":
     print("starting test code")
@@ -1029,14 +1290,15 @@ if __name__ == "__main__":
 
     # demo_test_realworld()
 
-    # get_clusters_histogram(
-    #     get_project_path("input_testing", "malicious", "output_preprocessed"),
-    #     save_path=get_project_path("output", "graphs", "supplementary_graphs", "cluster_histogram")
-    # )
+    get_clusters_histogram(
+        get_project_path("input_testing", "malicious", "output_preprocessed"),
+        save_path=get_project_path("output", "graphs", "supplementary_graphs", "cluster_histogram")
+    )
+
     # get_clusters_global_average_size(
     #     get_project_path("input_testing", "malicious", "output_preprocessed"),
     #     save_path=get_project_path("output", "graphs", "supplementary_graphs", "cluster_average_size")
     # )
     # eval_kmeans_sweep(algorithm_tries=21) # use an odd number so that the median doesn't have to be averaged
-
-    eval_random_vs_vbgmm_vs_augmented(algorithm_tries=21) # use an odd number so that the median doesn't have to be averaged
+    # eval_random_vs_vbgmm_vs_augmented(algorithm_tries=21)
+    # eval_cross_validation(algorithm_tries=21) # use an odd number so that the median doesn't have to be averaged

@@ -92,7 +92,7 @@ def cluster_files(input_dir, output_dir, similarity_threshold=80, min_samples=2,
     print(f"Sorting and reassigning clusters...")
     # Create a list of (cluster_id, paths) tuples, excluding noise (-1)
     # Note that cluster -1 for Noise is dropped
-    sorted_clusters = [(cid, paths) for cid, paths in clusters.items() if cid != -1]
+    sorted_clusters = [(cid, paths) for cid, paths in clusters.items() if cid == -1]
     # Sort by cluster size in descending order
     sorted_clusters.sort(key=lambda x: len(x[1]), reverse=True)
 
@@ -154,7 +154,7 @@ def main():
         '--max-files',
         type=int,
         default=100000,
-        help='Minimum samples to form a cluster'
+        help='Process this many files, then quit'
     )
 
     args = parser.parse_args()

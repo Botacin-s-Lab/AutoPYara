@@ -14,6 +14,7 @@ BiclusterAlgorithmType = Literal['SpectralCoCluster', 'SpectralCoClusterScale']
 ClusterAlgorithmType = Literal[
     'VBGMM', # variational bayesian gaussian mixture model
     'KMeans', # k-means, k can be specified or automatically chosen by the pipeline
+    'KMeansSoft', # soft mixture variant of kmeans
     'Random', # designate samples to a random cluster, used to verify correctness of other algorithms and tested as baseline
     'AugmentedKMeansDBSCAN', # augmented kmeans, uses DBSCAN to cluster + SSDEEP distance metric to generate predictor labels
     'AugmentedKMeansDBSCANSoft', # AugmentedKMeansDBSCAN but with mixture assignments (euclidean distance from centroid as weight)
@@ -85,14 +86,17 @@ class AutoPYara(PythonInterface):
     def generate(self, input_dir, bloom_malicious, bloom_benign,
                  output_dir=None,
                  bicluster_alg: BiclusterAlgorithmType = 'SpectralCoCluster', cluster_alg: ClusterAlgorithmType = 'VBGMM',
-                 output_format: RuleOutputType = 'string', predictor_labels=None, k_cluster=0, similarity_threshold=90,
+                 output_format: RuleOutputType = 'string', predictor_labels=None, k_cluster=0, similarity_threshold=None,
                  rule_name=None, selection_heuristic: SelectionHeuristic = "PYara", bicluster_feature_prune_coverage=50,
+                 augmented_target_k=None,
                  ):
         '''
             predictor_labels: a list of predicted clusters for each sample given by an external predictor for augmented kmeans
             k_cluster: number of clusters to separate the samples into. Only used by some algorithms that require k
             similarity_threshold: used by augmented kmeans's dbscan
             rule_name: the name of the yara rule, leave empty to automatically generate one
+            output_format: the output format you're after, accessed via return_output['output']
+            output_format: the output format you're after, accessed via return_output['output']
         '''
         input_dirs = self.ArrayList()
         input_dirs.add(self.File(input_dir))
@@ -130,9 +134,9 @@ class AutoPYara(PythonInterface):
             print(self.yara_cluster.targets)
 
             if cluster_alg:
-                augmented_predictor = AugmentedDBScan(dbscan_threshold=similarity_threshold)
+                augmented_predictor = AugmentedDBScan(dbscan_threshold=similarity_threshold, augmented_target_k=augmented_target_k)
             else:
-                augmented_predictor = AugmentedDBScan(dbscan_threshold=similarity_threshold)
+                augmented_predictor = AugmentedDBScan(dbscan_threshold=similarity_threshold, augmented_target_k=augmented_target_k)
 
             predictor_labels = augmented_predictor.predict(self.yara_cluster.targets)
             self.yara_cluster.k = len(set(predictor_labels)) # k is the # of unique labels
