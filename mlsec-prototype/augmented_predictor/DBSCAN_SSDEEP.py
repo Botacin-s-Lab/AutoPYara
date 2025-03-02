@@ -17,9 +17,12 @@ class AugmentedDBScan():
         self.noise_labeling = noise_labeling
         self.dbscan_threshold = dbscan_threshold
 
-        print(augmented_target_k)
-        assert (not augmented_target_k or augmented_target_k >= 2), f"augmented_target_k must be >= 2!"
+        # print(augmented_target_k)
+        # assert (not augmented_target_k or augmented_target_k >= 2), f"augmented_target_k must be >= 2!"
         self.augmented_target_k = augmented_target_k
+
+        if not dbscan_threshold and not augmented_target_k:
+            self.augmented_target_k = 2
 
     def DBSCAN_Cluster(self, file_paths, similarity_threshold=80, min_samples=2):
         n_files = len(file_paths)
@@ -104,6 +107,8 @@ class AugmentedDBScan():
         """
         if self.augmented_target_k is None:
             return self.direct_predict(file_paths)
+        elif self.augmented_target_k <= 1:
+            return [0] * len(file_paths)
 
         # Initial parameters
         current_threshold = 50
@@ -147,7 +152,7 @@ class AugmentedDBScan():
             current_threshold += direction * adaptive_rate
 
             # Ensure threshold stays in valid range
-            current_threshold = max(30, min(99, current_threshold))
+            current_threshold = max(1, min(99, current_threshold))
 
             print(
                 f"Iteration {iteration}: Threshold={current_threshold:.2f}, Clusters={current_clusters}, Target={self.augmented_target_k}")

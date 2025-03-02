@@ -96,7 +96,6 @@ class AutoPYara(PythonInterface):
             similarity_threshold: used by augmented kmeans's dbscan
             rule_name: the name of the yara rule, leave empty to automatically generate one
             output_format: the output format you're after, accessed via return_output['output']
-            output_format: the output format you're after, accessed via return_output['output']
         '''
         input_dirs = self.ArrayList()
         input_dirs.add(self.File(input_dir))
