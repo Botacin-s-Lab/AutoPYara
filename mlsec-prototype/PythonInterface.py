@@ -40,10 +40,7 @@ class PythonInterface:
             ]
 
             # Use the JAVA_REPO path to locate the jar file
-            classpath = [os.path.join(
-                cls.JAVA_REPO,
-                "CapyMOASec/target/AutoYara-1.0-SNAPSHOT.jar"
-            )]
+            classpath = ["/home/mabon/Desktop/Autoyara/AutoPyYaraBackend/target/AutoYara-1.0-SNAPSHOT.jar"]
 
             jpype.startJVM(
                 classpath=classpath,

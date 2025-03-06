@@ -1,6 +1,4 @@
 *.pyc
 *.swp
 *.jar
-mlsec-prototype/input_testing/malicious
-mlsec-prototype/input_training/malicious
-mlsec-prototype/input_training/benign
+mlsec-prototype/intermediate/

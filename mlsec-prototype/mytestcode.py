@@ -5,7 +5,7 @@ import math
 import time
 
 import yara
-from CommandNotFound.db.creator import measure
+#from CommandNotFound.db.creator import measure
 from sympy import ceiling
 from sympy.series.sequences import SeqExpr
 from sympy.strategies.branch import condition
@@ -1859,6 +1859,21 @@ def eval_get_global_averages_akms_vbgmm_bestk():
 
 if __name__ == "__main__":
     print("starting test code")
+
+
+    yara = AutoPYara()
+    bloom_filter_malicious_path = get_project_path("intermediate", "bloom_filters", "malicious-bytes")
+    bloom_filter_benign_path = get_project_path("intermediate", "bloom_filters", "benign-bytes")
+
+    print("result", yara.generate(
+        get_project_path("input_testing", "malicious", "output_preprocessed", "Cluster5_Size23"),
+        bloom_filter_malicious_path,
+        bloom_filter_benign_path,
+        bicluster_alg="SpectralCoCluster",
+        cluster_alg="AugmentedKMeansDBSCANSoft",
+        output_format="yara-python",
+        augmented_target_k=4,
+    ))
     # demo_augmented_clustering()
     # demo_compare_kmeans_vbgmm_augmented()
 
