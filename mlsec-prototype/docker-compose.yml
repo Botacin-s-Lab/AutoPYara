@@ -6,7 +6,11 @@ services:
     tty: true
     build: .
     command: bash
+    cpuset: "16"  # Limits to 10 cores
     container_name: autopyara_docker
     volumes:
+      - /home/mabon/research/Autoyara/AutoPYara/mlsec-prototype:/usr/src/app/
       - ./intermediate:/usr/src/app/intermediate/
       - ./output:/usr/src/app/output/
+      - ../jars:/usr/src/app/jars/
+      - /home/malware/datasets/samples/malware/Windows/Honeypots:/usr/src/app/Honeypots

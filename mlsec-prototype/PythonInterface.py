@@ -28,7 +28,7 @@ def get_repo_paths():
 
 class PythonInterface:
     _jvm_started = False
-    PYTHON_REPO, JAVA_REPO = get_repo_paths()
+    # PYTHON_REPO, JAVA_REPO = get_repo_paths()
 
     @classmethod
     def _start_jvm(cls):
@@ -40,7 +40,7 @@ class PythonInterface:
             ]
 
             # Use the JAVA_REPO path to locate the jar file
-            classpath = ["/home/mabon/Desktop/Autoyara/AutoPyYaraBackend/target/AutoYara-1.0-SNAPSHOT.jar"]
+            classpath = ["./jars/AutoYara-1.0-SNAPSHOT-20250307230029.jar"]
 
             jpype.startJVM(
                 classpath=classpath,

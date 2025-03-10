@@ -26,7 +26,7 @@ class AugmentedDBScan():
 
     def DBSCAN_Cluster(self, file_paths, similarity_threshold=80, min_samples=2):
         n_files = len(file_paths)
-
+        print("CJCECL",file_paths)
         if n_files < 2:
             raise ValueError("The directory must contain at least two files to perform clustering.")
 
