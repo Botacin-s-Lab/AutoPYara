@@ -23,19 +23,24 @@ from utils.utils import str2bool
 def main(opts):
     if opts.generateRule:  # Simplified True check
         print("LOG:-----------------------------------RULE GENERATION SELECTED")
+        print("LOG:-----------------------------------RULE Type: ",opts.ruleOutputType)
+
         print("LOG:-----------------------------------BUILDING OBJECT")
         yara_instance = AutoPYara()
+
+        print("LOG:-----------------------------------Bicluster Algorithm: ",opts.biclusterAlgorithmType)
+        print("LOG:-----------------------------------Cluster Algorithm: ",opts.clusterAlgorithm)
+
         print("result", yara_instance.generate(
             opts.malwarePath,
             opts.bfMalicious,
             opts.bfBenign,
-            bicluster_alg="SpectralCoCluster",
-            cluster_alg="AugmentedKMeansDBSCANSoft",
-            output_format="yara-python",
+            bicluster_alg=opts.biclusterAlgorithmType,
+            cluster_alg=opts.clusterAlgorithm,
+            output_format=opts.ruleOutputType,
             augmented_target_k=4,
         ))
-    return 0  # Return 0 for success
-
+    return 0  
 def parseArgs(argv):
     parser = argparse.ArgumentParser(description="Parse command-line arguments for malware analysis.")
 
@@ -44,17 +49,26 @@ def parseArgs(argv):
     parser.add_argument('-mP', '--malwarePath', type=str, required=True, help='Path to Malicious Files.')
     parser.add_argument('-gR', '--generateRule', type=str2bool, default=False, help='Toggle Rule Generation (True/False, default: False).')
     parser.add_argument('-o', '--outputDirectory', type=str, required=True, help='Directory for output.')
+    parser.add_argument( '-bCT', '--biclusterAlgorithmType',choices={'SpectralCoCluster', 'SpectralCoClusterScale'},required=True,help='Bicluster algorithm type: SpectralCoCluster or SpectralCoClusterScale')
 
-    # if argv is None:
-    #     # Manual setup
-    #     opts = parser.parse_args([
-    #         '--bfMalicious', '/usr/src/app/intermediate/bloom_filters/malicious-bytes',
-    #         '--bfBenign', '/usr/src/app/intermediate/bloom_filters/benign-bytes',
-    #         '--malwarePath', '/usr/src/app/Honeypots',
-    #         '--generateRule', 'True',
-    #         '--outputDirectory', '/usr/src/app/TestOuput'
-    #     ])
-    # else:
+    parser.add_argument(
+        '-cA', '--clusterAlgorithm',
+        choices={
+            'VBGMM',
+            'KMeans',
+            'KMeansSoft',
+            'Random',
+            'AugmentedKMeansDBSCAN',
+            'AugmentedKMeansDBSCANSoft',
+            'AugmentedKMeansVT',
+            'AugmentedKMeansVTSoft'
+        },
+        required=True,
+        help='Cluster algorithm: VBGMM, KMeans, KMeansSoft, Random, '
+            'AugmentedKMeansDBSCAN, AugmentedKMeansDBSCANSoft, '
+            'AugmentedKMeansVT, or AugmentedKMeansVTSoft'
+    )
+    parser.add_argument( '-rOT', '--ruleOutputType',choices={'yara-python', 'yaramod', 'string'},required=True,help='Output Rule Format')
     opts = parser.parse_args(argv)
     return opts
 
