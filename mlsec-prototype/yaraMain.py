@@ -30,6 +30,7 @@ def main(opts):
 
         print("LOG:-----------------------------------Bicluster Algorithm: ",opts.biclusterAlgorithmType)
         print("LOG:-----------------------------------Cluster Algorithm: ",opts.clusterAlgorithm)
+        print("LOG:-----------------------------------Using K Value : ",opts.augmentedTarget_k)
 
         print("result", yara_instance.generate(
             opts.malwarePath,
@@ -38,7 +39,7 @@ def main(opts):
             bicluster_alg=opts.biclusterAlgorithmType,
             cluster_alg=opts.clusterAlgorithm,
             output_format=opts.ruleOutputType,
-            augmented_target_k=4,
+            augmented_target_k=opts.augmentedTarget_k,
         ))
     return 0  
 def parseArgs(argv):
@@ -48,7 +49,6 @@ def parseArgs(argv):
     parser.add_argument('-bfB', '--bfBenign', type=str, required=True, help='Path to Benign Bloom Filter.')
     parser.add_argument('-mP', '--malwarePath', type=str, required=True, help='Path to Malicious Files.')
     parser.add_argument('-gR', '--generateRule', type=str2bool, default=False, help='Toggle Rule Generation (True/False, default: False).')
-    parser.add_argument('-o', '--outputDirectory', type=str, required=True, help='Directory for output.')
     parser.add_argument( '-bCT', '--biclusterAlgorithmType',choices={'SpectralCoCluster', 'SpectralCoClusterScale'},required=True,help='Bicluster algorithm type: SpectralCoCluster or SpectralCoClusterScale')
 
     parser.add_argument(
@@ -69,6 +69,10 @@ def parseArgs(argv):
             'AugmentedKMeansVT, or AugmentedKMeansVTSoft'
     )
     parser.add_argument( '-rOT', '--ruleOutputType',choices={'yara-python', 'yaramod', 'string'},required=True,help='Output Rule Format')
+    parser.add_argument('-k', '--augmentedTarget_k', type=int, default=4)
+    
+    parser.add_argument('-o', '--outputDirectory', type=str, required=True, help='Directory for output.')
+ 
     opts = parser.parse_args(argv)
     return opts
 
