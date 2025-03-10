@@ -1,10 +1,25 @@
 
-# Get the directory containing the current script
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+import argparse
 
-# Define project root relative to script location
-# Assuming this script is in the project root or a known location relative to it
-PROJECT_ROOT = os.path.join(os.path.dirname(SCRIPT_DIR), "mlsec-prototype")
+
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('true', '1', 'yes'):
+        return True
+    elif v.lower() in ('false', '0', 'no'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
+
+# # Get the directory containing the current script
+# SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# # Define project root relative to script location
+# # Assuming this script is in the project root or a known location relative to it
+# PROJECT_ROOT = os.path.join(os.path.dirname(SCRIPT_DIR), "mlsec-prototype")
 
 def get_project_path(*paths):
     """

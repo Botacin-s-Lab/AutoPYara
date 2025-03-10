@@ -3,9 +3,8 @@ import json
 import re
 import math
 import time
-dff
+
 import yara
-#from CommandNotFound.db.creator import measure
 from sympy import ceiling
 from sympy.series.sequences import SeqExpr
 from sympy.strategies.branch import condition
@@ -203,7 +202,19 @@ def get_all_results(parent_directory):
 if __name__ == "__main__":
     print("starting test code")
 
+    yara = AutoPYara()
+    bloom_filter_malicious_path = "/usr/src/app/intermediate/bloom_filters/malicious-bytes" #get_project_path("intermediate", "bloom_filters", "malicious-bytes")
+    bloom_filter_benign_path = "/usr/src/app/intermediate/bloom_filters/benign-bytes"#get_project_path("intermediate", "bloom_filters", "benign-bytes")
 
+    print("result", yara.generate(
+        "/usr/src/app/Honeypots",
+        bloom_filter_malicious_path,
+        bloom_filter_benign_path,
+        bicluster_alg="SpectralCoCluster",
+        cluster_alg="AugmentedKMeansDBSCANSoft",
+        output_format="yara-python",
+        augmented_target_k=4,
+    ))
     # yara = AutoPYara()
     # bloom_filter_malicious_path = "/usr/src/app/intermediate/bloom_filters/malicious-bytes/"
     # bloom_filter_benign_path = "/usr/src/app/intermediate/bloom_filters/benign-bytes/"
@@ -234,7 +245,7 @@ if __name__ == "__main__":
     # eval_kmeans_sweep(algorithm_tries=21) # use an odd number so that the median doesn't have to be averaged
     # eval_cross_validation(algorithm_tries=21) # use an odd number so that the median doesn't have to be averaged
 
-    eval_random_vs_vbgmm_vs_augmented(algorithm_tries=21)
+   #eval_random_vs_vbgmm_vs_augmented(algorithm_tries=21)
 
     # eval_get_global_averages_akms_vbgmm_bestk()
     # eval_get_k_difference()
