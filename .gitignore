@@ -20,3 +20,4 @@ mlsec-prototype/Dev/output/dataSet/*.csv
 /mlsec-prototype/Dev/CompareVTData.ipynb
 /mlsec-prototype/Dev/.ipynb_checkpoints/CompareVTData.ipynb
 *.ipynb_checkpoints/
+mlsec-prototype/Dev/vt_reports/
