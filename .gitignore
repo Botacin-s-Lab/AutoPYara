@@ -1,5 +1,22 @@
+# Ignore Python bytecode files
 *.pyc
+
+# Ignore swap files created by editors like vim
 *.swp
+
+# Ignore intermediate files
 mlsec-prototype/intermediate/
+
+# Ignore the CurrentLabels file in Dev
 mlsec-prototype/Dev/CurrentLabels
+
+# Ignore CSV files in the output directory
 mlsec-prototype/Dev/output/*.csv
+
+# Ignore CSV files in the output/dataSet directory
+mlsec-prototype/Dev/output/dataSet/*.csv
+
+# Ignore the CompareVTData notebook and its checkpoint
+/mlsec-prototype/Dev/CompareVTData.ipynb
+/mlsec-prototype/Dev/.ipynb_checkpoints/CompareVTData.ipynb
+*.ipynb_checkpoints/
