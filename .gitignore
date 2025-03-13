@@ -21,3 +21,5 @@ mlsec-prototype/Dev/output/dataSet/*.csv
 /mlsec-prototype/Dev/.ipynb_checkpoints/CompareVTData.ipynb
 *.ipynb_checkpoints/
 mlsec-prototype/Dev/vt_reports/
+mlsec-prototype/Dev/hash_cache.json
+mlsec-prototype/Dev/cluster_output

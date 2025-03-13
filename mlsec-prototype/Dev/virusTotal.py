@@ -9,12 +9,13 @@ import signal  # Added for timeout handling
 
 # Replace with your VirusTotal API key
 API_KEY = 'bb8c073346e504fd1ec60c7997597a2a201ef778a6609cbf6e49f5fd229f7df3'
+# API_KEY = '02ceedd9ebcfe6858cb28c37d25842fb7dc22d46bd7f07ccbc0fafd14d18c785'
+# API_KEY2 = 'c967a1fe183f1cb02f246d0fc2b6077605dbef3362514a4707307903556fc50c'
+
 VT_API_URL = 'https://www.virustotal.com/api/v3/files'
 VT_REPORT_URL = 'https://www.virustotal.com/api/v3/analyses/'
-OUTPUT_DIR = "vt_reports/vt_reports_CodexGiga/"
-FAILED_CSV = "vt_reports/vt_reports_CodexGiga/failed_vt_queries.csv"  # New CSV for failed queries
-
-# Timeout handler
+OUTPUT_DIR = "vt_reports/vt_reports_Honeypots/"
+FAILED_CSV = "vt_reports/vt_reports_Honeypots/failed_vt_queries.csv"
 class TimeoutException(Exception):
     pass
 
@@ -33,13 +34,38 @@ def calculate_sha256(file_path):
         print(f"Error calculating hash for {file_path}: {e}")
         return None
 
+def check_existing_report(sha256, api_key):
+    """Check if a report already exists for the given SHA256 hash with 3-minute timeout"""
+    headers = {'x-apikey': api_key}
+    url = f"{VT_API_URL}/{sha256}"
+    
+    signal.signal(signal.SIGALRM, timeout_handler)
+    signal.alarm(180)  # 3 minutes in seconds
+    
+    try:
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code == 404:
+            return None  # File not found in VT
+        else:
+            print(f"Error checking existing report for {sha256}: {response.status_code}")
+            return None
+    except TimeoutException:
+        print(f"Checking existing report timed out after 3 minutes for {sha256}")
+        return None
+    except Exception as e:
+        print(f"Error checking existing report for {sha256}: {e}")
+        return None
+    finally:
+        signal.alarm(0)  # Cancel the alarm
+
 def upload_file(file_path, api_key):
     """Upload file to VirusTotal with 3-minute timeout"""
     headers = {'x-apikey': api_key}
     
-    # Set up timeout
     signal.signal(signal.SIGALRM, timeout_handler)
-    signal.alarm(180)  # 3 minutes in seconds
+    signal.alarm(180)
     
     try:
         with open(file_path, 'rb') as f:
@@ -54,15 +80,14 @@ def upload_file(file_path, api_key):
         print(f"Error uploading {file_path}: {e}")
         return None
     finally:
-        signal.alarm(0)  # Cancel the alarm
+        signal.alarm(0)
 
 def get_analysis_report(analysis_id, api_key):
     """Get analysis report from VirusTotal with mandatory 3-minute wait"""
     headers = {'x-apikey': api_key}
     
-    # Set up timeout (increased to 4 minutes to accommodate 3-minute minimum wait)
     signal.signal(signal.SIGALRM, timeout_handler)
-    signal.alarm(240)  # 4 minutes in seconds
+    signal.alarm(240)
     
     try:
         url = f"{VT_REPORT_URL}{analysis_id}"
@@ -73,18 +98,15 @@ def get_analysis_report(analysis_id, api_key):
             response.raise_for_status()
             result = response.json()
             
-            # Calculate elapsed time
             elapsed_time = time.time() - start_time
             
-            # If analysis is completed but less than 3 minutes have passed
             if result['data']['attributes']['status'] == 'completed':
-                if elapsed_time < 180:  # 180 seconds = 3 minutes
+                if elapsed_time < 180:
                     time_to_wait = 180 - elapsed_time
                     print(f"Analysis completed early. Waiting {time_to_wait:.2f} seconds...")
                     time.sleep(time_to_wait)
                 return result
             
-            # Sleep for 15 seconds between checks if not completed
             if elapsed_time < 180:
                 time.sleep(15)
             else:
@@ -97,7 +119,7 @@ def get_analysis_report(analysis_id, api_key):
         print(f"Error getting report for {analysis_id}: {e}")
         return None
     finally:
-        signal.alarm(0)  # Cancel the alarm
+        signal.alarm(0)
 
 def save_report_to_json(report, file_name, output_dir=OUTPUT_DIR):
     """Save the VirusTotal report to a JSON file"""
@@ -128,14 +150,13 @@ def append_to_failed_csv(file_name, full_path, reason):
     }
     
     df = pd.DataFrame(data)
-    # Append to CSV if exists, create new if not
     if os.path.exists(FAILED_CSV):
         df.to_csv(FAILED_CSV, mode='a', header=False, index=False)
     else:
         df.to_csv(FAILED_CSV, mode='w', header=True, index=False)
 
 def process_csv(csv_path):
-    """Process CSV file and collect raw VT reports, saving each as JSON"""
+    """Process CSV file and collect VT reports"""
     try:
         df = pd.read_csv(csv_path)
         
@@ -169,7 +190,16 @@ def process_csv(csv_path):
                     results.append((file_name, full_path, None))
                     append_to_failed_csv(file_name, full_path, "Hash calculation failed")
                     continue
-                    
+                
+                # Check if report already exists
+                existing_report = check_existing_report(sha256, API_KEY)
+                if existing_report:
+                    print(f"Found existing report for {file_name}")
+                    json_path = save_report_to_json(existing_report, file_name)
+                    results.append((file_name, full_path, json_path))
+                    continue
+                
+                # If no existing report, proceed with upload
                 analysis_id = upload_file(full_path, API_KEY)
                 if not analysis_id:
                     print(f"Skipping {file_name} due to upload error")
@@ -186,12 +216,11 @@ def process_csv(csv_path):
                 
                 json_path = save_report_to_json(report, file_name)
                 results.append((file_name, full_path, json_path))
-                #print(f"Report saved for {file_name} at {json_path if json_path else 'None'}")
                 
                 time.sleep(15)
         
         results_df = pd.DataFrame(results, columns=['File_Name', 'Full_Path', 'VT_Report_Path'])
-        results_df.to_csv('vt_reports/vt_reports_CodexGiga/vt_report_paths.csv', index=False)
+        results_df.to_csv('vt_reports/vt_report_paths.csv', index=False)
         print(f"Summary saved to 'vt_report_paths.csv'. JSON reports saved in '{OUTPUT_DIR}' folder.")
         print(f"Failed queries logged to '{FAILED_CSV}'.")
         
@@ -199,4 +228,4 @@ def process_csv(csv_path):
         print(f"Error processing CSV: {e}")
 
 if __name__ == "__main__":
-    process_csv("output/dataSet/CodexGiga_pe_files.csv")
+    process_csv("output/dataSet/Honeypots_pe_files.csv")

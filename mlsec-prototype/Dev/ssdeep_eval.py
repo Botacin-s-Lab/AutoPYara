@@ -1,53 +1,107 @@
+import hashlib
+import os
+import time
+import pandas as pd
 from sklearn.cluster import DBSCAN
 import ssdeep
-import sys
-import os
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from typing import Literal
+from concurrent.futures import ProcessPoolExecutor
+import json
+import multiprocessing
 
 NoiseLabelling = Literal['Zeros', 'Ascending']
 
 def verify_ssdeep_module():
     """Verify that the ssdeep module has required methods."""
-    print(f"ssdeep module path: {ssdeep.__file__}")
-    print(f"ssdeep attributes: {dir(ssdeep)}")
     if not hasattr(ssdeep, 'hash') or not hasattr(ssdeep, 'compare'):
-        raise ImportError("The 'ssdeep' module is missing 'hash' or 'compare'. "
-                          "Ensure 'pydeep' is installed (pip install ssdeep) and no naming conflicts exist.")
+        raise ImportError("The 'ssdeep' module is missing required methods.")
 
-def get_files_from_folder(folder_path, max_files=100):
-    """Retrieve up to max_files file paths from a folder."""
-    if not os.path.isdir(folder_path):
-        raise ValueError(f"'{folder_path}' is not a valid directory.")
-    file_paths = [os.path.join(folder_path, f) for f in os.listdir(folder_path) 
-                  if os.path.isfile(os.path.join(folder_path, f))]
-    if len(file_paths) < 2:
-        raise ValueError("The folder must contain at least two files to perform clustering.")
-    if len(file_paths) > max_files:
-        print(f"Folder has {len(file_paths)} files; limiting to {max_files} for testing.")
-        file_paths = file_paths[:max_files]
-    return file_paths
-
-def compute_distance_matrix(file_paths):
-    """Compute pairwise distance matrix using ssdeep with progress bar."""
-    n_files = len(file_paths)
-    hashes = {}
+def get_files_from_csv(csv_path="path.csv", max_files=100):
+    """Retrieve up to max_files file paths from a CSV file."""
+    if not os.path.isfile(csv_path):
+        raise ValueError(f"'{csv_path}' is not a valid file.")
     
-    for file in tqdm(file_paths, desc="Hashing files", unit="file", disable=n_files < 50):
-        try:
-            with open(file, 'rb') as f:
-                content = f.read()
-                hashes[file] = ssdeep.hash(content)
-        except Exception as e:
-            print(f"Error processing file {file}: {e}")
-            raise
+    df = pd.read_csv(csv_path)
+    if 'File_Name' not in df.columns or 'Full_Path' not in df.columns:
+        raise ValueError("CSV must contain 'File_name' and 'FilePath' columns")
+    
+  
+    # Define the original and Docker mount paths
+    host_path = "/mnt/data_disk1/mabon/datacopy"
+    docker_path = "/usr/src/app/datacopy"
+    df['Full_Path'] = df['Full_Path'].str.replace(host_path, docker_path, regex=False)
 
+    file_paths = df['Full_Path'].tolist()
+    file_names = df['File_Name'].tolist()   
+    # Verify files exist
+    valid_paths = [path for path in file_paths if os.path.isfile(path)]
+    if len(valid_paths) < 2:
+        raise ValueError("At least two valid files required for clustering.")
+    
+    # if len(valid_paths) > max_files:
+    #     valid_paths = valid_paths[:max_files]
+    
+    return valid_paths
+
+def hash_file(file_path):
+    """Compute SSDEEP and SHA256 hashes for a single file."""
+    try:
+        with open(file_path, 'rb') as f:
+            content = f.read()
+            return file_path, ssdeep.hash(content), hashlib.sha256(content).hexdigest()
+    except Exception:
+        return file_path, None, None
+
+def load_or_compute_hashes(file_paths, cache_file="hash_cache.json", num_cores=None):
+    """Load cached hashes or compute them in parallel."""
+    if num_cores is None:
+        num_cores = multiprocessing.cpu_count()
+    else:
+        num_cores = min(num_cores, multiprocessing.cpu_count(), 64)
+    print("USING",num_cores)
+    if os.path.exists(cache_file):
+        with open(cache_file, 'r') as f:
+            cached_data = json.load(f)
+            cached_hashes = cached_data.get('ssdeep', {})
+            cached_sha256 = cached_data.get('sha256', {})
+    else:
+        cached_hashes = {}
+        cached_sha256 = {}
+
+    hashes = {}
+    sha256_hashes = {}
+    files_to_hash = [f for f in file_paths if f not in cached_hashes]
+
+    if files_to_hash:
+        with ProcessPoolExecutor(max_workers=num_cores) as executor:
+            results = list(tqdm(executor.map(hash_file, files_to_hash), total=len(files_to_hash), 
+                                desc="Hashing files", unit="file", leave=False))
+        
+        for file_path, ssdeep_hash, sha256_hash in results:
+            if ssdeep_hash and sha256_hash:
+                hashes[file_path] = ssdeep_hash
+                sha256_hashes[file_path] = sha256_hash
+        
+        cached_hashes.update(hashes)
+        cached_sha256.update(sha256_hashes)
+        with open(cache_file, 'w') as f:
+            json.dump({'ssdeep': cached_hashes, 'sha256': sha256_hashes}, f)
+
+    hashes.update({f: cached_hashes[f] for f in file_paths if f in cached_hashes})
+    sha256_hashes.update({f: cached_sha256[f] for f in file_paths if f in cached_sha256})
+    
+    return hashes, sha256_hashes
+
+def compute_distance_matrix(file_paths, hashes):
+    """Compute pairwise distance matrix efficiently."""
+    n_files = len(file_paths)
     distance_matrix = np.zeros((n_files, n_files), dtype=np.float32)
 
     total_comparisons = (n_files * (n_files - 1)) // 2
-    with tqdm(total=total_comparisons, desc="Computing distances", unit="comparison", disable=n_files < 50) as pbar:
+    with tqdm(total=total_comparisons, desc="Computing distances", unit="comparison", leave=False) as pbar:
         for i in range(n_files):
             for j in range(i + 1, n_files):
                 similarity = ssdeep.compare(hashes[file_paths[i]], hashes[file_paths[j]]) / 100.0
@@ -58,12 +112,28 @@ def compute_distance_matrix(file_paths):
 
     return distance_matrix
 
-def cluster_with_threshold(file_paths, similarity_threshold, min_samples=2, noise_labeling: NoiseLabelling = 'Ascending', max_clusters=None):
-    """Cluster files using DBSCAN with a given similarity threshold, limiting to max_clusters."""
+def save_cluster_info(file_paths, labels, threshold, csv_name, output_dir, sha256_hashes):
+    """Save cluster assignments to a CSV file."""
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    
+    data = {
+        'File_Path': file_paths,
+        'SHA256': [sha256_hashes[file] for file in file_paths],
+        'Cluster_Label': labels,
+        'Threshold': [threshold] * len(file_paths)
+    }
+    df = pd.DataFrame(data)
+    
+    csv_path = os.path.join(output_dir, f"cluster_results_{csv_name}_threshold_{threshold}_{time.strftime('%Y%m%d_%H%M%S')}.csv")
+    df.to_csv(csv_path, index=False)
+
+def cluster_with_threshold(file_paths, hashes, similarity_threshold, min_samples=2, noise_labeling: NoiseLabelling = 'Ascending', max_clusters=None):
+    """Cluster files using DBSCAN with a given similarity threshold."""
     if similarity_threshold >= 100:
         similarity_threshold = 99.9
 
-    distance_matrix = compute_distance_matrix(file_paths)
+    distance_matrix = compute_distance_matrix(file_paths, hashes)
     eps = 1 - (similarity_threshold / 100.0)
     db = DBSCAN(eps=eps, min_samples=min_samples, metric="precomputed")
     labels = db.fit_predict(distance_matrix)
@@ -79,7 +149,7 @@ def cluster_with_threshold(file_paths, similarity_threshold, min_samples=2, nois
                 transformed_cluster_num = noise_cluster
                 noise_cluster += 1
             else:
-                raise ValueError(f"Invalid noise_labeling format: {noise_labeling}")
+                raise ValueError(f"Invalid noise_labeling: {noise_labeling}")
         else:
             transformed_cluster_num = label
         path_to_cluster[file] = transformed_cluster_num
@@ -101,68 +171,42 @@ def cluster_with_threshold(file_paths, similarity_threshold, min_samples=2, nois
 
     return [path_to_cluster[file] for file in file_paths]
 
-def plot_clusters(file_paths, labels, similarity_threshold, folder_name):
-    """Generate a histogram of cluster sizes."""
-    # Get cluster sizes (exclude noise, i.e., -1)
-    cluster_sizes = {}
-    for label in labels:
-        if label >= 0:  # Only count actual clusters
-            cluster_sizes[label] = cluster_sizes.get(label, 0) + 1
+def plot_clusters(file_paths, labels, similarity_threshold, csv_name, output_dir):
+    """Generate and save a histogram of cluster sizes."""
+    cluster_sizes = {label: labels.count(label) for label in set(labels) if label >= 0}
     
     if not cluster_sizes:
-        print(f"No clusters found at threshold {similarity_threshold}%, skipping plot.")
         return
 
-    # Prepare data for histogram
-    sizes = list(cluster_sizes.values())  # List of cluster sizes
-    n_clusters = len(sizes)
-    n_noise = labels.count(-1)
-
+    sizes = list(cluster_sizes.values())
     plt.figure(figsize=(10, 6))
     plt.hist(sizes, bins=range(min(sizes), max(sizes) + 2), align='left', rwidth=0.8, color='skyblue', edgecolor='black')
-    plt.xlabel("Cluster Size (Number of Files)")
-    plt.ylabel("Frequency (Number of Clusters)")
-    plt.title(f"Cluster Size Distribution at Similarity Threshold {similarity_threshold}%\n"
-              f"Folder: {folder_name} | Clusters: {n_clusters} | Noise: {n_noise}")
+    plt.xlabel("Cluster Size")
+    plt.ylabel("Frequency")
+    plt.title(f"Threshold {similarity_threshold}% - {csv_name}")
     plt.grid(True, alpha=0.3)
-    plt.savefig(f"cluster_histogram_threshold_{similarity_threshold}.png")
+    plot_path = os.path.join(output_dir, f"cluster_histogram_threshold_{similarity_threshold}_{time.strftime('%Y%m%d_%H%M%S')}.png")
+    plt.savefig(plot_path)
     plt.close()
 
-def run_with_varying_thresholds(folder_path, thresholds=[50, 60, 70, 80, 90], min_samples=2, noise_labeling: NoiseLabelling = 'Ascending', max_files=100, max_clusters=None):
-    """Run clustering with multiple thresholds and plot results with progress bar, limiting clusters."""
+def run_with_varying_thresholds(csv_path="path.csv", output_dir="cluster_output", thresholds=[50, 60, 70, 80, 90], min_samples=2, noise_labeling: NoiseLabelling = 'Ascending', max_files=100, max_clusters=None, num_cores=None):
+    """Run clustering with multiple thresholds, minimal output."""
     verify_ssdeep_module()
-    file_paths = get_files_from_folder(folder_path, max_files=max_files)
-    folder_name = os.path.basename(folder_path)
+    file_paths = get_files_from_csv(csv_path, max_files=max_files)
+    csv_name = os.path.splitext(os.path.basename(csv_path))[0]
 
-    print(f"Processing folder: {folder_path}")
-    print(f"Using {len(file_paths)} files.")
-    if max_clusters is not None:
-        print(f"Limiting to a maximum of {max_clusters} clusters.")
+    print(f"Processing {csv_path} with {len(file_paths)} files")
+    hashes, sha256_hashes = load_or_compute_hashes(file_paths, num_cores=num_cores)
 
-    for threshold in tqdm(thresholds, desc="Clustering thresholds", unit="threshold"):
-        print(f"\nClustering with similarity threshold: {threshold}%")
-        labels = cluster_with_threshold(file_paths, threshold, min_samples, noise_labeling, max_clusters)
+    for threshold in tqdm(thresholds, desc="Clustering", unit="threshold"):
+        labels = cluster_with_threshold(file_paths, hashes, threshold, min_samples, noise_labeling, max_clusters)
+        save_cluster_info(file_paths, labels, threshold, csv_name, output_dir, sha256_hashes)
+        plot_clusters(file_paths, labels, threshold, csv_name, output_dir)
 
-        unique_labels = set(labels)
-        print(f"Number of clusters: {len([l for l in unique_labels if l >= 0])}")
-        if len(file_paths) > 10:
-            print(f"Clusters (showing summary due to large number of files):")
-            for label in sorted(unique_labels):
-                cluster_size = sum(1 for lbl in labels if lbl == label)
-                if label >= 0:
-                    print(f"Cluster {label}: {cluster_size} files")
-                elif label == -1:
-                    print(f"Noise: {cluster_size} files")
-        else:
-            for label in unique_labels:
-                cluster_files = [file_paths[i] for i, lbl in enumerate(labels) if lbl == label]
-                print(f"Cluster {label}: {len(cluster_files)} files - {cluster_files}")
-
-        plot_clusters(file_paths, labels, threshold, folder_name)
-
-    print("\nPlots saved as PNG files in the current directory.")
-
+    print(f"Output saved in {output_dir}")
 
 if __name__ == "__main__":
-    folder_path = "/usr/src/app/ssdeepdata"  # Replace with your folder path
-    run_with_varying_thresholds(folder_path, thresholds=[50, 60, 70, 80, 90], min_samples=2, noise_labeling='Ascending', max_files=2000, max_clusters=3)
+    csv_path = "/usr/src/app/Dev/output/merged_csv.csv"
+    output_dir = "cluster_output"
+    run_with_varying_thresholds(csv_path, output_dir=output_dir, thresholds=[50, 60, 70,75, 80,85, 90], 
+                                min_samples=2, noise_labeling='Ascending', max_files=10000, num_cores=16)
