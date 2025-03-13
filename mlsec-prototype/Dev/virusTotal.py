@@ -34,12 +34,12 @@ def calculate_sha256(file_path):
         return None
 
 def upload_file(file_path, api_key):
-    """Upload file to VirusTotal with 2-minute timeout"""
+    """Upload file to VirusTotal with 3-minute timeout"""
     headers = {'x-apikey': api_key}
     
     # Set up timeout
     signal.signal(signal.SIGALRM, timeout_handler)
-    signal.alarm(120)  # 2 minutes in seconds
+    signal.alarm(180)  # 3 minutes in seconds
     
     try:
         with open(file_path, 'rb') as f:
@@ -48,7 +48,7 @@ def upload_file(file_path, api_key):
             response.raise_for_status()
             return response.json()['data']['id']
     except TimeoutException:
-        print(f"Upload timed out after 2 minutes for {file_path}")
+        print(f"Upload timed out after 3 minutes for {file_path}")
         return None
     except Exception as e:
         print(f"Error uploading {file_path}: {e}")
@@ -57,25 +57,41 @@ def upload_file(file_path, api_key):
         signal.alarm(0)  # Cancel the alarm
 
 def get_analysis_report(analysis_id, api_key):
-    """Get analysis report from VirusTotal with 2-minute timeout"""
+    """Get analysis report from VirusTotal with mandatory 3-minute wait"""
     headers = {'x-apikey': api_key}
     
-    # Set up timeout
+    # Set up timeout (increased to 4 minutes to accommodate 3-minute minimum wait)
     signal.signal(signal.SIGALRM, timeout_handler)
-    signal.alarm(120)  # 2 minutes in seconds
+    signal.alarm(240)  # 4 minutes in seconds
     
     try:
         url = f"{VT_REPORT_URL}{analysis_id}"
+        start_time = time.time()
+        
         while True:
             response = requests.get(url, headers=headers)
             response.raise_for_status()
             result = response.json()
             
+            # Calculate elapsed time
+            elapsed_time = time.time() - start_time
+            
+            # If analysis is completed but less than 3 minutes have passed
             if result['data']['attributes']['status'] == 'completed':
+                if elapsed_time < 180:  # 180 seconds = 3 minutes
+                    time_to_wait = 180 - elapsed_time
+                    print(f"Analysis completed early. Waiting {time_to_wait:.2f} seconds...")
+                    time.sleep(time_to_wait)
                 return result
-            time.sleep(15)
+            
+            # Sleep for 15 seconds between checks if not completed
+            if elapsed_time < 180:
+                time.sleep(15)
+            else:
+                break
+                
     except TimeoutException:
-        print(f"Report retrieval timed out after 2 minutes for {analysis_id}")
+        print(f"Report retrieval timed out after 4 minutes for {analysis_id}")
         return None
     except Exception as e:
         print(f"Error getting report for {analysis_id}: {e}")
