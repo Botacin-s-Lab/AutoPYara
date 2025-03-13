@@ -11,8 +11,8 @@ import signal  # Added for timeout handling
 API_KEY = 'bb8c073346e504fd1ec60c7997597a2a201ef778a6609cbf6e49f5fd229f7df3'
 VT_API_URL = 'https://www.virustotal.com/api/v3/files'
 VT_REPORT_URL = 'https://www.virustotal.com/api/v3/analyses/'
-OUTPUT_DIR = "vt_reports/"
-FAILED_CSV = "output/failed_vt_queries.csv"  # New CSV for failed queries
+OUTPUT_DIR = "vt_reports/vt_reports_CodexGiga/"
+FAILED_CSV = "vt_reports/vt_reports_CodexGiga/failed_vt_queries.csv"  # New CSV for failed queries
 
 # Timeout handler
 class TimeoutException(Exception):
@@ -186,12 +186,12 @@ def process_csv(csv_path):
                 
                 json_path = save_report_to_json(report, file_name)
                 results.append((file_name, full_path, json_path))
-                print(f"Report saved for {file_name} at {json_path if json_path else 'None'}")
+                #print(f"Report saved for {file_name} at {json_path if json_path else 'None'}")
                 
                 time.sleep(15)
         
         results_df = pd.DataFrame(results, columns=['File_Name', 'Full_Path', 'VT_Report_Path'])
-        results_df.to_csv('output/vt_report_paths.csv', index=False)
+        results_df.to_csv('vt_reports/vt_reports_CodexGiga/vt_report_paths.csv', index=False)
         print(f"Summary saved to 'vt_report_paths.csv'. JSON reports saved in '{OUTPUT_DIR}' folder.")
         print(f"Failed queries logged to '{FAILED_CSV}'.")
         
@@ -199,4 +199,4 @@ def process_csv(csv_path):
         print(f"Error processing CSV: {e}")
 
 if __name__ == "__main__":
-    process_csv("output/dataSet/APTs_pe_files.csv")
+    process_csv("output/dataSet/CodexGiga_pe_files.csv")

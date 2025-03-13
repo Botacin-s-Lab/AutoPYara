@@ -14,3 +14,4 @@ services:
       - ./output:/usr/src/app/output/
       - ../jars:/usr/src/app/jars/
       - /home/malware/datasets/samples/malware/Windows/Honeypots:/usr/src/app/Honeypots
+      - /mnt/data_disk1/mabon/processed_data/BB/files:/usr/src/app/ssdeepdata
