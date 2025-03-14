@@ -45,8 +45,8 @@ def get_files_from_csv(folder_path="/usr/src/app/sdhashdata", csv_path="path.csv
     valid_paths = [path for path in file_paths if os.path.isfile(path)]
     if len(valid_paths) < 2:
         raise ValueError("At least two valid files required for clustering.")
-    if len(valid_paths) > max_files:
-        valid_paths = valid_paths[:max_files]
+    # if len(valid_paths) > max_files:
+    #     valid_paths = valid_paths[:max_files]
         
     return valid_paths
 
@@ -145,7 +145,7 @@ def compute_pair(args):
                 except OSError:
                     pass
 
-def compute_distance_matrix(file_paths, hashes, max_workers=32):
+def compute_distance_matrix(file_paths, hashes, max_workers=64):
     """Compute distance matrix for given file paths and hashes."""
     n_files = len(file_paths)
     distance_matrix = np.zeros((n_files, n_files), dtype=np.float32)
@@ -260,7 +260,7 @@ def save_cluster_info(file_paths, labels, threshold, folder_name, output_dir, sh
 def run_with_varying_thresholds(folder_path="/usr/src/app/sdhashdata", csv_path="path.csv", 
                               output_dir="cluster_output", thresholds=[50, 60, 70, 80, 90], 
                               min_samples=2, noise_labeling: NoiseLabelling = 'Ascending', 
-                              max_files=100, max_clusters=None, num_cores=None):
+                              max_files=None, max_clusters=None, num_cores=None):
     """Run clustering with multiple thresholds and plot results with progress bar, limiting clusters."""
     verify_sdhash_installed()
     file_paths = get_files_from_csv(folder_path, csv_path, max_files=max_files)
@@ -278,6 +278,6 @@ if __name__ == "__main__":
     folder_path = ""
     csv_path = "/usr/src/app/Dev/output/merged_csv.csv"
     output_dir = "cluster_output/sdhash/test"
-    run_with_varying_thresholds(folder_path, csv_path, output_dir, thresholds=[10], 
-                              min_samples=2, noise_labeling='Ascending', max_files=1000, 
+    run_with_varying_thresholds(folder_path, csv_path, output_dir, thresholds=[50, 60, 70,75, 80,85, 90], 
+                              min_samples=2, noise_labeling='Ascending', max_files=None, 
                               max_clusters=None, num_cores=64)

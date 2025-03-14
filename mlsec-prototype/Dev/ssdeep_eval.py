@@ -112,7 +112,7 @@ def compute_distance_matrix(file_paths, hashes):
 
     return distance_matrix
 
-def save_cluster_info(file_paths, labels, threshold, csv_name, output_dir, sha256_hashes):
+def save_cluster_info(file_paths, labels, threshold, csv_name, output_dir, sha256_hashes,hashes):
     """Save cluster assignments to a CSV file."""
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -120,6 +120,7 @@ def save_cluster_info(file_paths, labels, threshold, csv_name, output_dir, sha25
     data = {
         'File_Path': file_paths,
         'SHA256': [sha256_hashes[file] for file in file_paths],
+        'SSDeep': [hashes[file] for file in file_paths],
         'Cluster_Label': labels,
         'Threshold': [threshold] * len(file_paths)
     }
@@ -200,7 +201,7 @@ def run_with_varying_thresholds(csv_path="path.csv", output_dir="cluster_output"
 
     for threshold in tqdm(thresholds, desc="Clustering", unit="threshold"):
         labels = cluster_with_threshold(file_paths, hashes, threshold, min_samples, noise_labeling, max_clusters)
-        save_cluster_info(file_paths, labels, threshold, csv_name, output_dir, sha256_hashes)
+        save_cluster_info(file_paths, labels, threshold, csv_name, output_dir, sha256_hashes,hashes)
         plot_clusters(file_paths, labels, threshold, csv_name, output_dir)
 
     print(f"Output saved in {output_dir}")
