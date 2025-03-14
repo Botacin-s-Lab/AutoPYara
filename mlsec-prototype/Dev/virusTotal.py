@@ -6,16 +6,19 @@ import pandas as pd
 from tqdm import tqdm
 import json
 import signal  # Added for timeout handling
-
+import re  # Added for regex to strip timestamp
 # Replace with your VirusTotal API key
-API_KEY = 'bb8c073346e504fd1ec60c7997597a2a201ef778a6609cbf6e49f5fd229f7df3'
-# API_KEY = '02ceedd9ebcfe6858cb28c37d25842fb7dc22d46bd7f07ccbc0fafd14d18c785'
-# API_KEY2 = 'c967a1fe183f1cb02f246d0fc2b6077605dbef3362514a4707307903556fc50c'
-
+API_KEY = 'ae0eaf50c5f7cac4756413a4ebd53cbe7d073c8a8d3a00d3c72fe8ed41e721b5' #maRCUS api
+#API_KEY = 'bb8c073346e504fd1ec60c7997597a2a201ef778a6609cbf6e49f5fd229f7df3'
+#API_KEY = '02ceedd9ebcfe6858cb28c37d25842fb7dc22d46bd7f07ccbc0fafd14d18c785'
+#API_KEY = 'c967a1fe183f1cb02f246d0fc2b6077605dbef3362514a4707307903556fc50c'
+# Replace with your VirusTotal API key
+#API_KEY = '02ceedd9ebcfe6858cb28c37d25842fb7dc22d46bd7f07ccbc0fafd14d18c785'
 VT_API_URL = 'https://www.virustotal.com/api/v3/files'
 VT_REPORT_URL = 'https://www.virustotal.com/api/v3/analyses/'
-OUTPUT_DIR = "vt_reports/vt_reports_Honeypots/"
-FAILED_CSV = "vt_reports/vt_reports_Honeypots/failed_vt_queries.csv"
+OUTPUT_DIR = "vt_reports/vt_reports_CodexGiga/"
+FAILED_CSV = "vt_reports/vt_reports_CodexGiga/failed_vt_queries.csv"
+
 class TimeoutException(Exception):
     pass
 
@@ -155,6 +158,20 @@ def append_to_failed_csv(file_name, full_path, reason):
     else:
         df.to_csv(FAILED_CSV, mode='w', header=True, index=False)
 
+def check_existing_json(file_name, output_dir=OUTPUT_DIR):
+    """Check if a JSON report already exists for the file by stripping the timestamp"""
+    if not os.path.exists(output_dir):
+        return None
+    
+    safe_file_name = "".join(c if c.isalnum() or c in ['-', '_'] else '_' for c in file_name)
+    pattern = re.compile(rf"vt_report_{re.escape(safe_file_name)}_[0-9]{{8}}_[0-9]{{6}}\.json")
+    
+    for existing_file in os.listdir(output_dir):
+        if pattern.match(existing_file):
+            return os.path.join(output_dir, existing_file)
+    return None
+
+
 def process_csv(csv_path):
     """Process CSV file and collect VT reports"""
     try:
@@ -171,7 +188,11 @@ def process_csv(csv_path):
         
         unaccounted_files = set(unaccounted_df['File_Name'].str.strip())
         results = []
-        
+         # Define the original and Docker mount paths ( FOR DOCKER MOUTN)
+        # host_path = "/mnt/data_disk1/mabon/datacopy"
+        # docker_path = "/usr/src/app/datacopy"
+        # df['Full_Path'] = df['Full_Path'].str.replace(host_path, docker_path, regex=False)
+
         for _, row in tqdm(df.iterrows(), total=len(df), desc="Processing files"):
             file_name = str(row['File_Name']).strip()
             full_path = str(row['Full_Path']).strip()
@@ -184,6 +205,14 @@ def process_csv(csv_path):
             
             if file_name in unaccounted_files:
                 print(f"Processing: {file_name} ({full_path})")
+                
+                # Check if JSON file already exists in the folder
+                existing_json_path = check_existing_json(file_name)
+                if existing_json_path:
+                    print(f"Found existing JSON report for {file_name} at {existing_json_path}")
+                    results.append((file_name, full_path, existing_json_path))
+                    continue
+                
                 sha256 = calculate_sha256(full_path)
                 if not sha256:
                     print(f"Skipping {file_name} due to hash error")
@@ -191,10 +220,10 @@ def process_csv(csv_path):
                     append_to_failed_csv(file_name, full_path, "Hash calculation failed")
                     continue
                 
-                # Check if report already exists
+                # Check if report already exists on VirusTotal
                 existing_report = check_existing_report(sha256, API_KEY)
                 if existing_report:
-                    print(f"Found existing report for {file_name}")
+                    print(f"Found existing report for {file_name} on VirusTotal")
                     json_path = save_report_to_json(existing_report, file_name)
                     results.append((file_name, full_path, json_path))
                     continue
@@ -220,7 +249,7 @@ def process_csv(csv_path):
                 time.sleep(15)
         
         results_df = pd.DataFrame(results, columns=['File_Name', 'Full_Path', 'VT_Report_Path'])
-        results_df.to_csv('vt_reports/vt_report_paths.csv', index=False)
+        results_df.to_csv('vt_reports/vt_reports_CodexGiga/vt_report_paths.csv', index=False)
         print(f"Summary saved to 'vt_report_paths.csv'. JSON reports saved in '{OUTPUT_DIR}' folder.")
         print(f"Failed queries logged to '{FAILED_CSV}'.")
         
@@ -228,4 +257,4 @@ def process_csv(csv_path):
         print(f"Error processing CSV: {e}")
 
 if __name__ == "__main__":
-    process_csv("output/dataSet/Honeypots_pe_files.csv")
+    process_csv("output/dataSet/CodexGiga/CodexGiga_pe_files_r2.csv")

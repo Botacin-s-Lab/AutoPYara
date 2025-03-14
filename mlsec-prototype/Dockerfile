@@ -33,7 +33,12 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 COPY requirements.txt /usr/src/app/requirements.txt
 RUN pip3 install -r requirements.txt
 
-# wget releases
+RUN wget https://github.com/Botacin-s-Lab/SDHash/releases/download/1.0.0/SDhash -O SDhash
+# Make SDhash executable
+RUN chmod +x SDhash
+
+# Optionally move SDhash to a global bin location (e.g., /usr/local/bin) to run it anywhere
+RUN mv SDhash /usr/local/bin/sdhash
 
 # Copy the current directory contents into the container
 # COPY *.py /usr/src/app/

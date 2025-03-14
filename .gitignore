@@ -11,7 +11,7 @@ mlsec-prototype/intermediate/
 mlsec-prototype/Dev/CurrentLabels
 
 # Ignore CSV files in the output directory
-mlsec-prototype/Dev/output/*.csv
+mlsec-prototype/Dev/output/
 
 # Ignore CSV files in the output/dataSet directory
 mlsec-prototype/Dev/output/dataSet/*.csv
