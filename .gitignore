@@ -23,3 +23,8 @@ mlsec-prototype/Dev/output/dataSet/*.csv
 mlsec-prototype/Dev/vt_reports/
 mlsec-prototype/Dev/hash_cache.json
 mlsec-prototype/Dev/cluster_output
+mlsec-prototype/Dev/hash_cache_sdhash.json
+mlsec-prototype/test1.sdbf
+mlsec-prototype/test1.txt
+mlsec-prototype/test2.sdbf
+mlsec-prototype/test2.txt

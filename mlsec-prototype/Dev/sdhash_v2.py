@@ -1,25 +1,28 @@
-import hashlib
-import os
-import time
-import pandas as pd
 from sklearn.cluster import DBSCAN
+import sys
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from typing import Literal
-from concurrent.futures import ProcessPoolExecutor
+import subprocess
+import pandas as pd
+import hashlib
+import time
 import json
 import multiprocessing
-import subprocess
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+import tempfile
 
 NoiseLabelling = Literal['Zeros', 'Ascending']
 
-def verify_sdhash_tool():
-    """Verify that the sdhash tool is available."""
+def verify_sdhash_installed():
+    """Verify that sdhash is installed and accessible."""
     try:
-        subprocess.run(["sdhash", "--version"], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    except subprocess.CalledProcessError:
-        raise ImportError("The 'sdhash' tool is not installed or not accessible in the system PATH.")
+        subprocess.run(['sdhash', '--version'], capture_output=True, text=True)
+    except FileNotFoundError:
+        raise ImportError("sdhash is not installed or not found in PATH. "
+                          "Please install it (e.g., 'apt-get install sdhash' or from source).")
 
 def get_files_from_csv(folder_path="/usr/src/app/sdhashdata", csv_path="path.csv", max_files=100):
     """Retrieve up to max_files file paths from a CSV file or folder, with path mapping."""
@@ -46,33 +49,27 @@ def get_files_from_csv(folder_path="/usr/src/app/sdhashdata", csv_path="path.csv
         valid_paths = valid_paths[:max_files]
         
     return valid_paths
+
 def hash_file(file_path):
     """Compute sdhash similarity digest and SHA256 hash for a single file."""
     try:
         result = subprocess.run(["sdhash", file_path], check=True, capture_output=True, text=True)
         sdhash_output = result.stdout.strip()
         if not sdhash_output:
-            print(f"Warning: Empty sdhash output for {file_path}")
             return file_path, None, None
-        
-        #print(f"Computed sdhash for {file_path}:")
-        #print(f"{sdhash_output}\n")  # Print the sdhash value
         
         with open(file_path, 'rb') as f:
             content = f.read()
             if not content:
-                print(f"Warning: Empty file {file_path}")
                 return file_path, None, None
             sha256_hash = hashlib.sha256(content).hexdigest()
         return file_path, sdhash_output, sha256_hash
-    except subprocess.CalledProcessError as e:
-        print(f"Error hashing {file_path} with sdhash: {e}")
+    except subprocess.CalledProcessError:
         return file_path, None, None
 
 def load_or_compute_hashes(file_paths, cache_file="hash_cache_sdhash.json", num_cores=None):
     """Load cached hashes or compute them in parallel."""
     num_cores = min(num_cores or multiprocessing.cpu_count(), multiprocessing.cpu_count(), 64)
-    print(f"Using {num_cores} cores for hashing")
 
     cached_hashes = {}
     cached_sha256 = {}
@@ -81,11 +78,6 @@ def load_or_compute_hashes(file_paths, cache_file="hash_cache_sdhash.json", num_
             cached_data = json.load(f)
             cached_hashes = cached_data.get('sdhash', {})
             cached_sha256 = cached_data.get('sha256', {})
-        # Print cached sdhash values
-        # for file_path, sdhash_value in cached_hashes.items():
-        #     if file_path in file_paths and sdhash_value:
-        #         print(f"Loaded cached sdhash for {file_path}:")
-                #print(f"{sdhash_value}\n")
 
     hashes = {}
     sha256_hashes = {}
@@ -110,114 +102,85 @@ def load_or_compute_hashes(file_paths, cache_file="hash_cache_sdhash.json", num_
     sha256_hashes.update({f: cached_sha256[f] for f in file_paths if f in cached_sha256})
     
     return hashes, sha256_hashes
-import numpy as np
-from tqdm import tqdm
-import subprocess
-import os
-from concurrent.futures import ThreadPoolExecutor
-import tempfile
-def compute_pair(args):
-    """Helper function to compute distance for a pair of files"""
-    i, j, file_paths, hashes = args
-    temp_dir = tempfile.gettempdir()
-    temp_file_i = os.path.join(temp_dir, f"temp_{i}.sdbf")
-    temp_file_j = os.path.join(temp_dir, f"temp_{j}.sdbf")
-    files_created = []
 
+def compute_pair(args):
+    """Helper function to compute distance for a pair of files."""
+    i, j, file_paths, hashes = args
+    
     try:
         if not hashes[file_paths[i]] or not hashes[file_paths[j]]:
             return i, j, 1.0
         
-        with open(temp_file_i, "w") as f1, open(temp_file_j, "w") as f2:
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.sdbf', delete=False) as f1, \
+             tempfile.NamedTemporaryFile(mode='w', suffix='.sdbf', delete=False) as f2:
             f1.write(hashes[file_paths[i]])
             f2.write(hashes[file_paths[j]])
-        files_created = [temp_file_i, temp_file_j]  # Track created files
+            temp_file_i, temp_file_j = f1.name, f2.name
         
         result = subprocess.run(
             ["sdhash", "-c", temp_file_i, temp_file_j],
             check=True, capture_output=True, text=True
         )
         output = result.stdout.strip()
-        # Split the output by '|' and take the 4th field (index 3) which contains the similarity
+        
         if output:
-            similarity = float(output.split('|')[3])  # Extract e.g., 0.7094 or 0.2506
+            similarity = float(output.split('|')[3])
+            similarity = max(0.0, min(1.0, similarity))
             distance = 1 - similarity
         else:
             distance = 1.0
         
+        if distance < 0:
+            distance = 0.0
+        
         return i, j, distance
     
-    except (subprocess.CalledProcessError, ValueError, IndexError) as e:
-        print(f"Error computing pair ({file_paths[i]}, {file_paths[j]}): {e}")
+    except (subprocess.CalledProcessError, ValueError, IndexError):
         return i, j, 1.0
     finally:
-        for temp_file in files_created:  # Only remove files that were successfully created
+        for temp_file in [temp_file_i, temp_file_j]:
             if os.path.exists(temp_file):
                 try:
                     os.remove(temp_file)
-                except OSError as e:
-                    print(f"Warning: Failed to remove {temp_file}: {e}")
+                except OSError:
+                    pass
 
-                    
 def compute_distance_matrix(file_paths, hashes, max_workers=32):
-    """
-    Compute distance matrix for given file paths and hashes.
-    
-    Args:
-        file_paths: List of file paths
-        hashes: Dictionary mapping file paths to their hash values
-        max_workers: Optional number of worker threads (defaults to None for automatic)
-    """
-    print("USING",max_workers)
+    """Compute distance matrix for given file paths and hashes."""
     n_files = len(file_paths)
     distance_matrix = np.zeros((n_files, n_files), dtype=np.float32)
     
-    # Pre-compute pairs to process
     pairs = [(i, j, file_paths, hashes) 
-            for i in range(n_files) 
-            for j in range(i + 1, n_files)]
+             for i in range(n_files) 
+             for j in range(i + 1, n_files)]
     
     total_comparisons = len(pairs)
     
-    # Use ThreadPoolExecutor for parallel processing
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         with tqdm(total=total_comparisons, desc="Computing distances", unit="comparison") as pbar:
-            # Process comparisons in parallel
             results = executor.map(compute_pair, pairs)
-            
-            # Update matrix with results
             for i, j, distance in results:
                 distance_matrix[i, j] = distance
                 distance_matrix[j, i] = distance
                 pbar.update(1)
     
+    min_distance = np.min(distance_matrix)
+    if min_distance < 0:
+        distance_matrix = np.clip(distance_matrix, 0, None)
+    
     return distance_matrix
 
-def save_cluster_info(file_paths, labels, threshold, folder_name, output_dir, sha256_hashes, hashes):
-    """Save cluster assignments to a CSV file, including sdhash values."""
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-    
-    data = {
-        'File_Path': file_paths,
-        'SHA256': [sha256_hashes[file] for file in file_paths],
-        'SDHash': [hashes[file] for file in file_paths],  # Add sdhash values
-        'Cluster_Label': labels,
-        'Threshold': [threshold] * len(file_paths)
-    }
-    df = pd.DataFrame(data)
-    
-    csv_path = os.path.join(output_dir, f"cluster_results_{folder_name}_threshold_{threshold}_{time.strftime('%Y%m%d_%H%M%S')}.csv")
-    df.to_csv(csv_path, index=False)
-    print(f"Saved cluster results to {csv_path}")
+def cluster_with_threshold(file_paths, hashes, similarity_threshold, min_samples=2, 
+                         noise_labeling: NoiseLabelling = 'Ascending', max_clusters=None):
+    """Cluster files using DBSCAN with a given similarity threshold, limiting to max_clusters."""
+    if similarity_threshold >= 100:
+        similarity_threshold = 99.9
 
-def cluster_with_threshold(file_paths, hashes, similarity_threshold, min_samples=2, noise_labeling: NoiseLabelling = 'Ascending', max_clusters=None):
     distance_matrix = compute_distance_matrix(file_paths, hashes)
-    eps = max(0.01, 1 - (similarity_threshold / 100.0))  # Ensure eps isn't too small
-    print(f"Using eps={eps} for threshold={similarity_threshold}%")
+    eps = 1 - (similarity_threshold / 100.0)
     db = DBSCAN(eps=eps, min_samples=min_samples, metric="precomputed")
     labels = db.fit_predict(distance_matrix)
-    
+
     path_to_cluster = {}
     noise_cluster = max(labels) + 1 if max(labels) >= 0 else 0
 
@@ -251,7 +214,7 @@ def cluster_with_threshold(file_paths, hashes, similarity_threshold, min_samples
 
     return [path_to_cluster[file] for file in file_paths]
 
-def plot_clusters(file_paths, labels, similarity_threshold, folder_name, output_dir):
+def plot_clusters(file_paths, labels, similarity_threshold, folder_name):
     """Generate a histogram of cluster sizes."""
     cluster_sizes = {}
     for label in labels:
@@ -259,7 +222,6 @@ def plot_clusters(file_paths, labels, similarity_threshold, folder_name, output_
             cluster_sizes[label] = cluster_sizes.get(label, 0) + 1
     
     if not cluster_sizes:
-        print(f"No clusters found at threshold {similarity_threshold}%, skipping plot.")
         return
 
     sizes = list(cluster_sizes.values())
@@ -267,57 +229,55 @@ def plot_clusters(file_paths, labels, similarity_threshold, folder_name, output_
     n_noise = labels.count(-1)
 
     plt.figure(figsize=(10, 6))
-    plt.hist(sizes, bins=range(min(sizes), max(sizes) + 2), align='left', rwidth=0.8, color='skyblue', edgecolor='black')
+    plt.hist(sizes, bins=range(min(sizes), max(sizes) + 2), align='left', rwidth=0.8, 
+             color='skyblue', edgecolor='black')
     plt.xlabel("Cluster Size (Number of Files)")
     plt.ylabel("Frequency (Number of Clusters)")
     plt.title(f"Cluster Size Distribution at Similarity Threshold {similarity_threshold}%\n"
               f"Folder: {folder_name} | Clusters: {n_clusters} | Noise: {n_noise}")
     plt.grid(True, alpha=0.3)
-    plot_path = os.path.join(output_dir, f"cluster_histogram_threshold_{similarity_threshold}_{time.strftime('%Y%m%d_%H%M%S')}.png")
-    plt.savefig(plot_path)
+    plt.savefig(f"cluster_histogram_threshold_{similarity_threshold}.png")
     plt.close()
-    print(f"Saved plot to {plot_path}")
 
-def run_with_varying_thresholds(folder_path="/usr/src/app/sdhashdata", csv_path="path.csv", output_dir="cluster_output", thresholds=[50, 60, 70, 80, 90], min_samples=2, noise_labeling: NoiseLabelling = 'Ascending', max_files=100, max_clusters=None, num_cores=None):
-    """Run clustering with multiple thresholds and plot results."""
-    verify_sdhash_tool()
+def save_cluster_info(file_paths, labels, threshold, folder_name, output_dir, sha256_hashes, hashes):
+    """Save cluster assignments to a CSV file, including sdhash values."""
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    
+    data = {
+        'File_Path': file_paths,
+        'SHA256': [sha256_hashes[file] for file in file_paths],
+        'SDHash': [hashes[file] for file in file_paths],  # Add sdhash values
+        'Cluster_Label': labels,
+        'Threshold': [threshold] * len(file_paths)
+    }
+    df = pd.DataFrame(data)
+    
+    csv_path = os.path.join(output_dir, f"cluster_results_{folder_name}_threshold_{threshold}_{time.strftime('%Y%m%d_%H%M%S')}.csv")
+    df.to_csv(csv_path, index=False)
+    print(f"Saved cluster results to {csv_path}")
+
+def run_with_varying_thresholds(folder_path="/usr/src/app/sdhashdata", csv_path="path.csv", 
+                              output_dir="cluster_output", thresholds=[50, 60, 70, 80, 90], 
+                              min_samples=2, noise_labeling: NoiseLabelling = 'Ascending', 
+                              max_files=100, max_clusters=None, num_cores=None):
+    """Run clustering with multiple thresholds and plot results with progress bar, limiting clusters."""
+    verify_sdhash_installed()
     file_paths = get_files_from_csv(folder_path, csv_path, max_files=max_files)
-    folder_name = os.path.basename(folder_path) if csv_path == "path.csv" else os.path.splitext(os.path.basename(csv_path))[0]
+    folder_name = os.path.basename(folder_path)
 
-    print(f"Processing {folder_path if csv_path == 'path.csv' else csv_path} with {len(file_paths)} files")
-    if max_clusters is not None:
-        print(f"Limiting to a maximum of {max_clusters} clusters.")
     hashes, sha256_hashes = load_or_compute_hashes(file_paths, num_cores=num_cores)
 
     for threshold in tqdm(thresholds, desc="Clustering thresholds", unit="threshold"):
-        print(f"\nClustering with similarity threshold: {threshold}%")
-        labels = cluster_with_threshold(file_paths, hashes, threshold, min_samples, noise_labeling, max_clusters)
-        
-        unique_labels = set(labels)
-        print(f"Number of clusters: {len([l for l in unique_labels if l >= 0])}")
-        if len(file_paths) > 10:
-            print(f"Clusters (showing summary due to large number of files):")
-            for label in sorted(unique_labels):
-                cluster_size = sum(1 for lbl in labels if lbl == label)
-                if label >= 0:
-                    #print(f"Cluster {label}: {cluster_size} files")
-                    continue
-                elif label == -1:
-                    #print(f"Noise: {cluster_size} files")
-                    continue
-        else:
-            for label in unique_labels:
-                cluster_files = [file_paths[i] for i, lbl in enumerate(labels) if lbl == label]
-                #print(f"Cluster {label}: {len(cluster_files)} files - {cluster_files}")
-
-        save_cluster_info(file_paths, labels, threshold, folder_name, output_dir, sha256_hashes, hashes)  # Pass hashes
-        plot_clusters(file_paths, labels, threshold, folder_name, output_dir)
-
-    print(f"\nOutput saved in {output_dir}")
+        labels = cluster_with_threshold(file_paths, hashes, threshold, min_samples, 
+                                      noise_labeling, max_clusters)
+        #plot_clusters(file_paths, labels, threshold, folder_name)
+        save_cluster_info(file_paths, labels, threshold, folder_name, output_dir, sha256_hashes, hashes)
 
 if __name__ == "__main__":
     folder_path = ""
     csv_path = "/usr/src/app/Dev/output/merged_csv.csv"
     output_dir = "cluster_output/sdhash/test"
     run_with_varying_thresholds(folder_path, csv_path, output_dir, thresholds=[10], 
-                              min_samples=2, noise_labeling='Ascending', max_files=200, max_clusters=None, num_cores=32)
+                              min_samples=2, noise_labeling='Ascending', max_files=1000, 
+                              max_clusters=None, num_cores=64)
