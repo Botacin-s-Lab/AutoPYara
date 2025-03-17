@@ -1,4 +1,3 @@
-from sklearn.cluster import DBSCAN
 import sys
 import os
 import numpy as np
@@ -13,6 +12,7 @@ import json
 import multiprocessing
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 import tempfile
+from sklearn.cluster import DBSCAN
 
 NoiseLabelling = Literal['Zeros', 'Ascending']
 
@@ -45,10 +45,7 @@ def get_files_from_csv(folder_path="/usr/src/app/sdhashdata", csv_path="path.csv
     valid_paths = [path for path in file_paths if os.path.isfile(path)]
     if len(valid_paths) < 2:
         raise ValueError("At least two valid files required for clustering.")
-    # if len(valid_paths) > max_files:
-    #     valid_paths = valid_paths[:max_files]
-        
-    return valid_paths
+    return valid_paths[:max_files] if max_files else valid_paths
 
 def hash_file(file_path):
     """Compute sdhash similarity digest and SHA256 hash for a single file."""
@@ -103,40 +100,31 @@ def load_or_compute_hashes(file_paths, cache_file="hash_cache_sdhash.json", num_
     
     return hashes, sha256_hashes
 
-def compute_pair(args):
-    """Helper function to compute distance for a pair of files."""
-    i, j, file_paths, hashes = args
+def compute_distance(file_i, file_j, hashes):
+    """Compute distance between two files using sdhash."""
+    if not hashes[file_i] or not hashes[file_j]:
+        return 1.0
+    
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.sdbf', delete=False) as f1, \
+         tempfile.NamedTemporaryFile(mode='w', suffix='.sdbf', delete=False) as f2:
+        f1.write(hashes[file_i])
+        f2.write(hashes[file_j])
+        temp_file_i, temp_file_j = f1.name, f2.name
     
     try:
-        if not hashes[file_paths[i]] or not hashes[file_paths[j]]:
-            return i, j, 1.0
-        
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.sdbf', delete=False) as f1, \
-             tempfile.NamedTemporaryFile(mode='w', suffix='.sdbf', delete=False) as f2:
-            f1.write(hashes[file_paths[i]])
-            f2.write(hashes[file_paths[j]])
-            temp_file_i, temp_file_j = f1.name, f2.name
-        
         result = subprocess.run(
             ["sdhash", "-c", temp_file_i, temp_file_j],
             check=True, capture_output=True, text=True
         )
         output = result.stdout.strip()
-        
         if output:
-            similarity = float(output.split('|')[3])
-            similarity = max(0.0, min(1.0, similarity))
+            similarity = float(output.split('|')[3]) / 100.0  # Normalize to 0-1
             distance = 1 - similarity
         else:
             distance = 1.0
-        
-        if distance < 0:
-            distance = 0.0
-        
-        return i, j, distance
-    
+        return max(0.0, min(1.0, distance))
     except (subprocess.CalledProcessError, ValueError, IndexError):
-        return i, j, 1.0
+        return 1.0
     finally:
         for temp_file in [temp_file_i, temp_file_j]:
             if os.path.exists(temp_file):
@@ -145,110 +133,75 @@ def compute_pair(args):
                 except OSError:
                     pass
 
-def compute_distance_matrix(file_paths, hashes, max_workers=32):
-    """Compute distance matrix for given file paths and hashes."""
-    print("USING ",max_workers)
-    n_files = len(file_paths)
-    distance_matrix = np.zeros((n_files, n_files), dtype=np.float32)
-    
-    pairs = [(i, j, file_paths, hashes) 
-             for i in range(n_files) 
-             for j in range(i + 1, n_files)]
-    
-    total_comparisons = len(pairs)
-    
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        with tqdm(total=total_comparisons, desc="Computing distances", unit="comparison") as pbar:
-            results = executor.map(compute_pair, pairs)
-            for i, j, distance in results:
-                distance_matrix[i, j] = distance
-                distance_matrix[j, i] = distance
-                pbar.update(1)
-    
-    min_distance = np.min(distance_matrix)
-    if min_distance < 0:
-        distance_matrix = np.clip(distance_matrix, 0, None)
-    
-    return distance_matrix
-
-# def cluster_with_threshold(file_paths, hashes, similarity_threshold, min_samples=2, 
-#                          noise_labeling: NoiseLabelling = 'Ascending', max_clusters=None):
-#     """Cluster files using DBSCAN with a given similarity threshold, limiting to max_clusters."""
-#     if similarity_threshold >= 100:
-#         similarity_threshold = 99.9
-
-#     distance_matrix = compute_distance_matrix(file_paths, hashes)
-#     eps = 1 - (similarity_threshold / 100.0)
-#     db = DBSCAN(eps=eps, min_samples=min_samples, metric="precomputed")
-#     labels = db.fit_predict(distance_matrix)
-
-#     path_to_cluster = {}
-#     noise_cluster = max(labels) + 1 if max(labels) >= 0 else 0
-
-#     for idx, (file, label) in enumerate(zip(file_paths, labels)):
-#         if label == -1:
-#             if noise_labeling == "Zeros":
-#                 transformed_cluster_num = 0
-#             elif noise_labeling == "Ascending":
-#                 transformed_cluster_num = noise_cluster
-#                 noise_cluster += 1
-#             else:
-#                 raise ValueError(f"Invalid noise_labeling format: {noise_labeling}")
-#         else:
-#             transformed_cluster_num = label
-#         path_to_cluster[file] = transformed_cluster_num
-
-#     if max_clusters is not None:
-#         cluster_sizes = {}
-#         for label in path_to_cluster.values():
-#             cluster_sizes[label] = cluster_sizes.get(label, 0) + 1
-        
-#         if noise_labeling == "Zeros" and 0 in cluster_sizes:
-#             del cluster_sizes[0]
-#         sorted_clusters = sorted(cluster_sizes.items(), key=lambda x: x[1], reverse=True)
-        
-#         if len(sorted_clusters) > max_clusters:
-#             allowed_clusters = set(c[0] for c in sorted_clusters[:max_clusters])
-#             for file in path_to_cluster:
-#                 if path_to_cluster[file] not in allowed_clusters:
-#                     path_to_cluster[file] = -1
-
-#     return [path_to_cluster[file] for file in file_paths]
-from tqdm import tqdm
-
-def cluster_with_threshold(file_paths, hashes, similarity_threshold, min_samples=2, 
-                         noise_labeling: str = 'Ascending', max_clusters=None):
-    """Cluster files using DBSCAN with a given similarity threshold, limiting to max_clusters."""
-    print("BUILD ")
+def cluster_in_batches(file_paths, hashes, similarity_threshold, min_samples=2, batch_size=500, 
+                      noise_labeling: str = 'Ascending', max_clusters=None, max_workers=10, num_batch_threads=8):
+    """Cluster files in batches with parallel batch processing and progress tracking."""
     if similarity_threshold >= 100:
         similarity_threshold = 99.9
-
-    distance_matrix = compute_distance_matrix(file_paths, hashes)
     eps = 1 - (similarity_threshold / 100.0)
-    db = DBSCAN(eps=eps, min_samples=min_samples, metric="precomputed")
-    labels = db.fit_predict(distance_matrix)
-
-    path_to_cluster = {}
-    noise_cluster = max(labels) + 1 if max(labels) >= 0 else 0
-
-    # Added tqdm for progress tracking
-    for idx, (file, label) in tqdm(enumerate(zip(file_paths, labels)), total=len(file_paths), desc="Clustering files"):
-        if label == -1:
-            if noise_labeling == "Zeros":
-                transformed_cluster_num = 0
-            elif noise_labeling == "Ascending":
-                transformed_cluster_num = noise_cluster
-                noise_cluster += 1
+    
+    n_files = len(file_paths)
+    labels = np.full(n_files, -1, dtype=int)  # Initialize all as noise
+    
+    def process_batch(batch_range):
+        start, end = batch_range
+        batch_paths = file_paths[start:end]
+        batch_hashes = {path: hashes[path] for path in batch_paths}
+        n_batch = len(batch_paths)
+        distance_matrix = np.zeros((n_batch, n_batch), dtype=np.float32)
+        
+        pairs = [(i, j, batch_paths, batch_hashes) 
+                 for i in range(n_batch) 
+                 for j in range(i + 1, n_batch)]
+        total_pairs = len(pairs)
+        
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            with tqdm(total=total_pairs, desc=f"Computing distances (batch {start//batch_size + 1})", 
+                      leave=False, position=start//batch_size + 1) as distance_pbar:
+                results = executor.map(lambda args: (args[0], args[1], compute_distance(args[2][args[0]], args[2][args[1]], args[3])), pairs)
+                for i, j, distance in results:
+                    distance_matrix[i, j] = distance
+                    distance_matrix[j, i] = distance
+                    distance_pbar.update(1)
+        
+        db = DBSCAN(eps=eps, min_samples=min_samples, metric="precomputed")
+        batch_labels = db.fit_predict(distance_matrix)
+        return start, end, batch_labels
+    
+    # Parallel batch processing
+    batch_ranges = [(start, min(start + batch_size, n_files)) for start in range(0, n_files, batch_size)]
+    cluster_offset = 0
+    
+    with ThreadPoolExecutor(max_workers=num_batch_threads) as executor:
+        batch_results = list(tqdm(executor.map(process_batch, batch_ranges), 
+                                 total=len(batch_ranges), desc=f"Processing batches (threshold {similarity_threshold}%)"))
+    
+    # Combine results
+    for start, end, batch_labels in batch_results:
+        for i, label in enumerate(batch_labels):
+            if label != -1:
+                labels[start + i] = label + cluster_offset
             else:
-                raise ValueError(f"Invalid noise_labeling format: {noise_labeling}")
-        else:
-            transformed_cluster_num = label
-        path_to_cluster[file] = transformed_cluster_num
+                labels[start + i] = -1
+        cluster_offset += max(0, max(batch_labels)) + 1 if batch_labels.max() >= 0 else 0
 
+    # Post-process noise labeling and max_clusters
+    path_to_cluster = {file: label for file, label in zip(file_paths, labels)}
+    noise_cluster = cluster_offset if cluster_offset > 0 else 0
+    
+    for file in path_to_cluster:
+        if path_to_cluster[file] == -1:
+            if noise_labeling == "Zeros":
+                path_to_cluster[file] = 0
+            elif noise_labeling == "Ascending":
+                path_to_cluster[file] = noise_cluster
+                noise_cluster += 1
+    
     if max_clusters is not None:
         cluster_sizes = {}
         for label in path_to_cluster.values():
-            cluster_sizes[label] = cluster_sizes.get(label, 0) + 1
+            if label >= 0:
+                cluster_sizes[label] = cluster_sizes.get(label, 0) + 1
         
         if noise_labeling == "Zeros" and 0 in cluster_sizes:
             del cluster_sizes[0]
@@ -257,7 +210,7 @@ def cluster_with_threshold(file_paths, hashes, similarity_threshold, min_samples
         if len(sorted_clusters) > max_clusters:
             allowed_clusters = set(c[0] for c in sorted_clusters[:max_clusters])
             for file in path_to_cluster:
-                if path_to_cluster[file] not in allowed_clusters:
+                if path_to_cluster[file] not in allowed_clusters and path_to_cluster[file] != -1:
                     path_to_cluster[file] = -1
 
     return [path_to_cluster[file] for file in file_paths]
@@ -295,7 +248,7 @@ def save_cluster_info(file_paths, labels, threshold, folder_name, output_dir, sh
     data = {
         'File_Path': file_paths,
         'SHA256': [sha256_hashes[file] for file in file_paths],
-        'SDHash': [hashes[file] for file in file_paths],  # Add sdhash values
+        'SDHash': [hashes[file] for file in file_paths],
         'Cluster_Label': labels,
         'Threshold': [threshold] * len(file_paths)
     }
@@ -308,8 +261,8 @@ def save_cluster_info(file_paths, labels, threshold, folder_name, output_dir, sh
 def run_with_varying_thresholds(folder_path="/usr/src/app/sdhashdata", csv_path="path.csv", 
                               output_dir="cluster_output", thresholds=[50, 60, 70, 80, 90], 
                               min_samples=2, noise_labeling: NoiseLabelling = 'Ascending', 
-                              max_files=None, max_clusters=None, num_cores=None):
-    """Run clustering with multiple thresholds and plot results with progress bar, limiting clusters."""
+                              max_files=None, max_clusters=None, num_cores=None, batch_size=500, num_batch_threads=4):
+    """Run clustering with multiple thresholds in parallel batches."""
     verify_sdhash_installed()
     file_paths = get_files_from_csv(folder_path, csv_path, max_files=max_files)
     folder_name = os.path.basename(folder_path)
@@ -317,15 +270,15 @@ def run_with_varying_thresholds(folder_path="/usr/src/app/sdhashdata", csv_path=
     hashes, sha256_hashes = load_or_compute_hashes(file_paths, num_cores=num_cores)
 
     for threshold in tqdm(thresholds, desc="Clustering thresholds", unit="threshold"):
-        labels = cluster_with_threshold(file_paths, hashes, threshold, min_samples, 
-                                      noise_labeling, max_clusters)
-        #plot_clusters(file_paths, labels, threshold, folder_name)
+        labels = cluster_in_batches(file_paths, hashes, threshold, min_samples, batch_size, 
+                                  noise_labeling, max_clusters, max_workers=16, num_batch_threads=num_batch_threads)
+        # plot_clusters(file_paths, labels, threshold, folder_name)  # Uncomment if needed
         save_cluster_info(file_paths, labels, threshold, folder_name, output_dir, sha256_hashes, hashes)
 
 if __name__ == "__main__":
     folder_path = ""
     csv_path = "/usr/src/app/Dev/output/merged_csv.csv"
-    output_dir = "cluster_output/sdhash/test"
-    run_with_varying_thresholds(folder_path, csv_path, output_dir, thresholds=[50, 60, 70,75, 80,85, 90], 
-                              min_samples=2, noise_labeling='Ascending', max_files=2000, 
-                              max_clusters=None, num_cores=64)
+    output_dir = "cluster_output/sdhash/main/"
+    run_with_varying_thresholds(folder_path, csv_path, output_dir, thresholds=[ 60, 70, 75, 80, 85, 90], 
+                              min_samples=2, noise_labeling='Ascending', max_files=None, 
+                              max_clusters=None, num_cores=64, batch_size=1000, num_batch_threads=16)

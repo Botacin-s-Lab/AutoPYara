@@ -257,4 +257,4 @@ def process_csv(csv_path):
         print(f"Error processing CSV: {e}")
 
 if __name__ == "__main__":
-    process_csv("output/dataSet/CodexGiga/CodexGiga_pe_files_r2.csv")
+    process_csv("output/dataSet/CodexGiga/CodexGiga_pe_files.csv")
