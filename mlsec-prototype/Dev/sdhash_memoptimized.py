@@ -271,7 +271,7 @@ def run_with_varying_thresholds(folder_path="/usr/src/app/sdhashdata", csv_path=
 
     for threshold in tqdm(thresholds, desc="Clustering thresholds", unit="threshold"):
         labels = cluster_in_batches(file_paths, hashes, threshold, min_samples, batch_size, 
-                                  noise_labeling, max_clusters, max_workers=16, num_batch_threads=num_batch_threads)
+                                  noise_labeling, max_clusters, max_workers=32, num_batch_threads=num_batch_threads)
         # plot_clusters(file_paths, labels, threshold, folder_name)  # Uncomment if needed
         save_cluster_info(file_paths, labels, threshold, folder_name, output_dir, sha256_hashes, hashes)
 
@@ -279,6 +279,6 @@ if __name__ == "__main__":
     folder_path = ""
     csv_path = "/usr/src/app/Dev/output/merged_csv.csv"
     output_dir = "cluster_output/sdhash/main/"
-    run_with_varying_thresholds(folder_path, csv_path, output_dir, thresholds=[ 60, 70, 75, 80, 85, 90], 
+    run_with_varying_thresholds(folder_path, csv_path, output_dir, thresholds=[ 60, 70], 
                               min_samples=2, noise_labeling='Ascending', max_files=None, 
-                              max_clusters=None, num_cores=64, batch_size=1000, num_batch_threads=16)
+                              max_clusters=None, num_cores=64, batch_size=1000, num_batch_threads=32)
