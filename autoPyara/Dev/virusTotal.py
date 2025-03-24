@@ -12,12 +12,13 @@ API_KEY = 'ae0eaf50c5f7cac4756413a4ebd53cbe7d073c8a8d3a00d3c72fe8ed41e721b5' #ma
 #API_KEY = 'bb8c073346e504fd1ec60c7997597a2a201ef778a6609cbf6e49f5fd229f7df3'
 #API_KEY = '02ceedd9ebcfe6858cb28c37d25842fb7dc22d46bd7f07ccbc0fafd14d18c785'
 #API_KEY = 'c967a1fe183f1cb02f246d0fc2b6077605dbef3362514a4707307903556fc50c'
+#API_KEY = 'c6be15a7dd46b44eadbf988fbd6940ad2e8059c2d9dd7dfe1964383fa0ff7278'
 # Replace with your VirusTotal API key
 #API_KEY = '02ceedd9ebcfe6858cb28c37d25842fb7dc22d46bd7f07ccbc0fafd14d18c785'
 VT_API_URL = 'https://www.virustotal.com/api/v3/files'
 VT_REPORT_URL = 'https://www.virustotal.com/api/v3/analyses/'
-OUTPUT_DIR = "vt_reports/vt_reports_CodexGiga/"
-FAILED_CSV = "vt_reports/vt_reports_CodexGiga/failed_vt_queries.csv"
+OUTPUT_DIR = "vt_reports/vt_reports_Stefano/"
+FAILED_CSV = "vt_reports/vt_reports_Stefano/failed_vt_queries.csv"
 
 class TimeoutException(Exception):
     pass
@@ -173,7 +174,6 @@ def check_existing_json(file_name, output_dir=OUTPUT_DIR):
 
 
 def process_csv(csv_path):
-    """Process CSV file and collect VT reports"""
     try:
         df = pd.read_csv(csv_path)
         
@@ -188,6 +188,11 @@ def process_csv(csv_path):
         
         unaccounted_files = set(unaccounted_df['File_Name'].str.strip())
         results = []
+
+        # Ensure output directory exists
+        output_dir = "vt_reports/vt_reports_Stefano/"
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir, exist_ok=True)  # Create directory if it doesn't exist
          # Define the original and Docker mount paths ( FOR DOCKER MOUTN)
         # host_path = "/mnt/data_disk1/mabon/datacopy"
         # docker_path = "/usr/src/app/datacopy"
@@ -249,12 +254,11 @@ def process_csv(csv_path):
                 time.sleep(15)
         
         results_df = pd.DataFrame(results, columns=['File_Name', 'Full_Path', 'VT_Report_Path'])
-        results_df.to_csv('vt_reports/vt_reports_CodexGiga/vt_report_paths.csv', index=False)
+        results_df.to_csv('output/vt_report_paths_Stefano.csv', index=False)
         print(f"Summary saved to 'vt_report_paths.csv'. JSON reports saved in '{OUTPUT_DIR}' folder.")
-        print(f"Failed queries logged to '{FAILED_CSV}'.")
         
     except Exception as e:
         print(f"Error processing CSV: {e}")
 
 if __name__ == "__main__":
-    process_csv("output/dataSet/CodexGiga/CodexGiga_pe_files.csv")
+    process_csv("output/dataSet/Stefano_pe_files.csv")

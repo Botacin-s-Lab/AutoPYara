@@ -41,8 +41,8 @@ def get_files_from_csv(csv_path="path.csv", max_files=100):
     if len(valid_paths) < 2:
         raise ValueError("At least two valid files required for clustering.")
     
-    # if len(valid_paths) > max_files:
-    #     valid_paths = valid_paths[:max_files]
+    if len(valid_paths) > max_files:
+        valid_paths = valid_paths[:max_files]
     
     return valid_paths
 
@@ -208,6 +208,6 @@ def run_with_varying_thresholds(csv_path="path.csv", output_dir="cluster_output"
 
 if __name__ == "__main__":
     csv_path = "/usr/src/app/Dev/output/merged_csv.csv"
-    output_dir = "cluster_output"
-    run_with_varying_thresholds(csv_path, output_dir=output_dir, thresholds=[50, 60, 70,75, 80,85, 90], 
-                                min_samples=2, noise_labeling='Ascending', max_files=10000, num_cores=16)
+    output_dir = "newtest/"
+    run_with_varying_thresholds(csv_path, output_dir=output_dir, thresholds=[50], 
+                                min_samples=2, noise_labeling='Ascending', max_files=50, num_cores=16)

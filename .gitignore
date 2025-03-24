@@ -5,26 +5,23 @@
 *.swp
 
 # Ignore intermediate files
-mlsec-prototype/intermediate/
+autoPyara/intermediate/
 
 # Ignore the CurrentLabels file in Dev
-mlsec-prototype/Dev/CurrentLabels
+autoPyara/Dev/CurrentLabels
 
 # Ignore CSV files in the output directory
-mlsec-prototype/Dev/output/
+autoPyara/Dev/output/
 
 # Ignore CSV files in the output/dataSet directory
-mlsec-prototype/Dev/output/dataSet/*.csv
+autoPyara/Dev/output/dataSet/*.csv
 
 # Ignore the CompareVTData notebook and its checkpoint
-/mlsec-prototype/Dev/CompareVTData.ipynb
-/mlsec-prototype/Dev/.ipynb_checkpoints/CompareVTData.ipynb
+/autoPyara/Dev/CompareVTData.ipynb
+/autoPyara/Dev/.ipynb_checkpoints/CompareVTData.ipynb
 *.ipynb_checkpoints/
-mlsec-prototype/Dev/vt_reports/
-mlsec-prototype/Dev/hash_cache.json
-mlsec-prototype/Dev/cluster_output
-mlsec-prototype/Dev/hash_cache_sdhash.json
-mlsec-prototype/test1.sdbf
-mlsec-prototype/test1.txt
-mlsec-prototype/test2.sdbf
-mlsec-prototype/test2.txt
+autoPyara/Dev/vt_reports/
+autoPyara/Dev/hash_cache.json
+autoPyara/Dev/cluster_output
+autoPyara/Dev/hash_cache_sdhash.json
+autoPyara/Dev/newtest
