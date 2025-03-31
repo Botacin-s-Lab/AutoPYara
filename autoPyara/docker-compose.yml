@@ -9,7 +9,7 @@ services:
     cpuset: "64"  # Limits to 10 cores
     container_name: autopyara_docker
     volumes:
-      - /home/mabon/research/Autoyara/AutoPYara/mlsec-prototype:/usr/src/app/
+      - /home/mabon/research/Autoyara/AutoPYara/autoPyara:/usr/src/app/
       - ./intermediate:/usr/src/app/intermediate/
       - ./output:/usr/src/app/output/
       - ../jars:/usr/src/app/jars/
