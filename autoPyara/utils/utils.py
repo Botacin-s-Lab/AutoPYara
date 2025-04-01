@@ -11,7 +11,58 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
-
+def extract_tp_rate(file_path):
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()  # Read all lines
+            
+        # Variables to store the TP rate info
+        tp_rate_line = None
+        trigger_found = False
+        
+        # Search for the TP rate section
+        for i, line in enumerate(lines):
+            if "//Input TP Rate:" in line.strip():
+                trigger_found = True
+                # Look at the next line for the TP rate (e.g., //75/177)
+                if i + 1 < len(lines):
+                    next_line = lines[i + 1].strip()
+                    if next_line.startswith("//") and "/" in next_line:
+                        tp_rate_line = next_line[2:].strip()  # Remove "//" prefix
+                        break
+        
+        if not trigger_found:
+            print("No 'Input TP Rate' comment found in the file.")
+            return None
+        
+        if not tp_rate_line:
+            print("No valid TP rate value found after 'Input TP Rate'.")
+            return None
+        
+        # Extract numerator and denominator (e.g., "75/177" -> 75 and 177)
+        try:
+            numerator, denominator = map(int, tp_rate_line.split("/"))
+            # Compute the TP rate as a percentage
+            tp_rate = (numerator / denominator) * 100
+            print(f"Extracted TP Rate: {tp_rate_line}")
+            print(f"Computed TP Rate: {tp_rate:.2f}% (based on {numerator}/{denominator})")
+            return tp_rate
+        except ValueError:
+            print(f"Error: Could not parse TP rate '{tp_rate_line}' as a fraction.")
+            return None
+        except ZeroDivisionError:
+            print("Error: Denominator is zero in TP rate.")
+            return None
+            
+    except FileNotFoundError:
+        print(f"Error: File '{file_path}' not found.")
+        return None
+    except UnicodeDecodeError:
+        print(f"Error: Could not decode '{file_path}' as UTF-8.")
+        return None
+    except Exception as e:
+        print(f"Error reading file: {e}")
+        return None
 
 
 # # Get the directory containing the current script

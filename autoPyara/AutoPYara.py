@@ -146,7 +146,12 @@ class AutoPYara(PythonInterface):
                 f"predictor labels must be the same size as file corpus! {len(predictor_labels)} =/= {len(self.yara_cluster.targets)}"
 
             # now that we have the predictors, set it in java
+            # THis is the predict labels part @MAbon
+            print(predictor_labels)
             self.yara_cluster.predictorLabels = predictor_labels
+        # #predictor_labels[filename:labels of file]
+        # targes: hoenlpo12,2,34,4,5
+        # labels 199,198,188,
 
         try:
             yara_out = dict(self.yara_cluster.pythonRun()) # we need to clone since resetYaraState() will wipe the original

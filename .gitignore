@@ -12,10 +12,10 @@ autoPyara/Dev/CurrentLabels
 
 # Ignore CSV files in the output directory
 autoPyara/Dev/output/
-
+autoPyara/Dev/move.ipynb
 # Ignore CSV files in the output/dataSet directory
 autoPyara/Dev/output/dataSet/*.csv
-
+autoPyara/YARATest/
 # Ignore the CompareVTData notebook and its checkpoint
 /autoPyara/Dev/CompareVTData.ipynb
 /autoPyara/Dev/.ipynb_checkpoints/CompareVTData.ipynb

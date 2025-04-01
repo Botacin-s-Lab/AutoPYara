@@ -1,10 +1,6 @@
 import os
-import json
-import re
-import math
-import time
-import json
 
+from statistics import variance, pvariance
 import argparse
 
 
@@ -18,10 +14,11 @@ import numpy as np
 from AutoPYara import AutoPYara
 from difflib import SequenceMatcher
 import sys
-
+from tqdm import tqdm
 sys.path.append(os.path.abspath('./utils')) 
-from utils.utils import str2bool
+from utils.utils import str2bool,extract_tp_rate
 
+threshold=5
 
 # Ensure content is serializable
 def serialize(obj):
@@ -46,7 +43,7 @@ def main(opts):
         print("LOG:-----------------------------------Cluster Algorithm: ",opts.clusterAlgorithm)
         print("LOG:-----------------------------------Using K Value : ",opts.augmentedTarget_k)
 
-        # Generate content
+        #Generate content
         content = yara_instance.generate(
             opts.malwarePath,
             opts.bfMalicious,
@@ -54,21 +51,56 @@ def main(opts):
             bicluster_alg=opts.biclusterAlgorithmType,
             cluster_alg=opts.clusterAlgorithm,
             output_format=opts.ruleOutputType,
-            augmented_target_k=opts.augmentedTarget_k,
+            augmented_target_k=opts.augmentedTarget_k,output_dir=opts.outputDirectory
         )
+    else: 
+        print("LOG:-----------------------------------EVALUTAION SELECTED")
+        print("LOG:-----------------------------------RULE Type: ",opts.ruleOutputType)
 
-        content = serialize(content)  # Apply conversion
+        print("LOG:-----------------------------------BUILDING OBJECT")
+       
 
-        # Define output directory and file path
-        output_directory = opts.outputDirectory
-        file_path = os.path.join(output_directory, "config.json")
+        print("LOG:-----------------------------------Bicluster Algorithm: ",opts.biclusterAlgorithmType)
+        print("LOG:-----------------------------------Cluster Algorithm: ",opts.clusterAlgorithm)
+        print("LOG:-----------------------------------Using K Value : ",opts.augmentedTarget_k)
+        #Minomi Sampling
+        MetricArray=[]
+        stopmetric=30
+        os.makedirs(opts.outputDirectory, exist_ok=True)
+        for i in tqdm(range(100)):
+            
+            path=(os.path.join(opts.outputDirectory,str(i+1)))
+            
+            os.makedirs(path, exist_ok=True)
 
-        # Ensure the directory exists
-        os.makedirs(output_directory, exist_ok=True)
+            yara_instance = AutoPYara()
 
-        # Save to file in JSON format
-        with open(file_path, "w") as f:
-            json.dump(content, f, indent=4)
+            yara_instance.generate(
+                opts.malwarePath,
+                opts.bfMalicious,
+                opts.bfBenign,
+                bicluster_alg=opts.biclusterAlgorithmType,
+                cluster_alg=opts.clusterAlgorithm,
+                output_format=opts.ruleOutputType,output_dir=path)
+        
+            file = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
+            Check=(os.path.join(path,file[0]))
+            tp=extract_tp_rate(Check)
+            MetricArray.append(tp)
+            if len(MetricArray)>stopmetric:
+                try:
+                    var=variance(MetricArray)
+                    if var<threshold:
+                        print("LOG:-----------------------------------EARLY STOPPING: ",var)                
+                        break
+                    else:
+                        stopmetric+=10
+                        threshold=threshold*1.25
+                        continue
+                except:
+                    continue
+        var=variance(MetricArray)
+        print("LOG:-----------------------------------Varicance: ",var)                
     return 0 
 
 
@@ -99,7 +131,7 @@ def parseArgs(argv):
             'AugmentedKMeansVT, or AugmentedKMeansVTSoft'
     )
     parser.add_argument( '-rOT', '--ruleOutputType',choices={'yara-python', 'yaramod', 'string'},required=True,help='Output Rule Format')
-    parser.add_argument('-k', '--augmentedTarget_k', type=int, default=4)
+    parser.add_argument('-k', '--augmentedTarget_k', type=int, default=None)
     
     parser.add_argument('-o', '--outputDirectory', type=str, required=True, help='Directory for output.')
  
