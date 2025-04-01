@@ -3,6 +3,7 @@ import json
 import re
 import math
 import time
+import json
 
 import argparse
 
@@ -20,6 +21,19 @@ import sys
 
 sys.path.append(os.path.abspath('./utils')) 
 from utils.utils import str2bool
+
+
+# Ensure content is serializable
+def serialize(obj):
+    """Convert non-serializable objects to JSON-friendly formats."""
+    if isinstance(obj, dict):
+        return {k: serialize(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [serialize(v) for v in obj]
+    elif isinstance(obj, (int, float, str, bool, type(None))):
+        return obj
+    else:
+        return str(obj)  # Convert unknown objects to string
 def main(opts):
     if opts.generateRule:  # Simplified True check
         print("LOG:-----------------------------------RULE GENERATION SELECTED")
@@ -32,7 +46,8 @@ def main(opts):
         print("LOG:-----------------------------------Cluster Algorithm: ",opts.clusterAlgorithm)
         print("LOG:-----------------------------------Using K Value : ",opts.augmentedTarget_k)
 
-        print("result", yara_instance.generate(
+        # Generate content
+        content = yara_instance.generate(
             opts.malwarePath,
             opts.bfMalicious,
             opts.bfBenign,
@@ -40,8 +55,23 @@ def main(opts):
             cluster_alg=opts.clusterAlgorithm,
             output_format=opts.ruleOutputType,
             augmented_target_k=opts.augmentedTarget_k,
-        ))
-    return 0  
+        )
+
+        content = serialize(content)  # Apply conversion
+
+        # Define output directory and file path
+        output_directory = opts.outputDirectory
+        file_path = os.path.join(output_directory, "config.json")
+
+        # Ensure the directory exists
+        os.makedirs(output_directory, exist_ok=True)
+
+        # Save to file in JSON format
+        with open(file_path, "w") as f:
+            json.dump(content, f, indent=4)
+    return 0 
+
+
 def parseArgs(argv):
     parser = argparse.ArgumentParser(description="Parse command-line arguments for malware analysis.")
 

@@ -40,7 +40,7 @@ class PythonInterface:
             ]
 
             # Use the JAVA_REPO path to locate the jar file
-            classpath = ["./jars/AutoYara.jar"]
+            classpath = ["/usr/src/app/jars/AutoYara.jar"]
 
             jpype.startJVM(
                 classpath=classpath,
