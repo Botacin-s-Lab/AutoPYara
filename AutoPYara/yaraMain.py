@@ -1,6 +1,6 @@
 import os
 
-from statistics import variance, pvariance
+import statistics 
 import argparse
 
 
@@ -18,7 +18,7 @@ from tqdm import tqdm
 sys.path.append(os.path.abspath('./utils')) 
 from utils.utils import str2bool,extract_tp_rate
 
-threshold=5
+
 
 # Ensure content is serializable
 def serialize(obj):
@@ -66,41 +66,54 @@ def main(opts):
         #Minomi Sampling
         MetricArray=[]
         stopmetric=30
+        threshold=5
         os.makedirs(opts.outputDirectory, exist_ok=True)
         for i in tqdm(range(100)):
-            
+            Flag=False
             path=(os.path.join(opts.outputDirectory,str(i+1)))
-            
-            os.makedirs(path, exist_ok=True)
+            if not os.path.exists(path):
+                os.makedirs(path, exist_ok=True)
+            existing_files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
+            if not existing_files:
+                yara_instance = AutoPYara()
 
-            yara_instance = AutoPYara()
+                yara_instance.generate(
+                    opts.malwarePath,
+                    opts.bfMalicious,
+                    opts.bfBenign,
+                    bicluster_alg=opts.biclusterAlgorithmType,
+                    cluster_alg=opts.clusterAlgorithm,
+                    output_format=opts.ruleOutputType,output_dir=path)
+                try:
+                    file = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
+                    Check=(os.path.join(path,file[0]))
+                    tp=extract_tp_rate(Check)
+                except:
+                    tp=0
+                    print("COULD NOT GENERATE RULE SETTING TP To 0")
+            else:
+                print("PAST RUN FOUND.. LOADING PRECOMPUTED")
+                file = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
+                Check=(os.path.join(path,file[0]))
+                tp=extract_tp_rate(Check)
 
-            yara_instance.generate(
-                opts.malwarePath,
-                opts.bfMalicious,
-                opts.bfBenign,
-                bicluster_alg=opts.biclusterAlgorithmType,
-                cluster_alg=opts.clusterAlgorithm,
-                output_format=opts.ruleOutputType,output_dir=path)
-        
-            file = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
-            Check=(os.path.join(path,file[0]))
-            tp=extract_tp_rate(Check)
+
             MetricArray.append(tp)
             if len(MetricArray)>stopmetric:
-                try:
-                    var=variance(MetricArray)
-                    if var<threshold:
-                        print("LOG:-----------------------------------EARLY STOPPING: ",var)                
-                        break
-                    else:
-                        stopmetric+=10
-                        threshold=threshold*1.25
-                        continue
-                except:
-                    continue
-        var=variance(MetricArray)
-        print("LOG:-----------------------------------Varicance: ",var)                
+                var=statistics.stdev(MetricArray)
+                print("LOG:-----------------------------------STD: ",var)
+                if var<threshold:
+                    print("LOG:-----------------------------------EARLY STOPPING: ",var)                
+                    break
+                else:
+                    stopmetric+=5
+                    threshold=threshold*1.25
+                    print("LOG:-----------------------------------STOP METRIC INCREASED: ",stopmetric) 
+                    print("LOG:-----------------------------------THRESHOLD INCREASED: ",threshold)                         
+                    
+
+        var=statistics.stdev(MetricArray)
+        print("LOG:-----------------------------------STD: ",var)                
     return 0 
 
 
@@ -135,9 +148,16 @@ def parseArgs(argv):
     
     parser.add_argument('-o', '--outputDirectory', type=str, required=True, help='Directory for output.')
  
-    opts = parser.parse_args(argv)
+    if argv is None:
+        opts = parser.parse_args()
+    else:
+        opts = parser.parse_args(argv)
+    
+    # If malwarePath contains commas, split it into a list
+    if ',' in opts.malwarePath:
+        opts.malwarePath = [path.strip() for path in opts.malwarePath.split(',')]
+    
     return opts
-
 if __name__ == '__main__':
     opts = parseArgs(sys.argv[1:])
     print(opts)

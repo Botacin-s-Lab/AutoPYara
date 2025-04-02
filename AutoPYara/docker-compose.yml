@@ -9,9 +9,9 @@ services:
     cpuset: "64"  # Limits to 10 cores
     container_name: autopyara_docker
     volumes:
-      - /home/mabon/research/Autoyara/AutoPYara/autoPyara:/usr/src/app/
+      - /home/mabon/research/Autoyara/AutoPYara/AutoPYara:/usr/src/app/
       - ./intermediate:/usr/src/app/intermediate/
       - ./output:/usr/src/app/output/
       - ../jars:/usr/src/app/jars/
       - /home/malware/datasets/samples/malware/Windows/Honeypots:/usr/src/app/Honeypots
-      - /mnt/data_disk1/mabon:/usr/src/app/datacopy
+      - /mnt/data_disk1/mabon/datacopy:/usr/src/app/datacopy

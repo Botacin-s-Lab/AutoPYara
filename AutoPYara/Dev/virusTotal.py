@@ -12,7 +12,7 @@ import re  # Added for regex to strip timestamp
 #API_KEY = 'bb8c073346e504fd1ec60c7997597a2a201ef778a6609cbf6e49f5fd229f7df3'
 #API_KEY = '02ceedd9ebcfe6858cb28c37d25842fb7dc22d46bd7f07ccbc0fafd14d18c785'
 #API_KEY = 'c967a1fe183f1cb02f246d0fc2b6077605dbef3362514a4707307903556fc50c'
-#API_KEY = 'c6be15a7dd46b44eadbf988fbd6940ad2e8059c2d9dd7dfe1964383fa0ff7278'
+API_KEY = 'c6be15a7dd46b44eadbf988fbd6940ad2e8059c2d9dd7dfe1964383fa0ff7278'
 # Replace with your VirusTotal API key
 #API_KEY = '02ceedd9ebcfe6858cb28c37d25842fb7dc22d46bd7f07ccbc0fafd14d18c785'
 VT_API_URL = 'https://www.virustotal.com/api/v3/files'

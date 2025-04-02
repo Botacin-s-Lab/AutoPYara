@@ -5,24 +5,25 @@
 *.swp
 
 # Ignore intermediate files
-autoPyara/intermediate/
+AutoPYara/intermediate/
 
 # Ignore the CurrentLabels file in Dev
-autoPyara/Dev/CurrentLabels
+AutoPYara/Dev/CurrentLabels
 
 # Ignore CSV files in the output directory
-autoPyara/Dev/output/
-autoPyara/Dev/move.ipynb
+AutoPYara/Dev/output/
+AutoPYara/Dev/move.ipynb
 # Ignore CSV files in the output/dataSet directory
-autoPyara/Dev/output/dataSet/*.csv
-autoPyara/YARATest/
+AutoPYara/Dev/output/dataSet/*.csv
+AutoPYara/YARATest/
 # Ignore the CompareVTData notebook and its checkpoint
-/autoPyara/Dev/CompareVTData.ipynb
-/autoPyara/Dev/.ipynb_checkpoints/CompareVTData.ipynb
+/AutoPYara/Dev/CompareVTData.ipynb
+/AutoPYara/Dev/.ipynb_checkpoints/CompareVTData.ipynb
 *.ipynb_checkpoints/
-autoPyara/Dev/vt_reports/
-autoPyara/Dev/hash_cache.json
-autoPyara/Dev/cluster_output
-autoPyara/Dev/hash_cache_sdhash.json
-autoPyara/Dev/newtest
-autoPyara/Dev/sdhashexp
+AutoPYara/Dev/vt_reports/
+AutoPYara/Dev/hash_cache.json
+AutoPYara/Dev/cluster_output
+AutoPYara/Dev/hash_cache_sdhash.json
+AutoPYara/Dev/newtest
+AutoPYara/Dev/sdhashexp
+AutoPYara/YaraTest

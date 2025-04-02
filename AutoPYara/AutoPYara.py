@@ -83,23 +83,50 @@ class AutoPYara(PythonInterface):
 
         self.reset_memory()
 
-    def generate(self, input_dir, bloom_malicious, bloom_benign,
-                 output_dir=None,
-                 bicluster_alg: BiclusterAlgorithmType = 'SpectralCoCluster', cluster_alg: ClusterAlgorithmType = 'VBGMM',
-                 output_format: RuleOutputType = 'string', predictor_labels=None, k_cluster=0, similarity_threshold=None,
-                 rule_name=None, selection_heuristic: SelectionHeuristic = "PYara", bicluster_feature_prune_coverage=50,
-                 augmented_target_k=None,
-                 ):
+    # def generate(self, input_dir, bloom_malicious, bloom_benign,
+    #              output_dir=None,
+    #              bicluster_alg: BiclusterAlgorithmType = 'SpectralCoCluster', cluster_alg: ClusterAlgorithmType = 'VBGMM',
+    #              output_format: RuleOutputType = 'string', predictor_labels=None, k_cluster=0, similarity_threshold=None,
+    #              rule_name=None, selection_heuristic: SelectionHeuristic = "PYara", bicluster_feature_prune_coverage=50,
+    #              augmented_target_k=None,
+    #              ):
+    #     '''
+    #         predictor_labels: a list of predicted clusters for each sample given by an external predictor for augmented kmeans
+    #         k_cluster: number of clusters to separate the samples into. Only used by some algorithms that require k
+    #         similarity_threshold: used by augmented kmeans's dbscan
+    #         rule_name: the name of the yara rule, leave empty to automatically generate one
+    #         output_format: the output format you're after, accessed via return_output['output']
+    #     '''
+    #     input_dirs = self.ArrayList()
+    #     input_dirs.add(self.File(input_dir))
+    #     self.yara_cluster.inDir = input_dirs
+    
+    def generate(self, input_files, bloom_malicious, bloom_benign,
+             output_dir=None,
+             bicluster_alg: BiclusterAlgorithmType = 'SpectralCoCluster', 
+             cluster_alg: ClusterAlgorithmType = 'VBGMM',
+             output_format: RuleOutputType = 'string', 
+             predictor_labels=None, 
+             k_cluster=0, 
+             similarity_threshold=None,
+             rule_name=None, 
+             selection_heuristic: SelectionHeuristic = "PYara", 
+             bicluster_feature_prune_coverage=50,
+             augmented_target_k=None):
         '''
-            predictor_labels: a list of predicted clusters for each sample given by an external predictor for augmented kmeans
-            k_cluster: number of clusters to separate the samples into. Only used by some algorithms that require k
-            similarity_threshold: used by augmented kmeans's dbscan
-            rule_name: the name of the yara rule, leave empty to automatically generate one
-            output_format: the output format you're after, accessed via return_output['output']
+        input_files: a list of file paths to process instead of a single input directory
+        predictor_labels: a list of predicted clusters for each sample given by an external predictor for augmented kmeans
+        k_cluster: number of clusters to separate the samples into. Only used by some algorithms that require k
+        similarity_threshold: used by augmented kmeans's dbscan
+        rule_name: the name of the yara rule, leave empty to automatically generate one
+        output_format: the output format you're after, accessed via return_output['output']
         '''
-        input_dirs = self.ArrayList()
-        input_dirs.add(self.File(input_dir))
-        self.yara_cluster.inDir = input_dirs
+        input_files_list = self.ArrayList()
+        for file_path in input_files:
+            input_files_list.add(self.File(file_path))
+        self.yara_cluster.inDir = input_files_list
+
+
 
         self.yara_cluster.biclusterPipelineAlg = bicluster_alg
         self.yara_cluster.clusterAlg = cluster_alg
@@ -140,7 +167,8 @@ class AutoPYara(PythonInterface):
             predictor_labels = augmented_predictor.predict(self.yara_cluster.targets)
             self.yara_cluster.k = len(set(predictor_labels)) # k is the # of unique labels
             print("PYARA: got k =", self.yara_cluster.k)
-
+        else:
+            print("SANITY NO CLUSTER GENERATED........")
         if predictor_labels:
             assert len(predictor_labels) == len(self.yara_cluster.targets), \
                 f"predictor labels must be the same size as file corpus! {len(predictor_labels)} =/= {len(self.yara_cluster.targets)}"
