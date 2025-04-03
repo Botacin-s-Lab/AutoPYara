@@ -3,7 +3,7 @@ import os
 import statistics 
 import argparse
 
-
+import csv
 import yara
 from sympy import ceiling
 from sympy.series.sequences import SeqExpr
@@ -68,7 +68,20 @@ def main(opts):
         stopmetric=30
         threshold=5
         prs=0
+        yara_instance = AutoPYara()
         os.makedirs(opts.outputDirectory, exist_ok=True)
+        csv_path = os.path.join(opts.outputDirectory, "k_values.csv")
+        print("LOG:-----------------------------------CSV PATH SET",csv_path)
+        if not os.path.exists(csv_path):
+            print("LOG:-----------------------------------CREATIGN",csv_path)
+
+            with open(csv_path, 'w', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(['k_clusters', 'run_number'])  # Header row
+        else:
+            print("LOG:-----------------------------------CSV Already Exsist",csv_path)
+        
+       
         for i in tqdm(range(100)):
             Flag=False
             path=(os.path.join(opts.outputDirectory,str(i+1)))
@@ -76,15 +89,26 @@ def main(opts):
                 os.makedirs(path, exist_ok=True)
             existing_files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
             if not existing_files:
-                yara_instance = AutoPYara()
-
-                yara_instance.generate(
+                a=yara_instance.generate(
                     opts.malwarePath,
                     opts.bfMalicious,
                     opts.bfBenign,
                     bicluster_alg=opts.biclusterAlgorithmType,
                     cluster_alg=opts.clusterAlgorithm,
                     output_format=opts.ruleOutputType,output_dir=path)
+                # Append k_clusters and run number to CSV
+                if a is not None and "k_clusters" in a:  # Check if a is valid and has k_clusters
+                    print(f"Run {i+1}: k_clusters = {a['k_clusters']}")
+                    # Append k_clusters and run number to CSV
+                    with open(csv_path, 'a', newline='') as csvfile:
+                        writer = csv.writer(csvfile)
+                        writer.writerow([a["k_clusters"], str(i+1)])
+                else:
+                    print(f"Run {i+1}: Warning - generate() returned None or missing k_clusters")
+                    # Optionally log this failure to the CSV with a placeholder
+                    with open(csv_path, 'a', newline='') as csvfile:
+                        writer = csv.writer(csvfile)
+                        writer.writerow(["FAILED", str(i+1)])
                 try:
                     file = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
                     Check=(os.path.join(path,file[0]))

@@ -5,15 +5,22 @@ from multiprocessing import Pool, cpu_count
 
 def get_files_by_all_clusters(df):
     """
-    Get all file paths organized by their cluster labels.
+    Get all file paths organized by their cluster labels, sorted by cluster size in descending order.
     
     Parameters:
     df (pd.DataFrame): DataFrame containing File_Path and Cluster_Label columns
     
     Returns:
-    dict: Dictionary where keys are cluster labels and values are lists of file paths
+    dict: Dictionary where keys are cluster labels and values are lists of file paths,
+          ordered by cluster size (largest to smallest)
     """
-    return df.groupby('Cluster_Label')['File_Path'].apply(list).to_dict()
+    # Group by Cluster_Label and get lists of File_Path
+    clustered_files = df.groupby('Cluster_Label')['File_Path'].apply(list).to_dict()
+    
+    # Sort by length of file lists and create new ordered dictionary
+    sorted_items = sorted(clustered_files.items(), key=lambda x: len(x[1]), reverse=True)
+    return dict(sorted_items)
+
 
 def run_yara_script(args):
     cluster, file_list = args
@@ -28,7 +35,7 @@ def run_yara_script(args):
         '--biclusterAlgorithmType', 'SpectralCoCluster',
         '--clusterAlgorithm', 'VBGMM',
         '--ruleOutputType', 'string',
-        '--outputDirectory', f'/usr/src/app/YaraTest/Baseline/SSdeep/Th60/cluster_{cluster}'
+        '--outputDirectory', f'/usr/src/app/YaraTest/Baseline/SSdeep/Th70/cluster_{cluster}'
     ]
     
     try:
@@ -43,11 +50,12 @@ def process_clusters(csv_file):
     df = pd.read_csv(csv_file)
     all_cluster_files = get_files_by_all_clusters(df)
     valid_clusters = {k: v for k, v in all_cluster_files.items() if len(v) >= 2}
-
+    for i, (label, file_list) in enumerate(list(valid_clusters.items())[:5]):
+        print(f"Cluster {label} (index {i}): {len(file_list)} files")
     if not valid_clusters:
         print("No clusters with at least two files. Exiting.")
         return
-    num_processes = min(cpu_count(), 16)  # Use max available CPUs but cap at 16
+    num_processes = min(cpu_count(), 32)  # Use max available CPUs but cap at 16
     print(f"[INFO] Using {num_processes} processes")
 
     tasks = [(cluster, file_list) for cluster, file_list in valid_clusters.items()]
