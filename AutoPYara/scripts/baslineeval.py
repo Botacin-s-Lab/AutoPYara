@@ -48,7 +48,7 @@ def process_clusters(csv_file):
             '--biclusterAlgorithmType', 'SpectralCoCluster',
             '--clusterAlgorithm', 'VBGMM',
             '--ruleOutputType', 'string',
-            '--outputDirectory', f'/usr/src/app/YaraTest/Baseline/SSdeep/Th80/cluster_{cluster}'
+            '--outputDirectory', f'/usr/src/app/YaraTest/Baseline/SSdeep/Th90/cluster_{cluster}'
         ]
         
         subprocess.run(cmd)

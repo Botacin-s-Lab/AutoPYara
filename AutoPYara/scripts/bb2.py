@@ -55,7 +55,7 @@ def process_clusters(csv_file):
     if not valid_clusters:
         print("No clusters with at least two files. Exiting.")
         return
-    num_processes = min(cpu_count(), 32)  # Use max available CPUs but cap at 16
+    num_processes = min(cpu_count(), 8)  # Use max available CPUs but cap at 16
     print(f"[INFO] Using {num_processes} processes")
 
     tasks = [(cluster, file_list) for cluster, file_list in valid_clusters.items()]

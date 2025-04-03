@@ -68,7 +68,6 @@ def main(opts):
         stopmetric=30
         threshold=5
         prs=0
-        yara_instance = AutoPYara()
         os.makedirs(opts.outputDirectory, exist_ok=True)
         csv_path = os.path.join(opts.outputDirectory, "k_values.csv")
         print("LOG:-----------------------------------CSV PATH SET",csv_path)
@@ -89,6 +88,8 @@ def main(opts):
                 os.makedirs(path, exist_ok=True)
             existing_files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
             if not existing_files:
+                if i==0:
+                    yara_instance = AutoPYara()
                 a=yara_instance.generate(
                     opts.malwarePath,
                     opts.bfMalicious,
