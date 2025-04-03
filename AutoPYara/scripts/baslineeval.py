@@ -16,27 +16,34 @@ def get_files_by_all_clusters(df):
     cluster_files_dict = df.groupby('Cluster_Label')['File_Path'].apply(list).to_dict()
     return cluster_files_dict
 
+
+
 def process_clusters(csv_file):
     # Read the CSV file
     df = pd.read_csv(csv_file)
     
     # Get files organized by clusters
     all_cluster_files = get_files_by_all_clusters(df)
-    
+        # Filter out clusters with fewer than two elements
+    valid_clusters = {k: v for k, v in all_cluster_files.items() if len(v) >= 2}
+    print(len(valid_clusters))
+    if not valid_clusters:
+        print("No clusters with at least two files. Exiting.")
+        return
     # Process each cluster
-    for cluster, file_list in all_cluster_files.items():
+    for cluster, file_list in valid_clusters.items():
         print(f"Processing Cluster {cluster}")
         # print(file_list)
         cmd = [
             'python', '/usr/src/app/yaraMain.py',
-            '--bfMalicious', '/usr/src/app/intermediate/bloom_filters/malicious',
-            '--bfBenign', '/usr/src/app/intermediate/bloom_filters/benign',
+            '--bfMalicious', '/usr/src/app/intermediate/bloom_filters/malicious-bytes',
+            '--bfBenign', '/usr/src/app/intermediate/bloom_filters/benign-bytes',
             '--malwarePath', ','.join(file_list),
             '--generateRule', 'False',
             '--biclusterAlgorithmType', 'SpectralCoCluster',
             '--clusterAlgorithm', 'VBGMM',
             '--ruleOutputType', 'string',
-            '--outputDirectory', f'/usr/src/app/YaraTest/Baseline/SSdeep/Th60/cluster_{cluster}'
+            '--outputDirectory', f'/usr/src/app/YaraTest/Baseline/SSdeep/Th50/cluster_{cluster}'
         ]
         
         subprocess.run(cmd)

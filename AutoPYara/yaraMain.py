@@ -67,6 +67,7 @@ def main(opts):
         MetricArray=[]
         stopmetric=30
         threshold=5
+        prs=0
         os.makedirs(opts.outputDirectory, exist_ok=True)
         for i in tqdm(range(100)):
             Flag=False
@@ -99,10 +100,10 @@ def main(opts):
 
 
             MetricArray.append(tp)
-            if len(MetricArray)>stopmetric:
+            if len(MetricArray)>=stopmetric:
                 var=statistics.stdev(MetricArray)
                 print("LOG:-----------------------------------STD: ",var)
-                if var<threshold:
+                if abs(prs-var)<threshold:
                     print("LOG:-----------------------------------EARLY STOPPING: ",var)                
                     break
                 else:
@@ -110,7 +111,11 @@ def main(opts):
                     threshold=threshold*1.25
                     print("LOG:-----------------------------------STOP METRIC INCREASED: ",stopmetric) 
                     print("LOG:-----------------------------------THRESHOLD INCREASED: ",threshold)                         
-                    
+            try:
+                prs=statistics.stdev(MetricArray)
+                print("LOG:-----------------------------------PRS",prs)
+            except:
+                prs=0    
 
         var=statistics.stdev(MetricArray)
         print("LOG:-----------------------------------STD: ",var)                
