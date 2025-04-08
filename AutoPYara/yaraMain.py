@@ -86,8 +86,9 @@ def main(opts):
             path=(os.path.join(opts.outputDirectory,str(i+1)))
             if not os.path.exists(path):
                 os.makedirs(path, exist_ok=True)
-            existing_files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
-            if not existing_files:
+                Flag=True
+            # existing_files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
+            if Flag==True:
                 if i==0:
                     yara_instance = AutoPYara()
                 a=yara_instance.generate(
@@ -119,10 +120,13 @@ def main(opts):
                     print("COULD NOT GENERATE RULE SETTING TP To 0")
             else:
                 print("PAST RUN FOUND.. LOADING PRECOMPUTED")
-                file = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
-                Check=(os.path.join(path,file[0]))
-                tp=extract_tp_rate(Check)
-
+                try:
+                    file = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
+                    Check=(os.path.join(path,file[0]))
+                    tp=extract_tp_rate(Check)
+                except:
+                    tp=0
+                    print("COULD NOT GENERATE RULE SETTING TP To 0")
 
             MetricArray.append(tp)
             if len(MetricArray)>=stopmetric:
