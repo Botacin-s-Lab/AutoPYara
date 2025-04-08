@@ -2,6 +2,10 @@ import re
 import yara
 import os
 import tqdm
+import argparse
+import sys
+import csv
+
 
 def test_rule(yaraRule, pathlist):
     # Runs the rule on all samples in a directory
@@ -19,8 +23,6 @@ def test_rule(yaraRule, pathlist):
             continue
     
     return matches, total
-
-
 
 def parse_yara_file(file_path):
     try:
@@ -62,7 +64,7 @@ def parse_yara_file(file_path):
             'comments': comments
         }
     except FileNotFoundError:
-        print(f"Error: File '{file_path}' not found")
+        # print(f"Error: File '{file_path}' not found")
         return None
 
 
@@ -106,15 +108,98 @@ def compile(strings_data, rule_name="example_rule", condition="any of them"):
         print(f"YARA Syntax Error: {str(e)}")
         return None
     except Exception as e:
-        print(f"Error creating YARA rule: {str(e)}")
+        # print(f"Error creating YARA rule: {str(e)}")
         return None
 
 
-
-def main():
+def evalIndividaul(rulePath,pathlist):
     data=parse_yara_file(rulePath)
+    if data==None:
+        print("LOG:-----------------------------------ERROR DATA LOAD")
+        return -1
     YaraRule=compile(data['strings'], rule_name=data['rule_name'], condition=data['condition'])
-    test_rule(YaraRule, pathlist)
+    if YaraRule==None:
+        print("LOG:-----------------------------------ERROR RULE COMPILE")
+        return -1
+    matches, total=test_rule(YaraRule, pathlist)
+    print(matches/total)
+
+
+def evalbatch(ruleCluster,rulePath,evalCluster,pathlist,saveCSV):
+
+    data=parse_yara_file(rulePath)
+    if data==None:
+        print("LOG:-----------------------------------ERROR DATA LOAD")
+        with open(saveCSV, 'a', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow([ruleCluster,rulePath,evalCluster,"FAILED","FAILED","FAILED"])
+        return -1
+    YaraRule=compile(data['strings'], rule_name=data['rule_name'], condition=data['condition'])
+    if YaraRule==None:
+        print("LOG:-----------------------------------ERROR RULE COMPILE")
+        with open(saveCSV, 'a', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow([ruleCluster,rulePath,evalCluster,"FAILED","FAILED","FAILED"])
+        return -1
+    matches, total=test_rule(YaraRule, pathlist)
+    Score=matches/total
+    with open(saveCSV, 'a', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow([ruleCluster,rulePath,evalCluster,matches,total,Score])
+        
+
+def main(opts):
+    if opts.eval=="evalIndividaul":
+        print("LOG:-----------------------------------INIDIVIDUAL EVAL")
+        pathlist = []
+        for filename in os.listdir(opts.directory):
+            full_path = os.path.join(opts.directory, filename)
+            if os.path.isfile(full_path):
+                pathlist.append(full_path)
+        print("LOG:-----------------------------------TOTAL FILES: ",len(pathlist))
+        evalIndividaul(opts.rulePath,pathlist)
+    else:
+        print("LOG:-----------------------------------BATCH EVAL")
+        pathlist=opts.directory
+        
+        print("LOG:-----------------------------------CSV PATH SET",opts.output)
+        if not os.path.exists(opts.output):
+            print("LOG:-----------------------------------CREATIGN",opts.output)
+            with open(opts.output, 'w', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow(['ruleCluster','rulePath','evalCluster', 'matches','total','Score'])  # Header row
+        else:
+            print("LOG:-----------------------------------CSV Already Exsist",opts.output)
+
+        for rules in tqdm(opts.rulePath):
+            evalbatch(opts.ruleCluster,rules, opts.evalCluster,pathlist,saveCSV=opts.output)
     return 1
     
+def parserArgs(argv):
+    parser = argparse.ArgumentParser(description="Parse command-line arguments for malware analysis.")
+
+    parser.add_argument('-rp', '--rulePath', type=str, required=True, help='Path to Benign Bloom Filter.')
+    parser.add_argument('-dr', '--directory', type=str, required=True, help='Path to Files.')
+    parser.add_argument( '-eval', '--eval',choices={'evalIndividaul', 'batchEval'},required=True,help='Batch eval or inidividaul')
+    parser.add_argument('-o', '--outputDirectory', type=str, required=True, help='Directory for output.')
+    parser.add_argument('-rc', '--ruleCluster', type=str, required=False, help='ruleCluster')
+    parser.add_argument('-ec', '--evalCluster', type=str, required=False, help='evalCluster')
+
+    if argv is None:
+        opts = parser.parse_args()
+    else:
+        opts = parser.parse_args(argv)
+    
+    # If Path contains commas, split it into a list
+    if ',' in opts.directory:
+        opts.directory = [path.strip() for path in opts.directory.split(',')]
+
+    if ',' in opts.rulePath:
+        opts.rulePath = [path.strip() for path in opts.rulePath.split(',')]
+       
+    return opts
+
+
 if __name__ == '__main__':
+    opts = parserArgs(sys.argv[1:])
+    main(opts)
