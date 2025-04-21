@@ -120,6 +120,7 @@ class AutoPYara(PythonInterface):
         similarity_threshold: used by augmented kmeans's dbscan
         rule_name: the name of the yara rule, leave empty to automatically generate one
         output_format: the output format you're after, accessed via return_output['output']
+        SelectionHeuristic: PYara (LARGE Strings) or AutoYara (Smaller Strings) 
         '''
         input_files_list = self.ArrayList()
         for file_path in input_files:

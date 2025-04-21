@@ -27,3 +27,10 @@ AutoPYara/Dev/hash_cache_sdhash.json
 AutoPYara/Dev/newtest
 AutoPYara/Dev/sdhashexp
 AutoPYara/YaraTest
+AutoPYara/yaraEval/TEST.yar
+AutoPYara/BuildMetrics.ipynb
+AutoPYara/test_file.bin
+AutoPYara/Dev/oldYaraeval/ruleEval/evalRulesMultiCore.py
+Experiments/*
+AutoPYara/plots/*
+AutoPYara/yaraEval/*

@@ -1,7 +1,7 @@
 import re
 import yara
 import os
-import tqdm
+from tqdm import tqdm
 import argparse
 import sys
 import csv
@@ -11,14 +11,14 @@ def test_rule(yaraRule, pathlist):
     # Runs the rule on all samples in a directory
     matches = 0
     total = 0
-    for i in tqdm(pathlist):
+    for i in pathlist:
         try:
             # Attempt to match the YARA rule against the file
             if yaraRule.match(i):
                 matches += 1
             total += 1
         except Exception as e:
-            print(f"Error processing {i}: {str(e)}")
+            #print(f"Error processing {i}: {str(e)}")
             total += 1
             continue
     
@@ -68,7 +68,6 @@ def parse_yara_file(file_path):
         return None
 
 
-
 def compile(strings_data, rule_name="example_rule", condition="any of them"):
     """
     Convert a list of string dictionaries into a valid YARA rule string.
@@ -82,35 +81,39 @@ def compile(strings_data, rule_name="example_rule", condition="any of them"):
         Compiled YARA rule object
     """
     try:
-        # Construct the YARA rule string
+        # Sanitize rule_name: replace invalid characters with underscores
+        rule_name = re.sub(r'[^a-zA-Z0-9_]', '_', rule_name)
         if not re.match(r'^[a-zA-Z_]', rule_name):
             rule_name = f"rule_{rule_name}"
                 
         # Construct the YARA rule string
-        yara_rule = f"rule {rule_name} {{\n"
-        # Add strings section
+            yara_rule = f"rule {rule_name} {{\n"
         yara_rule += "    strings:\n"
         for string_entry in strings_data:
             string_id = string_entry['id']
             string_data = string_entry['data']
-            # Ensure the hex string is properly formatted
+            # Ensure string_id starts with $ and is properly formatted
+            if not string_id.startswith('$'):
+                string_id = f"${string_id}"
             yara_rule += f"        {string_id} = {{ {string_data} }}\n"
         
         # Add condition
         yara_rule += f"    condition:\n        {condition}\n"
         yara_rule += "}"
         
+        # Print the rule for debugging
+        #print("Generated YARA Rule:\n", yara_rule)
+        
         # Compile the rule
         compiled_rule = yara.compile(source=yara_rule)
         return compiled_rule
     
     except yara.SyntaxError as e:
-        print(f"YARA Syntax Error: {str(e)}")
+        print(f"YARA Syntax Error: {e}")
         return None
     except Exception as e:
-        # print(f"Error creating YARA rule: {str(e)}")
+        #print(f"Error compiling rule: {e}")
         return None
-
 
 def evalIndividaul(rulePath,pathlist):
     data=parse_yara_file(rulePath)
@@ -132,14 +135,14 @@ def evalbatch(ruleCluster,rulePath,evalCluster,pathlist,saveCSV):
         print("LOG:-----------------------------------ERROR DATA LOAD")
         with open(saveCSV, 'a', newline='') as csvfile:
             writer = csv.writer(csvfile)
-            writer.writerow([ruleCluster,rulePath,evalCluster,"FAILED","FAILED","FAILED"])
+            writer.writerow([ruleCluster,rulePath,evalCluster,"FAILED_Norule","FAILED_Norule","FAILED_Norule"])
         return -1
     YaraRule=compile(data['strings'], rule_name=data['rule_name'], condition=data['condition'])
     if YaraRule==None:
         print("LOG:-----------------------------------ERROR RULE COMPILE")
         with open(saveCSV, 'a', newline='') as csvfile:
             writer = csv.writer(csvfile)
-            writer.writerow([ruleCluster,rulePath,evalCluster,"FAILED","FAILED","FAILED"])
+            writer.writerow([ruleCluster,rulePath,evalCluster,"FAILED_RuleFail","FAILED_RuleFail","FAILED_RuleFail"])
         return -1
     matches, total=test_rule(YaraRule, pathlist)
     Score=matches/total
@@ -159,19 +162,19 @@ def main(opts):
         print("LOG:-----------------------------------TOTAL FILES: ",len(pathlist))
         evalIndividaul(opts.rulePath,pathlist)
     else:
-        print("LOG:-----------------------------------BATCH EVAL")
+        # print("LOG:-----------------------------------BATCH EVAL")
         pathlist=opts.directory
         
-        print("LOG:-----------------------------------CSV PATH SET",opts.output)
+        # print("LOG:-----------------------------------CSV PATH SET",opts.output)
         if not os.path.exists(opts.output):
-            print("LOG:-----------------------------------CREATIGN",opts.output)
+            # print("LOG:-----------------------------------CREATIGN",opts.output)
             with open(opts.output, 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile)
                 writer.writerow(['ruleCluster','rulePath','evalCluster', 'matches','total','Score'])  # Header row
         else:
             print("LOG:-----------------------------------CSV Already Exsist",opts.output)
 
-        for rules in tqdm(opts.rulePath):
+        for rules in opts.rulePath:
             evalbatch(opts.ruleCluster,rules, opts.evalCluster,pathlist,saveCSV=opts.output)
     return 1
     
@@ -181,7 +184,7 @@ def parserArgs(argv):
     parser.add_argument('-rp', '--rulePath', type=str, required=True, help='Path to Benign Bloom Filter.')
     parser.add_argument('-dr', '--directory', type=str, required=True, help='Path to Files.')
     parser.add_argument( '-eval', '--eval',choices={'evalIndividaul', 'batchEval'},required=True,help='Batch eval or inidividaul')
-    parser.add_argument('-o', '--outputDirectory', type=str, required=True, help='Directory for output.')
+    parser.add_argument('-o', '--output', type=str, required=True, help='Directory for output.')
     parser.add_argument('-rc', '--ruleCluster', type=str, required=False, help='ruleCluster')
     parser.add_argument('-ec', '--evalCluster', type=str, required=False, help='evalCluster')
 

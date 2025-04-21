@@ -66,3 +66,33 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
     process_clusters(args.csv_file)
+
+
+
+
+# def original_autoyara():
+#                 return myYara.generate(
+#                     directory_path,
+#                     bloom_filter_malicious_path,
+#                     bloom_filter_benign_path,
+#                     bicluster_alg="SpectralCoCluster",
+#                     cluster_alg="VBGMM",
+#                     output_format="yara-python",
+#                     selection_heuristic="AutoYara",
+#                     bicluster_feature_prune_coverage=50,
+#                 )
+#MABON U USED A DIFFRENCT SECLECTION HEURISTIC
+
+
+# def augmented_DBSCAN(target_k):
+        #     return myYara.generate(
+        #         directory_path,
+        #         bloom_filter_malicious_path,
+        #         bloom_filter_benign_path,
+        #         bicluster_alg="SpectralCoCluster",
+        #         cluster_alg="AugmentedKMeansDBSCANSoft",
+        #         output_format="yara-python",
+        #         augmented_target_k=target_k,
+        #         bicluster_feature_prune_coverage=50,
+        #          selection_heuristic: SelectionHeuristic = "PYara", 
+        #     )

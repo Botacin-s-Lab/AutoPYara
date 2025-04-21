@@ -15,3 +15,4 @@ services:
       - ../jars:/usr/src/app/jars/
       - /home/malware/datasets/samples/malware/Windows/Honeypots:/usr/src/app/Honeypots
       - /mnt/data_disk1/mabon/datacopy:/usr/src/app/datacopy
+      - /mnt/data_disk1/mabon/:/usr/src/app/mabon
