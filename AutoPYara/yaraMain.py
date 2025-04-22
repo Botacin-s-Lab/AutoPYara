@@ -63,6 +63,9 @@ def main(opts):
         print("LOG:-----------------------------------Bicluster Algorithm: ",opts.biclusterAlgorithmType)
         print("LOG:-----------------------------------Cluster Algorithm: ",opts.clusterAlgorithm)
         print("LOG:-----------------------------------Using K Value : ",opts.augmentedTarget_k)
+        augmented_target_k=opts.augmentedTarget_k
+        print("LOG:-----------------------------------Getting K Values: ",augmented_target_k)
+        exit()
         #Minomi Sampling
         MetricArray=[]
         stopmetric=30
@@ -72,7 +75,7 @@ def main(opts):
         csv_path = os.path.join(opts.outputDirectory, "k_values.csv")
         print("LOG:-----------------------------------CSV PATH SET",csv_path)
         if not os.path.exists(csv_path):
-            print("LOG:-----------------------------------CREATIGN",csv_path)
+            print("LOG:-----------------------------------CREATING",csv_path)
 
             with open(csv_path, 'w', newline='') as csvfile:
                 writer = csv.writer(csvfile)
@@ -177,6 +180,8 @@ def parseArgs(argv):
             'AugmentedKMeansDBSCAN, AugmentedKMeansDBSCANSoft, '
             'AugmentedKMeansVT, or AugmentedKMeansVTSoft'
     )
+
+    #SelectionHeuristic = "PYara", AutoYara
     parser.add_argument( '-rOT', '--ruleOutputType',choices={'yara-python', 'yaramod', 'string'},required=True,help='Output Rule Format')
     parser.add_argument('-k', '--augmentedTarget_k', type=int, default=None)
     

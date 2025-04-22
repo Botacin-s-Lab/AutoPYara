@@ -34,3 +34,4 @@ AutoPYara/Dev/oldYaraeval/ruleEval/evalRulesMultiCore.py
 Experiments/*
 AutoPYara/plots/*
 AutoPYara/yaraEval/*
+AutoPYara/clusters/*
