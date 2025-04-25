@@ -17,6 +17,7 @@ import sys
 from tqdm import tqdm
 sys.path.append(os.path.abspath('./utils')) 
 from utils.utils import str2bool,extract_tp_rate
+from statistics import StatisticsError
 
 
 
@@ -65,12 +66,12 @@ def main(opts):
         print("LOG:-----------------------------------Using K Value : ",opts.augmentedTarget_k)
         augmented_target_k=opts.augmentedTarget_k
         print("LOG:-----------------------------------Getting K Values: ",augmented_target_k)
-        exit()
+        
         #Minomi Sampling
         MetricArray=[]
-        stopmetric=30
+        stopmetric=10
         threshold=5
-        prs=0
+        prs=None
         os.makedirs(opts.outputDirectory, exist_ok=True)
         csv_path = os.path.join(opts.outputDirectory, "k_values.csv")
         print("LOG:-----------------------------------CSV PATH SET",csv_path)
@@ -82,9 +83,9 @@ def main(opts):
                 writer.writerow(['k_clusters', 'run_number'])  # Header row
         else:
             print("LOG:-----------------------------------CSV Already Exsist",csv_path)
-        
-       
+
         for i in tqdm(range(100)):
+            # ktarget_kval=augmented_target_k[i]
             Flag=False
             path=(os.path.join(opts.outputDirectory,str(i+1)))
             if not os.path.exists(path):
@@ -94,13 +95,32 @@ def main(opts):
             if Flag==True:
                 if i==0:
                     yara_instance = AutoPYara()
-                a=yara_instance.generate(
-                    opts.malwarePath,
-                    opts.bfMalicious,
-                    opts.bfBenign,
-                    bicluster_alg=opts.biclusterAlgorithmType,
-                    cluster_alg=opts.clusterAlgorithm,
-                    output_format=opts.ruleOutputType,output_dir=path)
+                if augmented_target_k is not None:
+                    print("LOG:-----------------------------------Using K Value : ",ktarget_kval)
+                    # a = yara_instance.generate(
+                    #     opts.malwarePath,
+                    #     opts.bfMalicious,
+                    #     opts.bfBenign,
+                    #     bicluster_alg=opts.biclusterAlgorithmType,
+                    #     cluster_alg=opts.clusterAlgorithm,
+                    #     output_format=opts.ruleOutputType,output_dir=path,
+                    #     augmented_target_k=ktarget_kval, 
+                    #     bicluster_feature_prune_coverage=50,
+                    #     selection_heuristic="PYara",
+                    # )
+                    exit()
+                else:
+                    
+                    a = yara_instance.generate(
+                        opts.malwarePath,
+                        opts.bfMalicious,
+                        opts.bfBenign,
+                        bicluster_alg=opts.biclusterAlgorithmType,
+                        cluster_alg=opts.clusterAlgorithm,
+                        output_format=opts.ruleOutputType,output_dir=path,
+                        bicluster_feature_prune_coverage=50,
+                        selection_heuristic="AutoYara",
+                    )
                 # Append k_clusters and run number to CSV
                 if a is not None and "k_clusters" in a:  # Check if a is valid and has k_clusters
                     print(f"Run {i+1}: k_clusters = {a['k_clusters']}")
@@ -132,24 +152,24 @@ def main(opts):
                     print("COULD NOT GENERATE RULE SETTING TP To 0")
 
             MetricArray.append(tp)
-            if len(MetricArray)>=stopmetric:
-                var=statistics.stdev(MetricArray)
-                print("LOG:-----------------------------------STD: ",var)
-                if abs(prs-var)<threshold:
-                    print("LOG:-----------------------------------EARLY STOPPING: ",var)                
+            if len(MetricArray) >= stopmetric:
+                try:
+                    var = statistics.stdev(MetricArray)
+                except statistics.StatisticsError:
+                    var = 0
+                
+                print("LOG:-----------------------------------STD: ", var)
+                
+                if prs is not None and abs(prs - var) < threshold:
+                    print("LOG:-----------------------------------EARLY STOPPING: ", var)
                     break
                 else:
-                    stopmetric+=5
-                    threshold=threshold*1.25
-                    print("LOG:-----------------------------------STOP METRIC INCREASED: ",stopmetric) 
-                    print("LOG:-----------------------------------THRESHOLD INCREASED: ",threshold)                         
-            try:
-                prs=statistics.stdev(MetricArray)
-                print("LOG:-----------------------------------PRS",prs)
-            except:
-                prs=0    
+                    stopmetric += 5
+                    threshold *= 1.25
+                    print("LOG:-----------------------------------STOP METRIC INCREASED: ", stopmetric)
+                    print("LOG:-----------------------------------THRESHOLD INCREASED: ", threshold)
 
-        var=statistics.stdev(MetricArray)
+                prs = var  # update prs after comparison
         print("LOG:-----------------------------------STD: ",var)                
     return 0 
 
@@ -183,8 +203,7 @@ def parseArgs(argv):
 
     #SelectionHeuristic = "PYara", AutoYara
     parser.add_argument( '-rOT', '--ruleOutputType',choices={'yara-python', 'yaramod', 'string'},required=True,help='Output Rule Format')
-    parser.add_argument('-k', '--augmentedTarget_k', type=int, default=None)
-    
+    parser.add_argument('-k', '--augmentedTarget_k', type=int, nargs='*', default=None)    
     parser.add_argument('-o', '--outputDirectory', type=str, required=True, help='Directory for output.')
  
     if argv is None:
