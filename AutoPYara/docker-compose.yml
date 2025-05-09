@@ -11,8 +11,6 @@ services:
     volumes:
       - /home/mabon/research/Autoyara/AutoPYara/AutoPYara:/usr/src/app/
       - ./intermediate:/usr/src/app/intermediate/
-      - ./output:/usr/src/app/output/
       - ../jars:/usr/src/app/jars/
-      - /home/malware/datasets/samples/malware/Windows/Honeypots:/usr/src/app/Honeypots
-      - /mnt/data_disk1/mabon/datacopy:/usr/src/app/datacopy
-      - /mnt/data_disk1/mabon/:/usr/src/app/mabon
+      - /home/mabon/research/Autoyara/YaraResults:/usr/src/app/YaraResults
+      - /mnt/data_disk1/mabon/:/usr/src/app/HDDdata
