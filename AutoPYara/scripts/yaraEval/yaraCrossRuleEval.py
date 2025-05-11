@@ -5,7 +5,17 @@ from pathlib import Path
 import os
 import argparse
 import json
+from concurrent.futures import ThreadPoolExecutor
+import threading
+import pyarrow.parquet as pq
+import pyarrow as pa
 
+
+def validate_parquet_extension(file_path):
+    """Validate that the file path has a .parquet extension."""
+    if not file_path.lower().endswith('.parquet'):
+        raise argparse.ArgumentTypeError(f"Output file '{file_path}' must have a .parquet extension")
+    return file_path
 def test_rule(yara_python_rule, files):
     """Runs the rule on all samples in a directory."""
     matches_count = 0
@@ -52,13 +62,30 @@ def validateRule(file_path):
         print(f"Error compiling YARA rule {file_path}: {e}")
         return None
 
-def read_and_evaluate_rules(base_path, valid_clusters):
+def process_rule_file(cluster_folder, rule_folder, valid_clusters):
+    """Processes a single rule file and returns the result for the results_map."""
+    cluster_name = cluster_folder.name
+    rule_id = rule_folder.name
+    rule_file = rule_folder / "yaraRule.yar"
+    if rule_file.exists():
+        rules = validateRule(rule_file)
+        if rules is None:
+            print(f"Skipping {rule_file} due to validation error.")
+            return None
+        df = evaluateRule(rules, valid_clusters)
+        return (cluster_name, rule_id), df
+    return None
+
+def read_and_evaluate_rules(base_path, valid_clusters, max_workers=50, max_rules=None):
     """
-    Reads YARA rules from base_path, evaluates each rule, and returns a mapping of results.
+    Reads YARA rules from base_path, evaluates each rule in parallel, and returns a mapping of results.
+    Stops after processing max_rules if specified; processes all rules if max_rules is None.
     
     Args:
         base_path (str): Path to the folder containing cluster subfolders.
         valid_clusters (dict): Dictionary mapping cluster names to lists of files.
+        max_workers (int, optional): Number of threads to use. Defaults to 50.
+        max_rules (int or None, optional): Maximum number of rules to process. Defaults to 100. If None, processes all rules.
     
     Returns:
         dict: Mapping of (cluster, rule_id) to DataFrame of results.
@@ -68,27 +95,31 @@ def read_and_evaluate_rules(base_path, valid_clusters):
         raise ValueError(f"Base path {base_path} is not a valid directory.")
     
     results_map = {}
-    i=0
-    for cluster_folder in tqdm(base_path.glob("cluster_*"), desc="Processing cluster folders"):
-        i+=1
-        if i>=5:
-            break
-        cluster_name = cluster_folder.name
+    results_lock = threading.Lock()  # Lock for thread-safe updates to results_map
+    tasks = []
+    rule_count = 0
+
+    # Collect tasks (cluster folders and rule folders)
+    for cluster_folder in base_path.glob("cluster_*"):
         for rule_folder in cluster_folder.glob("[0-9]*"):
-            rule_id = rule_folder.name
-            rule_file = rule_folder / "yaraRule.yar"
-            if rule_file.exists():
-                rules = validateRule(rule_file)
-                if rules is None:
-                    print(f"Skipping {rule_file} due to validation error.")
-                    continue
-                df = evaluateRule(rules, valid_clusters)
-                results_map[(cluster_name, rule_id)] = df
-                # output_dir = base_path / "results" / cluster_name
-                # output_dir.mkdir(parents=True, exist_ok=True)
-                # output_file = output_dir / f"rule_{rule_id}_results.csv"
-                # df.to_csv(output_file, index=False)
-                #print(f"Saved results for {cluster_name}/rule_{rule_id} to {output_file}")
+            if max_rules is not None and rule_count >= max_rules:
+                break  # Stop collecting tasks if max_rules reached
+            tasks.append((cluster_folder, rule_folder))
+            rule_count += 1
+        if max_rules is not None and rule_count >= max_rules:
+            break  # Exit outer loop if max_rules reached
+
+    def process_task(task):
+        cluster_folder, rule_folder = task
+        result = process_rule_file(cluster_folder, rule_folder, valid_clusters)
+        if result:
+            with results_lock:
+                results_map[result[0]] = result[1]
+
+    # Use ThreadPoolExecutor for parallel processing
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        list(tqdm(executor.map(process_task, tasks), total=len(tasks), desc="Processing rules"))
+    
     return results_map
 
 def get_files_by_all_clusters(df):
@@ -101,11 +132,25 @@ def get_files_by_all_clusters(df):
     Returns:
         dict: Dictionary of cluster labels to lists of file paths.
     """
+    # givenWkdir = '/mnt/data_disk1/mabon/'
+    # # Replace the initial part of the path
+    # df['File_Path'] = df['File_Path'].str.replace('/usr/src/app/', givenWkdir, regex=False)
+    print(df['File_Path'][0:2])
     clustered_files = df.groupby('Cluster_Label')['File_Path'].apply(list).to_dict()
     sorted_items = sorted(clustered_files.items(), key=lambda x: len(x[1]), reverse=True)
     return dict(sorted_items)
 
-def main(csv_file, rPaths):
+def main(csv_file, rPaths,output_file):
+    print(output_file)
+    output_file = Path(output_file)
+    output_dir = output_file.parent
+    try:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        print(f"Ensured output directory exists: {output_dir}")
+    except Exception as e:
+        print(f"Error creating output directory {output_dir}: {e}")
+        sys.exit(1)
+        
     """Main function to process CSV and evaluate YARA rules."""
     df = pd.read_csv(csv_file)
     required_columns = ['File_Path', 'Cluster_Label']
@@ -115,20 +160,35 @@ def main(csv_file, rPaths):
     all_cluster_files = get_files_by_all_clusters(df)
     valid_clusters = {k: v for k, v in all_cluster_files.items() if len(v) >= 2}
     results_map = read_and_evaluate_rules(rPaths, valid_clusters)
-    json_file =  "results_map.json"
+
     if results_map:
-        json_data = {
-            f"{cluster},rule_{rule_id}": df.to_dict('records')
-            for (cluster, rule_id), df in results_map.items()
-        }
         try:
-            with open(json_file, 'w') as f:
-                json.dump(json_data, f, indent=4)
-            print(f"Saved all results_map data to {json_file}")
+            # Initialize Parquet writer with schema
+            schema = pa.schema([
+                ('cluster', pa.string()),
+                ('rule_id', pa.string()),
+                ('matches', pa.int64()),
+                ('total', pa.int64()),
+                ('TPrate', pa.float64())
+            ])
+            writer = pq.ParquetWriter(output_file, schema, compression='snappy')
+
+            # Write each DataFrame incrementally to minimize memory usage
+            for (cluster, rule_id), df in results_map.items():
+                # Convert DataFrame to arrow Table
+                table = pa.Table.from_pandas(
+                    df.assign(cluster=cluster, rule_id=rule_id)[['cluster', 'rule_id', 'matches', 'total', 'TPrate']],
+                    preserve_index=False
+                )
+                writer.write_table(table)
+
+            # Close the writer
+            writer.close()
+            print(f"Saved results_map to {output_file} as compressed Parquet")
         except Exception as e:
-            print(f"Error saving results_map to {json_file}: {e}")
+            print(f"Error saving results_map to {output_file}: {e}")
     else:
-        print("No results to save to JSON (results_map is empty).")
+        print("No results to save (results_map is empty).")
     return 0
 
 def parse_args():
@@ -136,8 +196,9 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Evaluate YARA rules for clustered files.")
     parser.add_argument('--csv-file', type=str, required=True, help='Path to CSV file with cluster data')
     parser.add_argument('--rPaths', type=str, required=True, help='Path to YARA rules directory')
+    parser.add_argument('--opfile', type=validate_parquet_extension, required=True, help='Output file path (must end with .parquet)')
     return parser.parse_args()
 
 if __name__ == '__main__':
     args = parse_args()
-    exit(main(args.csv_file, args.rPaths))
+    exit(main(args.csv_file, args.rPaths,args.opfile))

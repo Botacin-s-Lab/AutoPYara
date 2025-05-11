@@ -35,3 +35,6 @@ Experiments/*
 AutoPYara/plots/*
 AutoPYara/yaraEval/*
 AutoPYara/clusters/*
+AutoPYara/scripts/yaraEval/JsonData_cache/*
+AutoPYara/scripts/yaraEval/NewDataDev/*
+AutoPYara/scripts/yaraEval/plots/*
