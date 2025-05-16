@@ -168,7 +168,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Evaluate YARA rules for clustered files.")
     parser.add_argument('--csv-file', type=str, required=True, help='Path to CSV file with cluster data')
     parser.add_argument('--rPaths', type=str, required=True, help='Path to YARA rules directory')
-    parser.add_argument('--opfile', type=validate_pkl_extension, required=True, help='Output file path (must end with .parquet)')
+    parser.add_argument('--opfile', type=validate_pkl_extension, required=True, help='Output file path (must end with .pkl)')
     return parser.parse_args()
 if __name__ == '__main__':
     args = parse_args()

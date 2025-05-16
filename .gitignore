@@ -38,3 +38,4 @@ AutoPYara/clusters/*
 AutoPYara/scripts/yaraEval/JsonData_cache/*
 AutoPYara/scripts/yaraEval/NewDataDev/*
 AutoPYara/scripts/yaraEval/plots/*
+AutoPYara/scripts/clusteringAlgosGTgen/output
