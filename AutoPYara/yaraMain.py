@@ -138,7 +138,7 @@ def FUNCTIONHARDK(opts):
 
     # Try top 2 K values sequentially
     print(f"LOG:-----------------------------------VALIDATING Top 2 K Values")
-    for k, original_tp in k_tp_pairs[:3]:  # Try top 2 K values one at a time
+    for k, original_tp in k_tp_pairs[:5]:  # Try top 2 K values one at a time
         print(f"\nTesting K: {k} with original TP: {original_tp}")
         print(f"LOG:-----------------------------------VALIDATING: {k}")
         
