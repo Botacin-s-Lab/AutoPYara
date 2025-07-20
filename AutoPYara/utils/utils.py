@@ -1,5 +1,72 @@
 
 import argparse
+import random
+import os
+
+
+def save_kval_to_file(a, output_dir, filename='kval.txt'):
+    """
+    Saves the value of a['k_clusters'] (string) to a text file in the given folder.
+
+    Args:
+        a (dict): Dictionary containing 'k_clusters' as a string.
+        output_dir (str): Folder to save the file in.
+        filename (str): Name of the output text file.
+    """
+    kval_str = f"Kval {str(a['k_clusters'])}"
+
+    # Ensure the directory exists
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Full path to the output file
+    file_path = os.path.join(output_dir, filename)
+
+    # Write to the file
+    with open(file_path, 'w') as f:
+        f.write(kval_str)
+
+    print(f"Saved to: {file_path}")
+
+
+def split_file_paths(file_paths_list, output_dir, train_ratio=0.8, seed=None):
+    """
+    Splits a list of file paths into training and testing sets and logs them to files.
+
+    Args:
+        file_paths_list (list of str): List of file paths.
+        output_dir (str): Directory to save the train/test file logs.
+        train_ratio (float): Ratio of training data (0.0 to 1.0).
+        seed (int, optional): Random seed for reproducibility.
+
+    Returns:
+        tuple: (train_paths, test_paths)
+    """
+    if seed is not None:
+        random.seed(seed)
+
+    # Shuffle the list
+    shuffled = file_paths_list.copy()
+    random.shuffle(shuffled)
+
+    # Split
+    split_index = int(len(shuffled) * train_ratio)
+    train_paths = shuffled[:split_index]
+    test_paths = shuffled[split_index:]
+
+    # Ensure output directory exists
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Write to files
+    train_file = os.path.join(output_dir, 'train_files.txt')
+    test_file = os.path.join(output_dir, 'test_files.txt')
+
+    with open(train_file, 'w') as f:
+        f.write('\n'.join(train_paths))
+
+    with open(test_file, 'w') as f:
+        f.write('\n'.join(test_paths))
+
+    return train_paths, test_paths
 
 
 def str2bool(v):
@@ -82,6 +149,27 @@ def get_project_path(*paths):
     """
     return os.path.join(PROJECT_ROOT, *paths)
 
+import re
+
+def sanitize_yara_rule(rule_str):
+    """
+    Fix YARA rule name to comply with YARA syntax (alphanumeric + underscores only).
+    """
+    lines = rule_str.strip().splitlines()
+    if not lines or not lines[0].startswith("rule "):
+        raise ValueError("Invalid YARA rule format: no 'rule' declaration")
+
+    # Extract and sanitize rule name
+    rule_decl = lines[0]
+    name_match = re.match(r"rule\s+([^\s{]+)", rule_decl)
+    if not name_match:
+        raise ValueError("Invalid YARA rule declaration")
+
+    original_name = name_match.group(1)
+    valid_name = re.sub(r'\W+', '_', original_name)  # Replace non-word characters with _
+    lines[0] = rule_decl.replace(original_name, valid_name)
+
+    return "\n".join(lines)
 
 def save_box_plot_data(box_plot_set, dataset_series, container_directory="graphs"):
     # Create output directory if it doesn't exist

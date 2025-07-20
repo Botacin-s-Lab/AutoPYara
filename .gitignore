@@ -39,3 +39,9 @@ AutoPYara/scripts/yaraEval/JsonData_cache/*
 AutoPYara/scripts/yaraEval/NewDataDev/*
 AutoPYara/scripts/yaraEval/plots/*
 AutoPYara/scripts/clusteringAlgosGTgen/output
+AutoPYara/BloomFilterTrain/
+AutoPYara/scripts/clusteringAlgosGTgen/VirusTotal/output/*
+AutoPYara/scripts/clusteringAlgosGTgen/VirusTotal/output_old/*
+AutoPYara/TEST/*
+AutoPYara/scripts/heuristics/ssdeep/*
+AutoPYara/scripts/heuristics/sdhash/*

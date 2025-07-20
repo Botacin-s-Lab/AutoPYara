@@ -17,10 +17,10 @@ def get_files_by_all_clusters(df):
           ordered by cluster size (largest to smallest)
     """
     # Define the new working directory
-    givenWkdir = '/usr/src/app/'
+    givenWkdir = '/usr/src/app/HDDdata/'
     
     # Replace the initial part of the path
-    df['File_Path'] = df['File_Path'].str.replace('/mnt/data_disk1/mabon/', givenWkdir, regex=False)
+    df['File_Path'] = df['File_Path'].str.replace('/usr/src/app/', givenWkdir, regex=False)
 
     # Group by Cluster_Label and get lists of File_Path
     clustered_files = df.groupby('Cluster_Label')['File_Path'].apply(list).to_dict()
@@ -31,31 +31,34 @@ def get_files_by_all_clusters(df):
 
 
 def run_yara_script(args):
-    cluster, file_list = args
-    print(f"[INFO] Processing Cluster {cluster} with {len(file_list)} files")
-    dir_path_skip=f'/usr/src/app/Yara/YaraTest/Baseline/SSdeep/Th70/cfluster_{cluster}'
+    cluster, file_list,TH = args
+    #print(f"[INFO] Processing Cluster {cluster} with {len(file_list)} files")
+    dir_path_skip=f'/usr/src/app/YaraResults/ssdeep/Th{TH}/cluster_{cluster}'
     if os.path.exists(dir_path_skip):
-        print(f"Skipping: {dir_path_skip} already exists.") 
+        print(f"Skipping: {dir_path_skip} already exists.")
+        return 0
     else:
         cmd = [
             'python', '/usr/src/app/yaraMain.py',
-            '--bfMalicious', '/usr/src/app/intermediate/bloom_filters/malicious-bytes',
-            '--bfBenign', '/usr/src/app/intermediate/bloom_filters/benign-bytes',
+            '--bfMalicious', '/usr/src/app/YaraResults/RetrainedBloomFilters/malicious/',
+            '--bfBenign', '/usr/src/app/YaraResults/RetrainedBloomFilters/benign/',
             '--malwarePath', ','.join(file_list),
             '--generateRule', 'False',
             '--biclusterAlgorithmType', 'SpectralCoCluster',
             '--clusterAlgorithm', 'VBGMM',
             '--ruleOutputType', 'string',
-            '--outputDirectory', f'/usr/src/app/mabon/HPRCResults/Baseline/Sdhash/Th50/cluster_{cluster}'
+            '--outputDirectory', f'/usr/src/app/YaraResults/ssdeep/Th{TH}/cluster_{cluster}'
         ]
         #print(f"[INFO] Running command: {' '.join(cmd)}")
         try:
+            #subprocess.run(cmd)
             subprocess.run(cmd,stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
         except subprocess.CalledProcessError as e:
             print(f"[ERROR] Cluster {cluster} failed: {e.stderr.decode().strip()}")
 
-def process_clusters(csv_file):
+
+def process_clusters(csv_file,TH):
     """
     Process clusters in parallel using multiprocessing with tqdm progress bar.
     """
@@ -70,11 +73,11 @@ def process_clusters(csv_file):
         print("No clusters with at least two files. Exiting.")
         return
 
-    num_processes = min(cpu_count(), 10)
+    num_processes = min(cpu_count(), 15)
     print("USING", num_processes)
     print(f"[INFO] Using {num_processes} processes")
 
-    tasks = [(cluster, file_list) for cluster, file_list in valid_clusters.items()]
+    tasks = [(cluster, file_list,TH) for cluster, file_list in valid_clusters.items()]
 
     with Pool(processes=num_processes) as pool:
         for _ in tqdm(pool.imap_unordered(run_yara_script, tasks), total=len(tasks)):
@@ -88,8 +91,15 @@ def parse_args():
         required=True, 
         help='Path to the CSV file containing cluster data (must have File_Path and Cluster_Label columns)'
     )
+    parser.add_argument(
+        '--TH', 
+        type=str, 
+        required=True, 
+        help='Threshold value (THV) for sdhash directory path'
+    )
     return parser.parse_args()
 
 if __name__ == '__main__':
     args = parse_args()
-    process_clusters(args.csv_file)
+    process_clusters(args.csv_file,args.TH)
+    

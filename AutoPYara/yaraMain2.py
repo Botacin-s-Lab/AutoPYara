@@ -273,9 +273,28 @@ def main(opts):
                     writer.writerow(['k_clusters', 'run_number'])  # Header row
             else:
                 print("LOG:-----------------------------------CSV Already Exsist",csv_path)
+            yaraMode="WorstYara"
+            if yaraMode=="WorstYara":
+                path=(os.path.join(opts.outputDirectory))
+                if not os.path.exists(path):
+                    os.makedirs(path, exist_ok=True)
+                print(path)
+                print("LOG:-----------------------------------Worst Yara Mode Selected")
+                yara_instance = AutoPYara()
+                a = yara_instance.generate(
+                opts.malwarePath,
+                opts.bfMalicious,
+                opts.bfBenign,
+                bicluster_alg=opts.biclusterAlgorithmType,
+                cluster_alg=opts.clusterAlgorithm,
+                output_format=opts.ruleOutputType,output_dir=path,
+                bicluster_feature_prune_coverage=50,
+                selection_heuristic="AutoYara")
+                exit(-1)
 
-            for i in tqdm(range(len(augmented_target_k))):
-                ktarget_kval=augmented_target_k[i]
+
+            for i in tqdm(range(100)):
+                #ktarget_kval=augmented_target_k[i]
                 Flag=False
                 path=(os.path.join(opts.outputDirectory,str(i+1)))
                 if not os.path.exists(path):
@@ -287,20 +306,6 @@ def main(opts):
                         yara_instance = AutoPYara()
                     if augmented_target_k is not None:
                         print("LOG:-----------------------------------Using K Value : ",ktarget_kval)
-                        a = yara_instance.generate(
-                            opts.malwarePath,
-                            opts.bfMalicious,
-                            opts.bfBenign,
-                            bicluster_alg=opts.biclusterAlgorithmType,
-                            cluster_alg=opts.clusterAlgorithm,
-                            output_format=opts.ruleOutputType,output_dir=path,
-                            augmented_target_k=ktarget_kval, 
-                            bicluster_feature_prune_coverage=50,
-                            selection_heuristic="PYara",
-                        )
-                        
-                    else:
-                        exit(-1)
                         # a = yara_instance.generate(
                         #     opts.malwarePath,
                         #     opts.bfMalicious,
@@ -308,9 +313,22 @@ def main(opts):
                         #     bicluster_alg=opts.biclusterAlgorithmType,
                         #     cluster_alg=opts.clusterAlgorithm,
                         #     output_format=opts.ruleOutputType,output_dir=path,
+                        #     augmented_target_k=ktarget_kval, 
                         #     bicluster_feature_prune_coverage=50,
-                        #     selection_heuristic="AutoYara",
+                        #     selection_heuristic="PYara",
                         # )
+                    else:
+                        
+                        a = yara_instance.generate(
+                            opts.malwarePath,
+                            opts.bfMalicious,
+                            opts.bfBenign,
+                            bicluster_alg=opts.biclusterAlgorithmType,
+                            cluster_alg=opts.clusterAlgorithm,
+                            output_format=opts.ruleOutputType,output_dir=path,
+                            bicluster_feature_prune_coverage=50,
+                            selection_heuristic="AutoYara",
+                        )
                     # Append k_clusters and run number to CSV
                     if a is not None and "k_clusters" in a:  # Check if a is valid and has k_clusters
                         print(f"Run {i+1}: k_clusters = {a['k_clusters']}")
@@ -411,4 +429,5 @@ def parseArgs(argv):
     return opts
 if __name__ == '__main__':
     opts = parseArgs(sys.argv[1:])
+    print(opts)
     main(opts)

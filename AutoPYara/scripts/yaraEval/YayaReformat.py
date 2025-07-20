@@ -27,6 +27,12 @@ def get_yara_files(cluster, base_path,rule='.yara'):
         return yara_files  # Return empty list if cluster doesn't exist
     #print(cluster_path)
     # Loop through possible X values (e.g., 1 to 30 or more)
+    # for file_name in os.listdir(cluster_path):
+    #     if file_name.endswith(rule):
+    #         full_path = os.path.join(cluster_path, file_name)
+    #         yara_files.append(full_path)
+    #         print(f"Found rule: {full_path}")
+        
     x = 1
     while True:
         subfolder = os.path.join(cluster_path, f'{x}')
@@ -122,10 +128,9 @@ def merge_files(file_list, output_filename):
 def process_clusters(csv_file,thv,clean=False):
     # Read the CSV file
     df = pd.read_csv(csv_file)
-    mainbase='/usr/src/app/YaraTest/'
+    mainbase='/usr/src/app/TEST'
     all_cluster_files = get_files_by_all_clusters(df)
     valid_clusters= {k: v for k, v in all_cluster_files.items() if len(v) >= 2}
-
     if clean==True:
         print("CLAING")
         # Process each cluster
@@ -134,7 +139,7 @@ def process_clusters(csv_file,thv,clean=False):
             rulesPath=get_yara_files(cluster_rule, base_path=bp,rule='.yara')
             for i in range(len(rulesPath)):
                 new_rule_name=f'Cluster{cluster_rule}_{i+1}'
-                output=os.path.join(bp, f'cluster_{cluster_rule}',f'{i+1}','yaraRule.yar')
+                output=os.path.join(bp, f'cluster_{cluster_rule}',f'{i+1}','yaraRule.yar')  #rememeer to change this if you want worst case
                 process_file(rulesPath[i], output, new_rule_name)
                 delete_file(rulesPath[i])
     else:
