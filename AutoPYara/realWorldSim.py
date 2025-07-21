@@ -83,9 +83,21 @@ def bestYara(dir_path_skip,file_list,ktarget_kval):
     save_kval_to_file(a, subfolder_path)
     return str(a['output'])
 
+
+
+def RuleTEST(rule, file_list,tprate_file):
+    matches_count, total=test_rule(rule, file_list)
+    tprate = matches_count / total if total > 0 else 0
+    with open(tprate_file, 'w') as f:
+        f.write(f"TP Rate: {tprate:.4f} ({matches_count}/{total})\n")
+
+
+
+
+    
 def run_yara(args):
     cluster, file_list,TH,train_ratio = args
-    dir_path_skip=f'/usr/src/app/BUILDTEST/Th{TH}/cluster_{cluster}'
+    dir_path_skip=f'/usr/src/app/YaraResults/yaraRules/retrainedBloomFilters/ssdeep/BuildHeuristics/StreamClusterData/Th{TH}/Ratio_{train_ratio}/cluster_{cluster}'
     if os.path.exists(dir_path_skip):
         print(f"Skipping: {dir_path_skip} already exists.")
         #return 0
@@ -93,36 +105,30 @@ def run_yara(args):
         try:
             os.makedirs(dir_path_skip, exist_ok=True)
             train_list, test_list=split_file_paths(file_list, dir_path_skip, train_ratio=train_ratio, seed=42)    
-            print(f"Processing cluster: {cluster} with {len(train_list)} training files and {len(test_list)} testing files")
-            print("LOG:----------------------------------- Generating baseYara for cluster: ", cluster)
+            # print(f"Processing cluster: {cluster} with {len(train_list)} training files and {len(test_list)} testing files")
+            # print("LOG:----------------------------------- Generating baseYara for cluster: ", cluster)
             ktarget_kval,baserule=baseYara(dir_path_skip,train_list)
 
 
-
-            matches_count, total=test_rule(baserule, test_list)
-            tprate = matches_count / total if total > 0 else 0
-            tprate_file = os.path.join(dir_path_skip, 'tprateAutoyaraBase.txt')
-            with open(tprate_file, 'w') as f:
-                f.write(f"TP Rate: {tprate:.4f} ({matches_count}/{total})\n")
+            RuleTEST(baserule, train_list,tprate_file=os.path.join(dir_path_skip, 'tprateAutoyaraBase_Train.txt'))   
+            RuleTEST(baserule, test_list,tprate_file=os.path.join(dir_path_skip, 'tprateAutoyaraBase_Test.txt'))   
 
 
-            print("LOG:-----------------------------------Using K Value : ",ktarget_kval)
-            print("LOG:----------------------------------- Generating bestYara for cluster: ", cluster)
+
+            # print("LOG:-----------------------------------Using K Value : ",ktarget_kval)
+            # print("LOG:----------------------------------- Generating bestYara for cluster: ", cluster)
 
             yara_python_rule=bestYara(dir_path_skip,train_list,ktarget_kval)
-            matches_count, total=test_rule(yara_python_rule, test_list)
-            tprate = matches_count / total if total > 0 else 0
+            
+            RuleTEST(yara_python_rule, train_list,tprate_file=os.path.join(dir_path_skip, 'tprateAutoPYara_Train.txt'))   
+            RuleTEST(yara_python_rule, test_list,tprate_file=os.path.join(dir_path_skip, 'tprateAutoPYara_Test.txt'))   
 
 
-            print(f"LOG:----------------------------------- Testing bestYara for cluster: {cluster}")
-            print(f"LOG:----------------------------------- Matches found: {matches_count}/{total}")
-            print(f"LOG:----------------------------------- True Positive Rate: {tprate:.2f}")
+            # print(f"LOG:----------------------------------- Testing bestYara for cluster: {cluster}")
+            # print(f"LOG:----------------------------------- Matches found: {matches_count}/{total}")
+            # print(f"LOG:----------------------------------- True Positive Rate: {tprate:.2f}")
 
 
-            tprate_file = os.path.join(dir_path_skip, 'tprateAutoPYara.txt')
-            with open(tprate_file, 'w') as f:
-                f.write(f"TP Rate: {tprate:.4f} ({matches_count}/{total})\n")
-            print(f"TP rate saved to: {tprate_file}")
             
         except subprocess.CalledProcessError as e:
             print(f"[ERROR] Cluster {cluster} failed: {e.stderr.decode().strip()}")
@@ -146,7 +152,7 @@ def process_clusters(csv_file,TH,train_ratio):
         print("No clusters with at least two files. Exiting.")
         return
 
-    num_processes = min(cpu_count(), 1)
+    num_processes = min(cpu_count(), 8)
     print("USING", num_processes)
     print(f"[INFO] Using {num_processes} processes")
 

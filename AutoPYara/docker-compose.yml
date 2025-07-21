@@ -10,7 +10,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '10'  
+          cpus: '20'  
     volumes:
       - /home/mabon/research/Autoyara/AutoPYara/AutoPYara:/usr/src/app/
       - ./intermediate:/usr/src/app/intermediate/
