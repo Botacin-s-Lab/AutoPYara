@@ -128,7 +128,7 @@ def merge_files(file_list, output_filename):
 def process_clusters(csv_file,thv,clean=False):
     # Read the CSV file
     df = pd.read_csv(csv_file)
-    mainbase='/usr/src/app/TEST'
+    mainbase='/usr/src/app/YaraTest/avgK'
     all_cluster_files = get_files_by_all_clusters(df)
     valid_clusters= {k: v for k, v in all_cluster_files.items() if len(v) >= 2}
     if clean==True:

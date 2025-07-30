@@ -1,15 +1,3 @@
-python /usr/src/app/realWorldSim.py --csv-file /usr/src/app/YaraResults/clusterCSV/ssdeep/th50.csv --TH 50 --train-ratio 0.25
-python /usr/src/app/realWorldSim.py --csv-file /usr/src/app/YaraResults/clusterCSV/ssdeep/th50.csv --TH 50 --train-ratio 0.50
-python /usr/src/app/realWorldSim.py --csv-file /usr/src/app/YaraResults/clusterCSV/ssdeep/th50.csv --TH 50 --train-ratio 0.75
-python /usr/src/app/realWorldSim.py --csv-file /usr/src/app/YaraResults/clusterCSV/ssdeep/th60.csv --TH 60 --train-ratio 0.25
-python /usr/src/app/realWorldSim.py --csv-file /usr/src/app/YaraResults/clusterCSV/ssdeep/th60.csv --TH 60 --train-ratio 0.50
-python /usr/src/app/realWorldSim.py --csv-file /usr/src/app/YaraResults/clusterCSV/ssdeep/th60.csv --TH 60 --train-ratio 0.75
-python /usr/src/app/realWorldSim.py --csv-file /usr/src/app/YaraResults/clusterCSV/ssdeep/th70.csv --TH 70 --train-ratio 0.25
-python /usr/src/app/realWorldSim.py --csv-file /usr/src/app/YaraResults/clusterCSV/ssdeep/th70.csv --TH 70 --train-ratio 0.50
-python /usr/src/app/realWorldSim.py --csv-file /usr/src/app/YaraResults/clusterCSV/ssdeep/th70.csv --TH 70 --train-ratio 0.75
-python /usr/src/app/realWorldSim.py --csv-file /usr/src/app/YaraResults/clusterCSV/ssdeep/th80.csv --TH 80 --train-ratio 0.25
-python /usr/src/app/realWorldSim.py --csv-file /usr/src/app/YaraResults/clusterCSV/ssdeep/th80.csv --TH 80 --train-ratio 0.50
-python /usr/src/app/realWorldSim.py --csv-file /usr/src/app/YaraResults/clusterCSV/ssdeep/th80.csv --TH 80 --train-ratio 0.75
 python /usr/src/app/realWorldSim.py --csv-file /usr/src/app/YaraResults/clusterCSV/ssdeep/th90.csv --TH 90 --train-ratio 0.25
 python /usr/src/app/realWorldSim.py --csv-file /usr/src/app/YaraResults/clusterCSV/ssdeep/th90.csv --TH 90 --train-ratio 0.50
 python /usr/src/app/realWorldSim.py --csv-file /usr/src/app/YaraResults/clusterCSV/ssdeep/th90.csv --TH 90 --train-ratio 0.75

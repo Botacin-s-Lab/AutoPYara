@@ -130,8 +130,8 @@ def run_yara(args):
 
 
             
-        except subprocess.CalledProcessError as e:
-            print(f"[ERROR] Cluster {cluster} failed: {e.stderr.decode().strip()}")
+        except:
+            print(f"Error processing cluster {cluster}: {file_list}")
 
 
 
