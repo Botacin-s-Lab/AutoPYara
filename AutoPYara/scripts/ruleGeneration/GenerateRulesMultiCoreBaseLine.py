@@ -17,10 +17,9 @@ def get_files_by_all_clusters(df):
           ordered by cluster size (largest to smallest)
     """
     # Define the new working directory
-    givenWkdir = '/usr/src/app/HDDdata/'
-    
+    givenWkdir = '/usr/src/app/HDDdata/datacopy/'
     # Replace the initial part of the path
-    df['File_Path'] = df['File_Path'].str.replace('/usr/src/app/', givenWkdir, regex=False)
+    df['File_Path'] = df['File_Path'].str.replace('/usr/src/app/HDDdata/data/Windows/', givenWkdir, regex=False)
 
     # Group by Cluster_Label and get lists of File_Path
     clustered_files = df.groupby('Cluster_Label')['File_Path'].apply(list).to_dict()
@@ -31,31 +30,33 @@ def get_files_by_all_clusters(df):
 
 
 def run_yara_script(args):
-    cluster, file_list,TH = args
-    #print(f"[INFO] Processing Cluster {cluster} with {len(file_list)} files")
-    dir_path_skip=f'/usr/src/app/YaraResults/ssdeep/Th{TH}/cluster_{cluster}'
-    if os.path.exists(dir_path_skip):
-        print(f"Skipping: {dir_path_skip} already exists.")
-        return 0
-    else:
+    try:
+        cluster, file_list, TH = args
+        dir_path_skip = f'/usr/src/app/YaraResults/yaraRules/retrainedBloomFilters/sdhash/AutoYara/Th{TH}/cluster_{cluster}'
+
+        if os.path.exists(dir_path_skip):
+            print(f"Skipping: {dir_path_skip} already exists.")
+            return 0
+
+        # build cmd
         cmd = [
             'python', '/usr/src/app/yaraMain.py',
-            '--bfMalicious', '/usr/src/app/YaraResults/RetrainedBloomFilters/malicious/',
-            '--bfBenign', '/usr/src/app/YaraResults/RetrainedBloomFilters/benign/',
-            '--malwarePath', ','.join(file_list),
+            '--bfMalicious', '/usr/src/app/YaraResults/RetrainedBloomFilters/malicious',
+            '--bfBenign', '/usr/src/app/YaraResults/RetrainedBloomFilters/benign',
+            '--malwarePath', ','.join(file_list),  # may blow up!
             '--generateRule', 'False',
             '--biclusterAlgorithmType', 'SpectralCoCluster',
             '--clusterAlgorithm', 'VBGMM',
             '--ruleOutputType', 'string',
-            '--outputDirectory', f'/usr/src/app/YaraResults/ssdeep/Th{TH}/cluster_{cluster}'
+            '--outputDirectory', dir_path_skip
         ]
-        #print(f"[INFO] Running command: {' '.join(cmd)}")
-        try:
-            #subprocess.run(cmd)
-            subprocess.run(cmd,stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        print(cmd)
+        subprocess.run(cmd)
+        return 1  # success
+    except Exception as e:
+        print(f"[ERROR] Cluster {args[0]} failed: {e}")
+        return 0
 
-        except subprocess.CalledProcessError as e:
-            print(f"[ERROR] Cluster {cluster} failed: {e.stderr.decode().strip()}")
 
 
 def process_clusters(csv_file,TH):
@@ -73,7 +74,7 @@ def process_clusters(csv_file,TH):
         print("No clusters with at least two files. Exiting.")
         return
 
-    num_processes = min(cpu_count(), 15)
+    num_processes = min(cpu_count(), 25)
     print("USING", num_processes)
     print(f"[INFO] Using {num_processes} processes")
 
@@ -102,4 +103,3 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
     process_clusters(args.csv_file,args.TH)
-    

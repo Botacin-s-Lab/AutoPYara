@@ -15,19 +15,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 def get_files_by_all_clusters(df):
-    """
-    Organizes file paths by cluster labels, sorted by cluster size.
-    
-    Args:
-        df (pd.DataFrame): DataFrame with File_Path and Cluster_Label columns.
-    
-    Returns:
-        dict: Dictionary of cluster labels to lists of file paths.
-    """
-    givenWkdir = '/mnt/data_disk1/mabon/'
-    # Ensure file paths are valid; replace prefix if needed
-    df['File_Path'] = df['File_Path'].str.replace('/usr/src/app/', givenWkdir, regex=False)
-    logger.info(f"Sample file paths: {df['File_Path'].head(2).tolist()}")
+    givenWkdir = '/usr/src/app/HDDdata/datacopy/'
+    # Replace the initial part of the path
+    df['File_Path'] = df['File_Path'].str.replace('/usr/src/app/HDDdata/data/Windows/', givenWkdir, regex=False)
+
     clustered_files = df.groupby('Cluster_Label')['File_Path'].apply(list).to_dict()
     sorted_items = sorted(clustered_files.items(), key=lambda x: len(x[1]), reverse=True)
     return dict(sorted_items)
@@ -72,14 +63,16 @@ def main(csv_file, datapath, rPaths, output_file):
         sys.exit(1)
     
     # Load data
-    try:
-        df_list = pd.read_csv(datapath)
-        filePaths = df_list['File_Path']
-        fileName = df_list['File_Name']
-        dfclusters = pd.read_csv(csv_file)
-    except Exception as e:
-        logger.error(f"Error loading CSV files: {e}")
-        sys.exit(1)
+
+    df_list = pd.read_csv(datapath)
+    givenWkdir = '/usr/src/app/HDDdata/'
+    # Ensure file paths are valid; replace prefix if needed
+    df_list['File_Path'] = df_list['File_Path'].str.replace('/mnt/data_disk1/mabon/', givenWkdir, regex=False)
+
+    filePaths = df_list['File_Path']
+    fileName = df_list['File_Name']
+    dfclusters = pd.read_csv(csv_file)
+
     
     # Get clustered files
     all_cluster_files = get_files_by_all_clusters(dfclusters)
@@ -100,7 +93,7 @@ def main(csv_file, datapath, rPaths, output_file):
     df_lock = Lock()
     
     # Process files with ThreadPoolExecutor
-    max_workers = 50  # Adjust based on system
+    max_workers = 80  # Adjust based on system
     try:
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             list(tqdm(

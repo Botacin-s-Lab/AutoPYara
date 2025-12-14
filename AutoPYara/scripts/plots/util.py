@@ -1406,16 +1406,16 @@ def ensure_columns(dataframes):
     
     # Step 6: Return single DataFrame if only one input
     return dataframes[0] if len(dataframes) == 1 else dataframes
-def Extractor(csv_file,file_path,mr,short=False):
+def Extractor(csv_file,file_path,mr,clusSize=2,short=False):
     df1 = pd.read_csv(csv_file)
     labels = df1['Cluster_Label'].dropna().astype(int).tolist()  # Ensure integers
     cluster_sizes = {label: labels.count(label) for label in set(labels) if label >= 0}
     
     # Filter for clusters with size >= 2 (keep the key-value pairs)
-    data = {label: size for label, size in cluster_sizes.items() if size >= 2}
+    
+    data = {label: size for label, size in cluster_sizes.items() if (size >= clusSize)}
     unique_vals =sorted(set(data.values()))
     df_new  = pd.DataFrame(columns=unique_vals)
-    
     
     result = extract_rule_tp_rates(file_path)
     # for rule_name, tp_rate in result.items():

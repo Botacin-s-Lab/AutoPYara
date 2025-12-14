@@ -4,7 +4,7 @@ import numpy as np
 from collections import defaultdict
 
 # Define the base path
-PathBase = '/usr/src/app/YaraResults/yaraRules/retrainedBloomFilters/ssdeep/Autoyara/Th50/'
+PathBase = '/usr/src/app/YaraResults/yaraRules/retrainedBloomFilters/sdhash/AutoYara/Th50/'
 
 # Initialize dictionary to store k_clusters values for each cluster index
 cluster_k_values = defaultdict(list)
@@ -59,7 +59,7 @@ for subfolder in subfolders:
 cluster_k_values = dict(cluster_k_values)
 
 # Save results to a file for future evaluation
-output_file = os.path.join('th50k_ssdeep.csv')
+output_file = os.path.join('th50k_sdhash.csv')
 try:
     with open(output_file, 'w') as f:
         f.write('cluster_index,k_clusters\n')

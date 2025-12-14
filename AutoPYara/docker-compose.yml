@@ -10,10 +10,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '40'  
+          cpus: '80.0'  
     volumes:
       - /home/mabon/research/Autoyara/AutoPYara/AutoPYara:/usr/src/app/
       - ./intermediate:/usr/src/app/intermediate/
       - ../jars:/usr/src/app/jars/
       - /home/mabon/research/Autoyara/YaraResults:/usr/src/app/YaraResults
       - /mnt/data_disk1/mabon/:/usr/src/app/HDDdata
+      

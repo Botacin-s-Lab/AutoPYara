@@ -259,7 +259,7 @@ def main(opts):
         
             #Minomi Sampling
             MetricArray=[]
-            stopmetric=10
+            stopmetric=4
             threshold=5
             prs=None
             os.makedirs(opts.outputDirectory, exist_ok=True)
@@ -273,9 +273,8 @@ def main(opts):
                     writer.writerow(['k_clusters', 'run_number'])  # Header row
             else:
                 print("LOG:-----------------------------------CSV Already Exsist",csv_path)
-
-            for i in tqdm(range(len(augmented_target_k))):
-                ktarget_kval=augmented_target_k[i]
+            i=0
+            while i<len(augmented_target_k):
                 Flag=False
                 path=(os.path.join(opts.outputDirectory,str(i+1)))
                 if not os.path.exists(path):
@@ -286,6 +285,7 @@ def main(opts):
                     if i==0:
                         yara_instance = AutoPYara()
                     if augmented_target_k is not None:
+                        ktarget_kval=augmented_target_k[i]
                         print("LOG:-----------------------------------Using K Value : ",ktarget_kval)
                         a = yara_instance.generate(
                             opts.malwarePath,
@@ -301,16 +301,16 @@ def main(opts):
                         
                     else:
                         exit(-1)
-                        # a = yara_instance.generate(
-                        #     opts.malwarePath,
-                        #     opts.bfMalicious,
-                        #     opts.bfBenign,
-                        #     bicluster_alg=opts.biclusterAlgorithmType,
-                        #     cluster_alg=opts.clusterAlgorithm,
-                        #     output_format=opts.ruleOutputType,output_dir=path,
-                        #     bicluster_feature_prune_coverage=50,
-                        #     selection_heuristic="AutoYara",
-                        # )
+                        a = yara_instance.generate(
+                            opts.malwarePath,
+                            opts.bfMalicious,
+                            opts.bfBenign,
+                            bicluster_alg=opts.biclusterAlgorithmType,
+                            cluster_alg=opts.clusterAlgorithm,
+                            output_format=opts.ruleOutputType,output_dir=path,
+                            bicluster_feature_prune_coverage=50,
+                            selection_heuristic="AutoYara",
+                        )
                     # Append k_clusters and run number to CSV
                     if a is not None and "k_clusters" in a:  # Check if a is valid and has k_clusters
                         print(f"Run {i+1}: k_clusters = {a['k_clusters']}")
@@ -354,13 +354,13 @@ def main(opts):
                         print("LOG:-----------------------------------EARLY STOPPING: ", var)
                         break
                     else:
-                        stopmetric += 5
-                        threshold *= 1.25
+                        stopmetric += 1
+                        threshold *= 1.05
                         print("LOG:-----------------------------------STOP METRIC INCREASED: ", stopmetric)
                         print("LOG:-----------------------------------THRESHOLD INCREASED: ", threshold)
-
                     prs = var  # update prs after comparison
-            print("LOG:-----------------------------------STD: ",var)                
+                i=i+1    
+                print("LOG:-----------------------------------STD: ",prs)                
     return 0 
 
 

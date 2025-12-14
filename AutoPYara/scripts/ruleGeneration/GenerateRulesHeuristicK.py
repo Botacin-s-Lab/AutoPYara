@@ -39,35 +39,39 @@ def get_k_values_for_cluster_avg(df, cluster_label):
 
 
 def handle_hardk_cluster(args):
+    try:    
+        cluster, file_list, result_df, TH = args
 
-    cluster, file_list, result_df, TH = args
+        listofK=get_k_values_for_cluster(result_df, cluster)[:1]
+        # listofK = [random.randint(1,len(file_list))]
+        # listofK=get_k_values_for_cluster_avg(result_df, cluster)
 
-    #listofK=get_k_values_for_cluster(result_df, cluster)[:1]
-    listofK = [random.randint(1,len(file_list))]
-
-    # listofK=get_k_values_for_cluster_avg(result_df, cluster)
-    # listofK = list(set(listofK))
-    dir_path_skip=f'/usr/src/app/YaraResults/yaraRules/retrainedBloomFilters/sdhash/BuildHeuristics/randomK/Th{TH}/cluster_{cluster}'
-    if os.path.exists(dir_path_skip):
-        #print(f"Skipping: {dir_path_skip} already exists.")
+        listofK = list(set(listofK))
+        dir_path_skip=f'/usr/src/app/YaraResults/yaraRules/retrainedBloomFilters/sdhash/AutoPYara/Heuristics/VTBased/MaxK/Th{TH}/cluster_{cluster}'
+        if os.path.exists(dir_path_skip):
+            #print(f"Skipping: {dir_path_skip} already exists.")
+            return 0
+        cmd = [
+            'python', '/usr/src/app/yaraMain.py',
+            '--bfMalicious', '/usr/src/app/YaraResults/RetrainedBloomFilters/malicious/',
+            '--bfBenign', '/usr/src/app/YaraResults/RetrainedBloomFilters/benign/',
+            '--malwarePath', ','.join(file_list),
+            '--generateRule', 'False',
+            '--HardK', 'False',
+            '--biclusterAlgorithmType', 'SpectralCoCluster',
+            '--clusterAlgorithm', 'AugmentedKMeansDBSCANSoft',
+            '--ruleOutputType', 'string',
+            '--outputDirectory', f'/usr/src/app/YaraResults/yaraRules/retrainedBloomFilters/sdhash/AutoPYara/Heuristics/VTBased/MaxK/Th{TH}/cluster_{cluster}',
+            '--augmentedTarget_k'
+        ] + [str(k) for k in listofK]
+        # print(f"Running command: {' '.join(cmd)}")
+        # exit(-1)
+        subprocess.run(cmd)
+        #subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return 1  # success
+    except Exception as e:
+        print(f"[ERROR] Cluster {args[0]} failed: {e}")
         return 0
-    cmd = [
-        'python', '/usr/src/app/yaraMain.py',
-        '--bfMalicious', '/usr/src/app/YaraResults/RetrainedBloomFilters/malicious/',
-        '--bfBenign', '/usr/src/app/YaraResults/RetrainedBloomFilters/benign/',
-        '--malwarePath', ','.join(file_list),
-        '--generateRule', 'False',
-        '--HardK', 'False',
-        '--biclusterAlgorithmType', 'SpectralCoCluster',
-        '--clusterAlgorithm', 'AugmentedKMeansDBSCANSoft',
-        '--ruleOutputType', 'string',
-        '--outputDirectory', f'/usr/src/app/YaraResults/yaraRules/retrainedBloomFilters/sdhash/BuildHeuristics/randomK/Th{TH}/cluster_{cluster}',
-        '--augmentedTarget_k'
-    ] + [str(k) for k in listofK]
-    # print(f"Running command: {' '.join(cmd)}")
-    # exit(-1)
-    subprocess.run(cmd)
-    #subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 def process_clusters(csv_file, TH):
     df = pd.read_csv(csv_file)
@@ -84,7 +88,7 @@ def process_clusters(csv_file, TH):
     task_args = [(cluster, files, result_df,TH) for cluster, files in valid_clusters.items()]
     
     print("Starting multiprocessing pool...")
-    with Pool(processes=min(cpu_count(),5)) as pool:
+    with Pool(processes=min(cpu_count(),15)) as pool:
         print("LOG: HARD K SETTING")
         list(tqdm(pool.imap(handle_hardk_cluster, task_args), total=len(task_args)))
         

@@ -128,11 +128,11 @@ def merge_files(file_list, output_filename):
 def process_clusters(csv_file,thv,clean=False):
     # Read the CSV file
     df = pd.read_csv(csv_file)
-    mainbase='/usr/src/app/YaraTest/avgK'
+    mainbase='/usr/src/app/YaraResults/yaraRules/originalBloomFilters/sdhash/WORSTPYARA'
     all_cluster_files = get_files_by_all_clusters(df)
     valid_clusters= {k: v for k, v in all_cluster_files.items() if len(v) >= 2}
     if clean==True:
-        print("CLAING")
+        print("CLEANING")
         # Process each cluster
         for cluster_rule, file_list_rule in valid_clusters.items():
             bp=os.path.join(mainbase, f'Th{thv}')

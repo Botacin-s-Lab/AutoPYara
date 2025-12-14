@@ -184,18 +184,14 @@ def build(df, df_cluster, filtered_clustersM):
             else:
                 print(f"Column {cluster_loc} not found in df_cluster")
     return df_cluster  # Exit after processing the first valid cluster_id
-
-
 if __name__ == '__main__':
     csv = [
-        "./tempbest/ssdeepBest_th50.csv",
-        "./tempbest/ssdeepBest_th60.csv",
-        "./tempbest/ssdeepBest_th70.csv",
-        "./tempbest/ssdeepBest_th80.csv",
-        "./tempbest/ssdeepBest_th90.csv"
+        "./Heuristics/maxk/ssdeep/ssdeepAutoPYaraRTBF_th50.csv",
+        "./Heuristics/maxk/ssdeep/ssdeepAutoPYaraRTBF_th60.csv",
+        "./Heuristics/maxk/ssdeep/ssdeepAutoPYaraRTBF_th70.csv",
+        "./Heuristics/maxk/ssdeep/ssdeepAutoPYaraRTBF_th80.csv",
+        "./Heuristics/maxk/ssdeep/ssdeepAutoPYaraRTBF_th90.csv"
     ]
-    
-    
     df_Load = []
     
     for file in csv:
@@ -209,7 +205,7 @@ if __name__ == '__main__':
               '/home/mabon/research/Autoyara/YaraResults/clusterCSV/ssdeep/th70.csv',
               '/home/mabon/research/Autoyara/YaraResults/clusterCSV/ssdeep/th80.csv',
               '/home/mabon/research/Autoyara/YaraResults/clusterCSV/ssdeep/th90.csv']
-    
+
     
     filtered_clustersM=[]
     df_cluster=[] 
@@ -235,5 +231,5 @@ if __name__ == '__main__':
         df_cluster_updated.append(build(df_Load[i], df_cluster[i], filtered_clustersM[i]))
         
         df_cluster_updated[i].columns = df_cluster_updated[i].columns.astype(str)
-        
-    plot_cluster_std_dev_boxplot_static_all(df_cluster_updated, drop_smallest_n=0, output_file='ssdeepBestYaraLineYara_Goodware.pdf')
+
+    plot_cluster_std_dev_boxplot_static_all(df_cluster_updated, drop_smallest_n=0, output_file='ssdeepHeuristics_maxkRTBF.pdf')

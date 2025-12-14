@@ -7,19 +7,18 @@ import os
 from AutoPYara import AutoPYara
 from utils.utils import split_file_paths,save_kval_to_file,sanitize_yara_rule
 import yara
-
-
+import time
+import threading
 bfMalicious='/usr/src/app/YaraResults/RetrainedBloomFilters/malicious/'
 bfBenign='/usr/src/app/YaraResults/RetrainedBloomFilters/benign/'
 
 
-
 def get_files_by_all_clusters(df):
-    givenWkdir = '/usr/src/app/HDDdata/'
-    df['File_Path'] = df['File_Path'].str.replace('/usr/src/app/', givenWkdir, regex=False)
-    # Group by Cluster_Label and get lists of File_Path
+    givenWkdir = '/usr/src/app/HDDdata/datacopy/'
+    # Replace the initial part of the path
+    df['File_Path'] = df['File_Path'].str.replace('/usr/src/app/datacopy/', givenWkdir, regex=False)
+
     clustered_files = df.groupby('Cluster_Label')['File_Path'].apply(list).to_dict()
-    # Sort by length of file lists and create new ordered dictionary
     sorted_items = sorted(clustered_files.items(), key=lambda x: len(x[1]), reverse=True)
     return dict(sorted_items)
 
@@ -91,13 +90,48 @@ def RuleTEST(rule, file_list,tprate_file):
     with open(tprate_file, 'w') as f:
         f.write(f"TP Rate: {tprate:.4f} ({matches_count}/{total})\n")
 
+def find_file_families(df_vtfam, file_list):
+    # Initialize an empty list to store cluster labels
+    cluster_labels = []
+    # Iterate through the file_list
+    for file_name in file_list:
+        # Find the row in the dataframe where File_Name matches
+        match = df_vtfam[df_vtfam['File_Path'] == file_name]
+        
+        # If a match is found, append the Cluster_Label to the list
+        if not match.empty:
+            cluster_labels.append(int(match['Cluster_Label'].iloc[0]))
+        else:
+            # If no match is found, append None or a placeholder
+            continue
+    
+    return cluster_labels
 
+def HeuristicExtract(file_list):
+    givenWkdir = '/usr/src/app/HDDdata/datacopy/'
+    df_optimumK=pd.read_csv("/usr/src/app/YaraResults/clusterCSV/BestKvalueCluster_VT.csv")
+    df_vtfam=pd.read_csv("/usr/src/app/YaraResults/clusterCSV/virusTotal/MainVtCluster.csv")
+    df_vtfam['File_Path'] = df_vtfam['File_Path'].str.replace('/mnt/data_disk1/mabon/datacopy/', givenWkdir, regex=False)
 
+    cluster_labels = find_file_families(df_vtfam, file_list)
+    unique_clusters = list(set(cluster_labels))
+    optimal_k_dict = dict(zip(df_optimumK['cluster_number'], df_optimumK['best_k_value']))
 
+    # Step 3: Find the best_k_value for each unique cluster in cluster_labels
+    optimal_k_values = [optimal_k_dict.get(cluster, 1) for cluster in unique_clusters]  # Default to 1 if cluster not found
+
+        # Sort the optimal_k_values in descending order
+    sorted_k = sorted(optimal_k_values, reverse=True)
+
+    optimal_k = next((k for k in sorted_k if k <= len(file_list)), None)
+    # print("Optimal k values for each cluster:", optimal_k)
+    return optimal_k
+
+import random
     
 def run_yara(args):
     cluster, file_list,TH,train_ratio = args
-    dir_path_skip=f'/usr/src/app/YaraResults/yaraRules/retrainedBloomFilters/ssdeep/BuildHeuristics/StreamClusterData/Th{TH}/Ratio_{train_ratio}/cluster_{cluster}'
+    dir_path_skip=f'/usr/src/app/YaraResults/yaraRules/retrainedBloomFilters/ssdeep/AutoPYara/StreamClusterData_HEU/Th{TH}/Ratio_{train_ratio}/cluster_{cluster}'
     if os.path.exists(dir_path_skip):
         print(f"Skipping: {dir_path_skip} already exists.")
         #return 0
@@ -107,13 +141,22 @@ def run_yara(args):
             train_list, test_list=split_file_paths(file_list, dir_path_skip, train_ratio=train_ratio, seed=42)    
             # print(f"Processing cluster: {cluster} with {len(train_list)} training files and {len(test_list)} testing files")
             # print("LOG:----------------------------------- Generating baseYara for cluster: ", cluster)
-            ktarget_kval,baserule=baseYara(dir_path_skip,train_list)
+            
 
+    
+            ktarget_kval,baserule=baseYara(dir_path_skip,train_list)
 
             RuleTEST(baserule, train_list,tprate_file=os.path.join(dir_path_skip, 'tprateAutoyaraBase_Train.txt'))   
             RuleTEST(baserule, test_list,tprate_file=os.path.join(dir_path_skip, 'tprateAutoyaraBase_Test.txt'))   
-
-
+            targetk=HeuristicExtract(file_list)
+            
+            
+            if targetk is not None:
+                print("LOG:----------------------------------- Using HeuristicExtract K Value : ",targetk)
+                ktarget_kval=targetk
+            else:
+                print("LOG:----------------------------------- Using baseYara K Value : ",ktarget_kval)
+                ktarget_kval=random.randint(1, int(len(train_list)))
 
             # print("LOG:-----------------------------------Using K Value : ",ktarget_kval)
             # print("LOG:----------------------------------- Generating bestYara for cluster: ", cluster)
@@ -133,7 +176,39 @@ def run_yara(args):
         except:
             print(f"Error processing cluster {cluster}: {file_list}")
 
-
+def run_with_timeout(num_processes, tasks, timeout_seconds=7200):
+    # Create an Event to signal timeout
+    timeout_event = threading.Event()
+    
+    # Function to run the pool processing
+    def process_tasks():
+        try:
+            with Pool(processes=num_processes) as pool:
+                for _ in tqdm(pool.imap_unordered(run_yara, tasks), total=len(tasks)):
+                    if timeout_event.is_set():
+                        pool.terminate()  # Terminate pool if timeout occurs
+                        break
+        except Exception as e:
+            print(f"Error in pool processing: {e}")
+        finally:
+            pool.close()
+            pool.join()  # Ensure pool resources are cleaned up
+    
+    # Start the processing in a separate thread
+    process_thread = threading.Thread(target=process_tasks)
+    process_thread.start()
+    
+    # Wait for the timeout duration or until processing completes
+    process_thread.join(timeout=timeout_seconds)
+    
+    if process_thread.is_alive():
+        print("Timeout of 2 hours reached, terminating pool...")
+        timeout_event.set()  # Signal to terminate
+        process_thread.join()  # Wait for the thread to finish after termination
+        return False  # Indicate timeout occurred
+    else:
+        print("Processing completed within 2 hours.")
+        return True  # Indicate successful completion
 
 
 def process_clusters(csv_file,TH,train_ratio):
@@ -143,7 +218,7 @@ def process_clusters(csv_file,TH,train_ratio):
     df = pd.read_csv(csv_file)
     all_cluster_files = get_files_by_all_clusters(df)
     valid_clusters = {k: v for k, v in all_cluster_files.items() if len(v) >= 10}
-    print(f"Number of valid clusters (≥ 50 files): {len(valid_clusters)}")
+    print(f"Number of valid clusters (≥ 10 files): {len(valid_clusters)}")
 
     for i, (label, file_list) in enumerate(list(valid_clusters.items())[:5]):
         print(f"Cluster {label} (index {i}): {len(file_list)} files")
@@ -152,16 +227,22 @@ def process_clusters(csv_file,TH,train_ratio):
         print("No clusters with at least two files. Exiting.")
         return
 
-    num_processes = min(cpu_count(), 8)
+    num_processes = min(cpu_count(),5)
     print("USING", num_processes)
     print(f"[INFO] Using {num_processes} processes")
 
     tasks = [(cluster, file_list,TH,train_ratio) for cluster, file_list in valid_clusters.items()]
 
-    with Pool(processes=num_processes) as pool:
-        for _ in tqdm(pool.imap_unordered(run_yara, tasks), total=len(tasks)):
-            pass  # Progress bar updates here
+    # with Pool(processes=num_processes) as pool:
+    #     for _ in tqdm(pool.imap_unordered(run_yara, tasks), total=len(tasks)):
+    #         pass  # Progress bar updates here
 
+    num_processes = 4  # Adjust as needed
+    success = run_with_timeout(num_processes, tasks, timeout_seconds=7200)
+    if success:
+        print("All tasks completed successfully.")
+    else:
+        print("Tasks were interrupted due to timeout.")
 def parse_args():
     parser = argparse.ArgumentParser(description="Process clustered files and run yaraMain.py.")
     parser.add_argument(

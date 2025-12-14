@@ -16,11 +16,12 @@ def str2bool(v):
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
+
 def get_files_by_all_clusters(df):
-    givenWkdir = '/usr/src/app/HDDdata'
-    
+    givenWkdir = '/usr/src/app/HDDdata/datacopy/'
     # Replace the initial part of the path
-    df['File_Path'] = df['File_Path'].str.replace('/mnt/data_disk1/mabon', givenWkdir, regex=False)
+    df['File_Path'] = df['File_Path'].str.replace('/usr/src/app/HDDdata/data/Windows/', givenWkdir, regex=False)
+
     clustered_files = df.groupby('Cluster_Label')['File_Path'].apply(list).to_dict()
     sorted_items = sorted(clustered_files.items(), key=lambda x: len(x[1]), reverse=True)
     return dict(sorted_items)
@@ -37,7 +38,7 @@ def handle_softk_cluster(args):
         if pd.isna(kval_value).any() or kval_value.isin(['FAILED']).any():
             print(f"[INFO] Cluster {cluster} has NaN or 'FAILED' in k_clusters. Skipping.")
             return
-        dir_path = f'/usr/src/app/YaraResults/yaraRules/originalBloomFilters/virusTotal/WorstPyara/Th{TH}/cluster_{cluster}'
+        dir_path = f'/usr/src/app/YaraResults/yaraRules/retrainedBloomFilters/sdhash/AutoPYara/WorstPyara/Th{TH}/cluster_{cluster}'
         if os.path.exists(dir_path):
             print(f"[INFO] Skipping: {dir_path} already exists.")
             return
@@ -55,8 +56,8 @@ def handle_softk_cluster(args):
 
         cmd = [
             'python', '/usr/src/app/yaraMain2.py',
-            '--bfMalicious', '/usr/src/app/intermediate/bloom_filters/malicious-bytes/',
-            '--bfBenign', '/usr/src/app/intermediate/bloom_filters/benign-bytes/',
+            '--bfMalicious', '/usr/src/app/YaraResults/RetrainedBloomFilters/malicious/',
+            '--bfBenign', '/usr/src/app/YaraResults/RetrainedBloomFilters/benign/',
             '--malwarePath', malwarePathArg,
             '--generateRule', 'False',
             '--HardK', 'False',
@@ -93,7 +94,7 @@ def process_clusters(csv_file, kcsv_file, TH):
     task_args = [(cluster, files, kval, TH) for cluster, files in valid_clusters.items()]
     
     print("[INFO] Starting multiprocessing pool...")
-    with Pool(processes=min(cpu_count(), 12)) as pool:
+    with Pool(processes=min(cpu_count(), 10)) as pool:
         list(tqdm(pool.imap(handle_softk_cluster, task_args), total=len(task_args)))
 
 def parse_args():

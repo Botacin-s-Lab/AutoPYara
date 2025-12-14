@@ -2,7 +2,7 @@ import os
 import shutil
 
 # Define the root directory
-root_dir = "/usr/src/app/YaraTest/bestK"
+root_dir = "/usr/src/app/YaraResults/yaraRules/originalBloomFilters/sdhash"
 
 # Iterate through each th* subfolder
 for subfolder in os.listdir(root_dir):
