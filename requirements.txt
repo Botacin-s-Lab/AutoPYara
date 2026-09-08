@@ -1,5 +1,0 @@
-yara-python
-yaramod
-vt-py
-scikit-learn
-ssdeep
