@@ -45,3 +45,6 @@ AutoPYara/scripts/clusteringAlgosGTgen/VirusTotal/output_old/*
 AutoPYara/TEST/*
 AutoPYara/scripts/heuristics/ssdeep/*
 AutoPYara/scripts/heuristics/sdhash/*
+AutoPYara/YaraResultsFinal/*
+*.pdf
+*.whl

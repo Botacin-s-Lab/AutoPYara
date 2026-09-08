@@ -31,6 +31,7 @@ ENV VIRTUAL_ENV=/opt/venv
 RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 COPY requirements.txt /usr/src/app/requirements.txt
+
 RUN pip3 install -r requirements.txt
 
 RUN wget https://github.com/Botacin-s-Lab/SDHash/releases/download/1.0.0/SDhash -O SDhash
