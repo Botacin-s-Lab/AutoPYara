@@ -1,0 +1,353 @@
+
+import sys
+import os
+import matplotlib.pyplot as plt
+
+import pandas as pd
+from util import (
+    Extractor,ensure_columns,
+    rules_to_dataframe)
+from tqdm import tqdm
+
+
+csv_files = [
+    '../data/clusterCSV/ssdeep/th50.csv',
+    '../data/clusterCSV/ssdeep/th60.csv',
+    '../data/clusterCSV/ssdeep/th70.csv',
+    '../data/clusterCSV/ssdeep/th80.csv',
+    '../data/clusterCSV/ssdeep/th90.csv'
+]
+
+#AutoYara
+yara_files = [
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Autoyara/Th50rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Autoyara/Th60rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Autoyara/Th70rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Autoyara/Th80rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Autoyara/Th90rules/merged_group_1.yar',
+
+]
+
+    
+df_listSSdeep = []
+mr=[1,1,1,1,1]
+for csv_file, yara_file,mr in tqdm(zip(csv_files, yara_files,mr)):
+    print(mr)
+    df = Extractor(csv_file,yara_file,mr=mr)
+    df_listSSdeep.append(df)
+
+
+#AutoPYara
+yara_files = [
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/AutoPyara/Th50rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/AutoPyara/Th60rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/AutoPyara/Th70rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/AutoPyara/Th80rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Autoyara/Th90rules/merged_group_1.yar',
+
+]
+
+    
+df_listSSdeepPyara = []
+mr=[1,1,1,1,1]
+for csv_file, yara_file,mr in tqdm(zip(csv_files, yara_files,mr)):
+    print(mr)
+    df = Extractor(csv_file,yara_file,mr=mr)
+    df_listSSdeepPyara.append(df)
+    
+
+#AutoPYaraBestK
+yara_files = [
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/BestKyara/Th50rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/BestKyara/Th60rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/BestKyara/Th70rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/BestKyara/Th80rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/BestKyara/Th90rules/merged_group_1.yar',
+
+]
+
+    
+df_listSSdeepPyaraBestK = []
+mr=[1,1,1,1,1]
+
+for csv_file, yara_file,mr in tqdm(zip(csv_files, yara_files,mr)):
+    print(mr)
+    df = Extractor(csv_file,yara_file,mr=mr)
+    df_listSSdeepPyaraBestK.append(df)
+
+
+#AutoPYaraWorstPYara
+yara_files = [
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/WorstPyara/Th50rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/WorstPyara/Th60rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/WorstPyara/Th70rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/WorstPyara/Th80rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/WorstPyara/Th90rules/merged_group_1.yar',
+
+]
+
+    
+df_listSSdeepPyaraWorstK = []
+mr=[1,1,1,1,1]
+
+for csv_file, yara_file,mr in tqdm(zip(csv_files, yara_files,mr)):
+    print(mr)
+    df = Extractor(csv_file,yara_file,mr=mr)
+    df_listSSdeepPyaraWorstK.append(df)
+    
+
+#AutoPYaraPYaraHEUMode
+yara_files = [
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/avgk/Th50rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/avgk/Th60rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/avgk/Th70rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/avgk/Th80rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/avgk/Th90rules/merged_group_1.yar',
+
+]
+
+    
+df_listSSdeepPyaraModeK = []
+mr=[1,1,1,1,1]
+
+for csv_file, yara_file,mr in tqdm(zip(csv_files, yara_files,mr)):
+    print(mr)
+    df = Extractor(csv_file,yara_file,mr=mr)
+    df_listSSdeepPyaraModeK.append(df)
+
+
+df_listSSdeepPyaraModeK = ensure_columns(df_listSSdeepPyaraModeK)
+
+# Replace 0 with NaN and drop all-NaN columns, per DataFrame in the list
+df_listSSdeepPyaraModeK = [
+    df.replace(0, np.nan).dropna(axis=1, how='all')
+    for df in df_listSSdeepPyaraModeK
+]
+
+
+
+#AutoPYaraPYaraHEUMax
+yara_files = [
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/maxk/Th50rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/maxk/Th60rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/maxk/Th70rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/maxk/Th80rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/maxk/Th90rules/merged_group_1.yar',
+
+]
+
+    
+df_listSSdeepPyaraMaxK = []
+mr=[1,1,1,1,1]
+
+for csv_file, yara_file,mr in tqdm(zip(csv_files, yara_files,mr)):
+    print(mr)
+    df = Extractor(csv_file,yara_file,mr=mr)
+    df_listSSdeepPyaraMaxK.append(df)
+    
+df_listSSdeepPyaraMaxK = ensure_columns(df_listSSdeepPyaraMaxK)
+
+# Replace 0 with NaN and drop all-NaN columns, per DataFrame in the list
+df_listSSdeepPyaraMaxK = [
+    df.replace(0, np.nan).dropna(axis=1, how='all')
+    for df in df_listSSdeepPyaraMaxK
+]
+
+
+
+#AutoPYaraPYaraHEURandom
+yara_files = [
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/randomK/Th50rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/randomK/Th60rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/randomK/Th70rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/randomK/Th80rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/randomK/Th90rules/merged_group_1.yar',
+
+]
+
+    
+df_listSSdeepPyaraRandomK = []
+mr=[1,1,1,1,1]
+
+for csv_file, yara_file,mr in tqdm(zip(csv_files, yara_files,mr)):
+    print(mr)
+    df = Extractor(csv_file,yara_file,mr=mr)
+    df_listSSdeepPyaraRandomK.append(df)
+df_listSSdeepPyaraRandomK = ensure_columns(df_listSSdeepPyaraRandomK)
+
+# Replace 0 with NaN and drop all-NaN columns, per DataFrame in the list
+df_listSSdeepPyaraRandomK = [
+    df.replace(0, np.nan).dropna(axis=1, how='all')
+    for df in df_listSSdeepPyaraRandomK
+]    
+
+
+#AutoPYaraPYaraBADHEUMean
+yara_files = [
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Mean/Th50rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Mean/Th60rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Mean/Th70rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Mean/Th80rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Mean/Th90rules/merged_group_1.yar',
+
+]
+
+    
+df_listSSdeepPyaraBadHEUMeanK = []
+mr=[1,1,1,1,1]
+
+for csv_file, yara_file,mr in tqdm(zip(csv_files, yara_files,mr)):
+    print(mr)
+    df = Extractor(csv_file,yara_file,mr=mr)
+    df_listSSdeepPyaraBadHEUMeanK.append(df)
+    
+
+
+#AutoPYaraPYaraBADHEUMax
+yara_files = [
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Max/Th50rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Max/Th60rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Max/Th70rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Max/Th80rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Max/Th90rules/merged_group_1.yar',
+
+]
+
+    
+df_listSSdeepPyaraBadHEUMaxK = []
+mr=[1,1,1,1,1]
+
+for csv_file, yara_file,mr in tqdm(zip(csv_files, yara_files,mr)):
+    print(mr)
+    df = Extractor(csv_file,yara_file,mr=mr)
+    df_listSSdeepPyaraBadHEUMaxK.append(df)
+    
+
+
+#AutoPYaraPYaraBADHEURandom
+yara_files = [
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Random/Th50rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Random/Th60rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Random/Th70rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Random/Th80rules/merged_group_1.yar',
+    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Random/Th90rules/merged_group_1.yar',
+
+]
+
+    
+df_listSSdeepPyaraBadHEURandomK = []
+mr=[1,1,1,1,1]
+
+for csv_file, yara_file,mr in tqdm(zip(csv_files, yara_files,mr)):
+    print(mr)
+    df = Extractor(csv_file,yara_file,mr=mr)
+    df_listSSdeepPyaraBadHEURandomK.append(df)
+    
+
+
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+
+# Global font settings
+plt.rcParams['font.family'] = 'DejaVu Sans'
+plt.rcParams['font.weight'] = 600
+plt.rcParams['font.size'] = 22
+
+# Font dictionaries
+TITLE_FONT = {'family': 'DejaVu Sans', 'weight': 600, 'size': 22}
+AXIS_FONT = {'family': 'DejaVu Sans', 'weight': 900, 'size': 14.0}
+TICK_FONT = {'fontsize': 22, 'fontweight': 'bold'}
+
+def plot_cluster_std_dev_boxplot_static_all_merge_zoom(
+    dfs,
+    drop_smallest_n=0,
+    output_file1='cumulative_median_plot.pdf',
+):
+    if not all(isinstance(df, pd.DataFrame) for df in dfs):
+        raise ValueError("All items in input list must be pandas DataFrames")
+    if len(dfs) != 5:
+        raise ValueError("Expected exactly 5 DataFrames")
+    if not isinstance(drop_smallest_n, int) or drop_smallest_n < 0:
+        raise ValueError("drop_smallest_n must be a non-negative integer")
+
+    titles = ['Threshold 50', 'Threshold 60', 'Threshold 70', 'Threshold 80', 'Threshold 90']
+
+    # Collect all unique cluster sizes
+    all_sizes = set()
+    for df in dfs:
+        df = df.replace('None', np.nan).apply(pd.to_numeric, errors='coerce')
+        try:
+            sizes = df.columns.astype(int).tolist()
+            all_sizes.update(sizes)
+        except ValueError:
+            continue
+
+    all_sizes = sorted(all_sizes)
+    if drop_smallest_n > 0 and len(all_sizes) > drop_smallest_n:
+        all_sizes = all_sizes[drop_smallest_n:]
+    if not all_sizes:
+        raise ValueError("No valid cluster sizes found")
+
+    # Filter DataFrames to only those cluster sizes
+    filtered_dfs = []
+    for df in dfs:
+        df = df.replace('None', np.nan).apply(pd.to_numeric, errors='coerce')
+        valid_cols = [col for col in df.columns if int(col) in all_sizes]
+        filtered_dfs.append(df[valid_cols])
+
+    # Define custom ticks
+    tick_sizes = [0, 25, 50, 75, 100, 500]
+    tick_positions = []
+    for tick in tick_sizes:
+        if all_sizes:
+            closest_idx = min(range(len(all_sizes)), key=lambda i: abs(all_sizes[i] - tick))
+            tick_positions.append(closest_idx + 1)
+
+    # ---------- Plot 1: Cumulative Median ----------
+    fig1, ax1 = plt.subplots(figsize=(15, 6))
+    for i, df in enumerate(filtered_dfs):
+        datasets = [
+            (df[size].dropna().astype(float) * 100).tolist() if size in df.columns else []
+            for size in all_sizes
+        ]
+        medians = [np.median(d) if d else np.nan for d in datasets]
+        valid_medians = [m for m in medians if not np.isnan(m)]
+        valid_positions = [j + 1 for j, d in enumerate(datasets) if d]
+
+        if valid_medians:
+            cumulative_avg = np.cumsum(valid_medians) / np.arange(1, len(valid_medians) + 1)
+            line, = ax1.plot(valid_positions[:len(cumulative_avg)], cumulative_avg, linewidth=2, label=titles[i])
+            avg_value = np.mean(cumulative_avg)
+            ax1.axhline(y=avg_value, color=line.get_color(), linestyle=':', linewidth=1.5)
+
+    ax1.set_xticks(tick_positions)
+    ax1.set_xticklabels([str(t) for t in tick_sizes], **TICK_FONT)
+    ax1.set_xlabel('Cluster Size (Number of Items)', **TICK_FONT)
+    ax1.set_ylabel('True Positive (%)', **TICK_FONT)
+    ax1.set_ylim(50, 100)
+    ax1.legend(
+        loc='upper center',
+        bbox_to_anchor=(0.5, 1.02),
+        ncol=5,
+        prop=AXIS_FONT,
+        frameon=False
+    )
+    ax1.grid(True, linestyle='--', alpha=0.5)
+    if output_file1:
+        os.makedirs(os.path.dirname(output_file1), exist_ok=True)
+        fig1.subplots_adjust(top=0.8)
+        fig1.savefig(output_file1, format='pdf', bbox_inches='tight')
+
+        
+plot_cluster_std_dev_boxplot_static_all_merge_zoom(df_listSSdeep, drop_smallest_n=0, output_file1='Figures/Claim4_ThresHoldFigures/AutoYara_SSdeepAVG_ZoomRTBF.pdf')
+plot_cluster_std_dev_boxplot_static_all_merge_zoom(df_listSSdeepPyara, drop_smallest_n=0, output_file1='Figures/Claim4_ThresHoldFigures/AutoPYara_SSdeepAVG_ZoomRTBF.pdf')
+plot_cluster_std_dev_boxplot_static_all_merge_zoom(df_listSSdeepPyaraBestK, drop_smallest_n=0, output_file1='Figures/Claim4_ThresHoldFigures/AutoPYaraBestK_SSdeepAVG_ZoomRTBF.pdf')
+plot_cluster_std_dev_boxplot_static_all_merge_zoom(df_listSSdeepPyaraWorstK, drop_smallest_n=0, output_file1='Figures/Claim4_ThresHoldFigures/AutoPYaraWorstK_SSdeepAVG_ZoomRTBF.pdf')
+plot_cluster_std_dev_boxplot_static_all_merge_zoom(df_listSSdeepPyaraModeK, drop_smallest_n=0, output_file1='Figures/Claim4_ThresHoldFigures/AutoPYaraHEUModeK_SSdeepAVG_ZoomRTBF.pdf')
+plot_cluster_std_dev_boxplot_static_all_merge_zoom(df_listSSdeepPyaraMaxK, drop_smallest_n=0, output_file1='Figures/Claim4_ThresHoldFigures/AutoPYaraHEUMaxK_SSdeepAVG_ZoomRTBF.pdf')
+plot_cluster_std_dev_boxplot_static_all_merge_zoom(df_listSSdeepPyaraRandomK, drop_smallest_n=0, output_file1='Figures/Claim4_ThresHoldFigures/AutoPYaraHEURandomK_SSdeepAVG_ZoomRTBF.pdf')
+plot_cluster_std_dev_boxplot_static_all_merge_zoom(df_listSSdeepPyaraBadHEUMeanK, drop_smallest_n=0, output_file1='Figures/Claim4_ThresHoldFigures/AutoPYaraUninformedHEUMeanK_SSdeepAVG_ZoomRTBF.pdf')
+plot_cluster_std_dev_boxplot_static_all_merge_zoom(df_listSSdeepPyaraBadHEUMaxK, drop_smallest_n=0, output_file1='Figures/Claim4_ThresHoldFigures/AutoPYaraUninformedHEUMaxK_SSdeepAVG_ZoomRTBF.pdf')
+plot_cluster_std_dev_boxplot_static_all_merge_zoom(df_listSSdeepPyaraBadHEURandomK, drop_smallest_n=0, output_file1='Figures/Claim4_ThresHoldFigures/AutoPYaraUninformedHEURandomK_SSdeepAVG_ZoomRTBF.pdf')
+
