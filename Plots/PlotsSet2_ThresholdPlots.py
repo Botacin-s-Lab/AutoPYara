@@ -1,269 +1,124 @@
+"""Figure set 2: TP rate vs. cluster size per similarity threshold (paper Claim 4).
 
-import sys
+All inputs are the SSdeep clusterings (thresholds 50..90) with rules generated using
+the *retrained* bloom filters. ``util.Extractor(..., mr=1, short=False)`` returns, per
+threshold, a DataFrame with one column per cluster size holding the TP rate of every
+cluster of that size (one rule-generation run).
+
+Each figure has one line per threshold. Reading a line from left to right:
+  * the x-axis walks through the distinct cluster sizes in increasing order (one
+    position per size, i.e. rank, not a linear scale); tick labels 0/25/50/75/100/500
+    sit at the position of the nearest existing size;
+  * y = running (cumulative) mean of the per-size *median* TP rate, in %;
+  * the dotted horizontal line in the same colour is the mean of that curve.
+The y-axis is zoomed to 50..100 %.
+
+Figures written (under ``--out-dir``, default ``Plots/Figures``), all in
+``Claim4_ThresHoldFigures/``:
+
+==========================================================  =====================================
+File                                                        Rule generator / K heuristic
+==========================================================  =====================================
+AutoYara_SSdeepAVG_ZoomRTBF.pdf                             AutoYara
+AutoPYara_SSdeepAVG_ZoomRTBF.pdf                            AutoPYara
+AutoPYaraBestK_SSdeepAVG_ZoomRTBF.pdf                       AutoPYara, best K
+AutoPYaraWorstK_SSdeepAVG_ZoomRTBF.pdf                      AutoPYara, worst K
+AutoPYaraHEUModeK_SSdeepAVG_ZoomRTBF.pdf                    informed heuristic: avg/mode K  (*)
+AutoPYaraHEUMaxK_SSdeepAVG_ZoomRTBF.pdf                     informed heuristic: max K       (*)
+AutoPYaraHEURandomK_SSdeepAVG_ZoomRTBF.pdf                  informed heuristic: random K    (*)
+AutoPYaraUninformedHEUMeanK_SSdeepAVG_ZoomRTBF.pdf          uninformed heuristic: mean K
+AutoPYaraUninformedHEUMaxK_SSdeepAVG_ZoomRTBF.pdf           uninformed heuristic: max K
+AutoPYaraUninformedHEURandomK_SSdeepAVG_ZoomRTBF.pdf        uninformed heuristic: random K
+==========================================================  =====================================
+
+(*) These three datasets are post-processed before plotting (see ``DROP_ZERO_GROUPS``):
+``util.ensure_columns`` aligns them to sizes 1..max, then TP values of exactly 0 become
+NaN and all-NaN size columns are dropped.
+
+Inputs (relative to ``--data-dir``, default ``../data``):
+  clusterCSV/ssdeep/th<t>.csv and ruleEval/retrainedBloomFilters/ssdeep/.../merged_group_1.yar
+The exact list is ``TASKS`` below (``--dry-run`` prints it and checks every file exists).
+
+Usage:
+  python PlotsSet2_ThresholdPlots.py            # all CPUs
+  python PlotsSet2_ThresholdPlots.py -j 8       # 8 worker processes
+  python PlotsSet2_ThresholdPlots.py -j 1       # sequential (original behaviour)
+  python PlotsSet2_ThresholdPlots.py --help
+
+Refactor notes (no change to data, statistics or figure content):
+  * The 10 copy-pasted load loops are the table ``TASKS``; the dataset names are the
+    original variable names, the paths/``mr`` values/order are unchanged.
+  * ``numpy`` is imported up front: the notebook-derived original used ``np`` ~130
+    lines before importing it and stopped with a NameError when run as a script.
+  * Figures are closed after saving; the backend is forced to Agg (save-only).
+"""
 import os
-import matplotlib.pyplot as plt
-
-import pandas as pd
-from util import (
-    Extractor,ensure_columns,
-    rules_to_dataframe)
-from tqdm import tqdm
-
-
-csv_files = [
-    '../data/clusterCSV/ssdeep/th50.csv',
-    '../data/clusterCSV/ssdeep/th60.csv',
-    '../data/clusterCSV/ssdeep/th70.csv',
-    '../data/clusterCSV/ssdeep/th80.csv',
-    '../data/clusterCSV/ssdeep/th90.csv'
-]
-
-#AutoYara
-yara_files = [
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Autoyara/Th50rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Autoyara/Th60rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Autoyara/Th70rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Autoyara/Th80rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Autoyara/Th90rules/merged_group_1.yar',
-
-]
-
-    
-df_listSSdeep = []
-mr=[1,1,1,1,1]
-for csv_file, yara_file,mr in tqdm(zip(csv_files, yara_files,mr)):
-    print(mr)
-    df = Extractor(csv_file,yara_file,mr=mr)
-    df_listSSdeep.append(df)
-
-
-#AutoPYara
-yara_files = [
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/AutoPyara/Th50rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/AutoPyara/Th60rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/AutoPyara/Th70rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/AutoPyara/Th80rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Autoyara/Th90rules/merged_group_1.yar',
-
-]
-
-    
-df_listSSdeepPyara = []
-mr=[1,1,1,1,1]
-for csv_file, yara_file,mr in tqdm(zip(csv_files, yara_files,mr)):
-    print(mr)
-    df = Extractor(csv_file,yara_file,mr=mr)
-    df_listSSdeepPyara.append(df)
-    
-
-#AutoPYaraBestK
-yara_files = [
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/BestKyara/Th50rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/BestKyara/Th60rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/BestKyara/Th70rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/BestKyara/Th80rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/BestKyara/Th90rules/merged_group_1.yar',
-
-]
-
-    
-df_listSSdeepPyaraBestK = []
-mr=[1,1,1,1,1]
-
-for csv_file, yara_file,mr in tqdm(zip(csv_files, yara_files,mr)):
-    print(mr)
-    df = Extractor(csv_file,yara_file,mr=mr)
-    df_listSSdeepPyaraBestK.append(df)
-
-
-#AutoPYaraWorstPYara
-yara_files = [
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/WorstPyara/Th50rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/WorstPyara/Th60rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/WorstPyara/Th70rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/WorstPyara/Th80rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/WorstPyara/Th90rules/merged_group_1.yar',
-
-]
-
-    
-df_listSSdeepPyaraWorstK = []
-mr=[1,1,1,1,1]
-
-for csv_file, yara_file,mr in tqdm(zip(csv_files, yara_files,mr)):
-    print(mr)
-    df = Extractor(csv_file,yara_file,mr=mr)
-    df_listSSdeepPyaraWorstK.append(df)
-    
-
-#AutoPYaraPYaraHEUMode
-yara_files = [
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/avgk/Th50rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/avgk/Th60rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/avgk/Th70rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/avgk/Th80rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/avgk/Th90rules/merged_group_1.yar',
-
-]
-
-    
-df_listSSdeepPyaraModeK = []
-mr=[1,1,1,1,1]
-
-for csv_file, yara_file,mr in tqdm(zip(csv_files, yara_files,mr)):
-    print(mr)
-    df = Extractor(csv_file,yara_file,mr=mr)
-    df_listSSdeepPyaraModeK.append(df)
-
-
-df_listSSdeepPyaraModeK = ensure_columns(df_listSSdeepPyaraModeK)
-
-# Replace 0 with NaN and drop all-NaN columns, per DataFrame in the list
-df_listSSdeepPyaraModeK = [
-    df.replace(0, np.nan).dropna(axis=1, how='all')
-    for df in df_listSSdeepPyaraModeK
-]
-
-
-
-#AutoPYaraPYaraHEUMax
-yara_files = [
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/maxk/Th50rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/maxk/Th60rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/maxk/Th70rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/maxk/Th80rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/maxk/Th90rules/merged_group_1.yar',
-
-]
-
-    
-df_listSSdeepPyaraMaxK = []
-mr=[1,1,1,1,1]
-
-for csv_file, yara_file,mr in tqdm(zip(csv_files, yara_files,mr)):
-    print(mr)
-    df = Extractor(csv_file,yara_file,mr=mr)
-    df_listSSdeepPyaraMaxK.append(df)
-    
-df_listSSdeepPyaraMaxK = ensure_columns(df_listSSdeepPyaraMaxK)
-
-# Replace 0 with NaN and drop all-NaN columns, per DataFrame in the list
-df_listSSdeepPyaraMaxK = [
-    df.replace(0, np.nan).dropna(axis=1, how='all')
-    for df in df_listSSdeepPyaraMaxK
-]
-
-
-
-#AutoPYaraPYaraHEURandom
-yara_files = [
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/randomK/Th50rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/randomK/Th60rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/randomK/Th70rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/randomK/Th80rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/randomK/Th90rules/merged_group_1.yar',
-
-]
-
-    
-df_listSSdeepPyaraRandomK = []
-mr=[1,1,1,1,1]
-
-for csv_file, yara_file,mr in tqdm(zip(csv_files, yara_files,mr)):
-    print(mr)
-    df = Extractor(csv_file,yara_file,mr=mr)
-    df_listSSdeepPyaraRandomK.append(df)
-df_listSSdeepPyaraRandomK = ensure_columns(df_listSSdeepPyaraRandomK)
-
-# Replace 0 with NaN and drop all-NaN columns, per DataFrame in the list
-df_listSSdeepPyaraRandomK = [
-    df.replace(0, np.nan).dropna(axis=1, how='all')
-    for df in df_listSSdeepPyaraRandomK
-]    
-
-
-#AutoPYaraPYaraBADHEUMean
-yara_files = [
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Mean/Th50rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Mean/Th60rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Mean/Th70rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Mean/Th80rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Mean/Th90rules/merged_group_1.yar',
-
-]
-
-    
-df_listSSdeepPyaraBadHEUMeanK = []
-mr=[1,1,1,1,1]
-
-for csv_file, yara_file,mr in tqdm(zip(csv_files, yara_files,mr)):
-    print(mr)
-    df = Extractor(csv_file,yara_file,mr=mr)
-    df_listSSdeepPyaraBadHEUMeanK.append(df)
-    
-
-
-#AutoPYaraPYaraBADHEUMax
-yara_files = [
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Max/Th50rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Max/Th60rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Max/Th70rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Max/Th80rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Max/Th90rules/merged_group_1.yar',
-
-]
-
-    
-df_listSSdeepPyaraBadHEUMaxK = []
-mr=[1,1,1,1,1]
-
-for csv_file, yara_file,mr in tqdm(zip(csv_files, yara_files,mr)):
-    print(mr)
-    df = Extractor(csv_file,yara_file,mr=mr)
-    df_listSSdeepPyaraBadHEUMaxK.append(df)
-    
-
-
-#AutoPYaraPYaraBADHEURandom
-yara_files = [
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Random/Th50rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Random/Th60rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Random/Th70rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Random/Th80rules/merged_group_1.yar',
-    '../data/ruleEval/retrainedBloomFilters/ssdeep/Heuristics/BAD/Random/Th90rules/merged_group_1.yar',
-
-]
-
-    
-df_listSSdeepPyaraBadHEURandomK = []
-mr=[1,1,1,1,1]
-
-for csv_file, yara_file,mr in tqdm(zip(csv_files, yara_files,mr)):
-    print(mr)
-    df = Extractor(csv_file,yara_file,mr=mr)
-    df_listSSdeepPyaraBadHEURandomK.append(df)
-    
-
+import sys
 
 import matplotlib.pyplot as plt
-import pandas as pd
 import numpy as np
+import pandas as pd
 
-# Global font settings
-plt.rcParams['font.family'] = 'DejaVu Sans'
-plt.rcParams['font.weight'] = 600
-plt.rcParams['font.size'] = 22
+from plot_common import script_main, threshold_tasks
+from util import ensure_columns
 
-# Font dictionaries
-TITLE_FONT = {'family': 'DejaVu Sans', 'weight': 600, 'size': 22}
-AXIS_FONT = {'family': 'DejaVu Sans', 'weight': 900, 'size': 14.0}
-TICK_FONT = {'fontsize': 22, 'fontweight': 'bold'}
+# --------------------------------------------------------------------------------------
+# Extraction tasks (all: SSdeep clusters, retrained bloom filters, mr=1, full frames).
+# Group names = the original variable names.
+# --------------------------------------------------------------------------------------
+SSDEEP_CSV = 'clusterCSV/ssdeep/th{t}.csv'
+RULES = 'ruleEval/retrainedBloomFilters/ssdeep/{variant}/Th{{t}}rules/merged_group_1.yar'
+
+VARIANTS = [  # (group name, rule directory under retrainedBloomFilters/ssdeep/)
+    ('df_listSSdeep', 'Autoyara'),                          # AutoYara
+    ('df_listSSdeepPyara', 'AutoPyara'),                    # AutoPYara
+    ('df_listSSdeepPyaraBestK', 'BestKyara'),               # AutoPYara, best K
+    ('df_listSSdeepPyaraWorstK', 'WorstPyara'),             # AutoPYara, worst K
+    ('df_listSSdeepPyaraModeK', 'Heuristics/avgk'),         # heuristic: mode/avg K
+    ('df_listSSdeepPyaraMaxK', 'Heuristics/maxk'),          # heuristic: max K
+    ('df_listSSdeepPyaraRandomK', 'Heuristics/randomK'),    # heuristic: random K
+    ('df_listSSdeepPyaraBadHEUMeanK', 'Heuristics/BAD/Mean'),      # uninformed: mean K
+    ('df_listSSdeepPyaraBadHEUMaxK', 'Heuristics/BAD/Max'),        # uninformed: max K
+    ('df_listSSdeepPyaraBadHEURandomK', 'Heuristics/BAD/Random'),  # uninformed: random K
+]
+TASKS = [task for group, variant in VARIANTS
+         for task in threshold_tasks(group, SSDEEP_CSV, RULES.format(variant=variant), mr=1, short=False)]
+
+# Groups whose zero TP rates are treated as missing before plotting (see docstring).
+DROP_ZERO_GROUPS = ('df_listSSdeepPyaraModeK', 'df_listSSdeepPyaraMaxK', 'df_listSSdeepPyaraRandomK')
+
+# --------------------------------------------------------------------------------------
+# Style
+# --------------------------------------------------------------------------------------
+RC_PARAMS = {'font.family': 'DejaVu Sans', 'font.weight': 600, 'font.size': 22}
+AXIS_FONT = {'family': 'DejaVu Sans', 'weight': 900, 'size': 14.0}   # legend
+TICK_FONT = {'fontsize': 22, 'fontweight': 'bold'}                  # ticks + axis labels
+
+
+def drop_zero_scores(df_list):
+    """Post-processing of the three informed-heuristic datasets (unchanged from the original)."""
+    df_list = ensure_columns(df_list)
+    # Replace 0 with NaN and drop all-NaN columns, per DataFrame in the list
+    return [
+        df.replace(0, np.nan).dropna(axis=1, how='all')
+        for df in df_list
+    ]
+
 
 def plot_cluster_std_dev_boxplot_static_all_merge_zoom(
     dfs,
     drop_smallest_n=0,
     output_file1='cumulative_median_plot.pdf',
 ):
+    """Cumulative-median line plot of TP rate vs. cluster size, one line per threshold.
+
+    (The name is historical: no boxplot is drawn.)
+
+    dfs: exactly five DataFrames (thresholds 50, 60, 70, 80, 90), columns = cluster
+         sizes, values = TP rates in [0, 1] (None/'None'/NaN = no cluster).
+    drop_smallest_n: skip the n smallest cluster sizes (0 in every call here).
+    output_file1: PDF path; parent folders are created.
+    """
     if not all(isinstance(df, pd.DataFrame) for df in dfs):
         raise ValueError("All items in input list must be pandas DataFrames")
     if len(dfs) != 5:
@@ -296,7 +151,7 @@ def plot_cluster_std_dev_boxplot_static_all_merge_zoom(
         valid_cols = [col for col in df.columns if int(col) in all_sizes]
         filtered_dfs.append(df[valid_cols])
 
-    # Define custom ticks
+    # Define custom ticks: x position (1-based rank) of the size closest to each label
     tick_sizes = [0, 25, 50, 75, 100, 500]
     tick_positions = []
     for tick in tick_sizes:
@@ -307,6 +162,7 @@ def plot_cluster_std_dev_boxplot_static_all_merge_zoom(
     # ---------- Plot 1: Cumulative Median ----------
     fig1, ax1 = plt.subplots(figsize=(15, 6))
     for i, df in enumerate(filtered_dfs):
+        # TP rates (in %) of every cluster of each size
         datasets = [
             (df[size].dropna().astype(float) * 100).tolist() if size in df.columns else []
             for size in all_sizes
@@ -316,6 +172,7 @@ def plot_cluster_std_dev_boxplot_static_all_merge_zoom(
         valid_positions = [j + 1 for j, d in enumerate(datasets) if d]
 
         if valid_medians:
+            # Running mean of the per-size medians, plus its overall mean as a dotted line
             cumulative_avg = np.cumsum(valid_medians) / np.arange(1, len(valid_medians) + 1)
             line, = ax1.plot(valid_positions[:len(cumulative_avg)], cumulative_avg, linewidth=2, label=titles[i])
             avg_value = np.mean(cumulative_avg)
@@ -339,15 +196,35 @@ def plot_cluster_std_dev_boxplot_static_all_merge_zoom(
         fig1.subplots_adjust(top=0.8)
         fig1.savefig(output_file1, format='pdf', bbox_inches='tight')
 
-        
-plot_cluster_std_dev_boxplot_static_all_merge_zoom(df_listSSdeep, drop_smallest_n=0, output_file1='Figures/Claim4_ThresHoldFigures/AutoYara_SSdeepAVG_ZoomRTBF.pdf')
-plot_cluster_std_dev_boxplot_static_all_merge_zoom(df_listSSdeepPyara, drop_smallest_n=0, output_file1='Figures/Claim4_ThresHoldFigures/AutoPYara_SSdeepAVG_ZoomRTBF.pdf')
-plot_cluster_std_dev_boxplot_static_all_merge_zoom(df_listSSdeepPyaraBestK, drop_smallest_n=0, output_file1='Figures/Claim4_ThresHoldFigures/AutoPYaraBestK_SSdeepAVG_ZoomRTBF.pdf')
-plot_cluster_std_dev_boxplot_static_all_merge_zoom(df_listSSdeepPyaraWorstK, drop_smallest_n=0, output_file1='Figures/Claim4_ThresHoldFigures/AutoPYaraWorstK_SSdeepAVG_ZoomRTBF.pdf')
-plot_cluster_std_dev_boxplot_static_all_merge_zoom(df_listSSdeepPyaraModeK, drop_smallest_n=0, output_file1='Figures/Claim4_ThresHoldFigures/AutoPYaraHEUModeK_SSdeepAVG_ZoomRTBF.pdf')
-plot_cluster_std_dev_boxplot_static_all_merge_zoom(df_listSSdeepPyaraMaxK, drop_smallest_n=0, output_file1='Figures/Claim4_ThresHoldFigures/AutoPYaraHEUMaxK_SSdeepAVG_ZoomRTBF.pdf')
-plot_cluster_std_dev_boxplot_static_all_merge_zoom(df_listSSdeepPyaraRandomK, drop_smallest_n=0, output_file1='Figures/Claim4_ThresHoldFigures/AutoPYaraHEURandomK_SSdeepAVG_ZoomRTBF.pdf')
-plot_cluster_std_dev_boxplot_static_all_merge_zoom(df_listSSdeepPyaraBadHEUMeanK, drop_smallest_n=0, output_file1='Figures/Claim4_ThresHoldFigures/AutoPYaraUninformedHEUMeanK_SSdeepAVG_ZoomRTBF.pdf')
-plot_cluster_std_dev_boxplot_static_all_merge_zoom(df_listSSdeepPyaraBadHEUMaxK, drop_smallest_n=0, output_file1='Figures/Claim4_ThresHoldFigures/AutoPYaraUninformedHEUMaxK_SSdeepAVG_ZoomRTBF.pdf')
-plot_cluster_std_dev_boxplot_static_all_merge_zoom(df_listSSdeepPyaraBadHEURandomK, drop_smallest_n=0, output_file1='Figures/Claim4_ThresHoldFigures/AutoPYaraUninformedHEURandomK_SSdeepAVG_ZoomRTBF.pdf')
 
+FIGURES = [  # (group name, output file), in the original order
+    ('df_listSSdeep', 'AutoYara_SSdeepAVG_ZoomRTBF.pdf'),
+    ('df_listSSdeepPyara', 'AutoPYara_SSdeepAVG_ZoomRTBF.pdf'),
+    ('df_listSSdeepPyaraBestK', 'AutoPYaraBestK_SSdeepAVG_ZoomRTBF.pdf'),
+    ('df_listSSdeepPyaraWorstK', 'AutoPYaraWorstK_SSdeepAVG_ZoomRTBF.pdf'),
+    ('df_listSSdeepPyaraModeK', 'AutoPYaraHEUModeK_SSdeepAVG_ZoomRTBF.pdf'),
+    ('df_listSSdeepPyaraMaxK', 'AutoPYaraHEUMaxK_SSdeepAVG_ZoomRTBF.pdf'),
+    ('df_listSSdeepPyaraRandomK', 'AutoPYaraHEURandomK_SSdeepAVG_ZoomRTBF.pdf'),
+    ('df_listSSdeepPyaraBadHEUMeanK', 'AutoPYaraUninformedHEUMeanK_SSdeepAVG_ZoomRTBF.pdf'),
+    ('df_listSSdeepPyaraBadHEUMaxK', 'AutoPYaraUninformedHEUMaxK_SSdeepAVG_ZoomRTBF.pdf'),
+    ('df_listSSdeepPyaraBadHEURandomK', 'AutoPYaraUninformedHEURandomK_SSdeepAVG_ZoomRTBF.pdf'),
+]
+
+
+def make_figures(d, out_dir):
+    """Post-process and draw the ten figures from ``d`` = {group name: [5 DataFrames]}."""
+    for group in DROP_ZERO_GROUPS:
+        d[group] = drop_zero_scores(d[group])
+    plt.rcParams.update(RC_PARAMS)
+    written = []
+    for group, name in FIGURES:
+        path = os.path.join(out_dir, 'Claim4_ThresHoldFigures', name)
+        plot_cluster_std_dev_boxplot_static_all_merge_zoom(d[group], drop_smallest_n=0, output_file1=path)
+        plt.close('all')
+        written.append(path)
+    return written
+
+
+if __name__ == '__main__':
+    sys.exit(script_main('Figure set 2 (Claim 4): TP rate vs. cluster size per threshold. '
+                         'See module docstring.', TASKS, make_figures))

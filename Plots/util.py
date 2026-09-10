@@ -1,6 +1,7 @@
 import re
 import os
 import glob
+from collections import Counter
 from fractions import Fraction
 
 import numpy as np
@@ -245,16 +246,80 @@ def ensure_columns(dataframes):
     return dataframes[0] if len(dataframes) == 1 else dataframes
 
 
+def _bucket_scores_by_size(df_cluster, data, unique_vals):
+    """Lay out per-cluster scores as one column per cluster size.
+
+    Linear-time equivalent of Extractor's original loop, which looked up the first
+    empty cell with ``df_new[col].isna()`` and grew the frame one ``.loc`` row at a
+    time (quadratic in the number of rows). The result is the identical frame:
+
+    * columns ``unique_vals`` (object dtype), index ``0..n_rows-1`` (int64);
+    * the k-th score (in ``df_cluster`` order) whose cluster has size ``s`` sits in
+      row k of column ``s``; every other cell is ``None``;
+    * ``n_rows`` = largest number of clusters sharing one size;
+    * if nothing matched, the untouched empty ``pd.DataFrame(columns=unique_vals)``.
+
+    A NaN score leaves its cell "empty", so the next score of that size overwrites
+    it, exactly as the original ``isna()`` lookup did.
+    """
+    cells = {col: [] for col in unique_vals}
+    first_na = dict.fromkeys(unique_vals, 0)
+    n_rows = 0
+    for cluster_name, score in df_cluster.items():
+        # Extract the key (e.g., Cluster0 → 0)
+        key = int(cluster_name.replace('Cluster', ''))
+        if key in data:
+            col = data[key]
+            column = cells[col]
+            # First empty (None/NaN) row of this column; filled cells never empty again.
+            i = first_na[col]
+            while i < n_rows and not pd.isna(column[i]):
+                i += 1
+            first_na[col] = i
+            if i == n_rows:  # column full -> append an all-None row
+                for c in cells.values():
+                    c.append(None)
+                n_rows += 1
+            column[i] = score
+    if n_rows == 0:
+        return pd.DataFrame(columns=unique_vals)
+    return pd.DataFrame(cells, index=pd.Index(np.arange(n_rows, dtype='int64')),
+                        columns=unique_vals, dtype=object)
+
+
 def Extractor(csv_file, file_path, mr, clusSize=2, short=False):
+    """Per-cluster mean TP rate of one YARA rule set, optionally grouped by cluster size.
+
+    Args:
+        csv_file: clustering CSV; only its ``Cluster_Label`` column is used. Labels
+            < 0 (noise) and NaN are ignored.
+        file_path: merged ``.yar`` file whose rules are named ``Cluster<i>_<run>`` and
+            carry a ``// Input TP Rate: X/Y`` (or ``//X/Y``) comment.
+        mr: number of runs per cluster to use (``max_runs``). Runs > mr are ignored;
+            a missing run is filled with that run's median over clusters, and a run
+            missing for every cluster counts as 0 (see ``rules_to_dataframe``).
+        clusSize: minimum cluster size (in the CSV) for a cluster to be counted.
+        short: if True return only the per-cluster Series.
+
+    Returns:
+        short=True:  ``pd.Series`` indexed ``Cluster0..Cluster<n>`` (n = number of
+                     CSV clusters with size >= clusSize), value = mean TP rate over
+                     the ``mr`` runs; clusters without rules are 0.
+        short=False: ``pd.DataFrame`` with one column per distinct cluster size, see
+                     ``_bucket_scores_by_size``. Rule cluster ``i`` is assigned the
+                     size of CSV label ``i``.
+    """
     df1 = pd.read_csv(csv_file)
     labels = df1['Cluster_Label'].dropna().astype(int).tolist()  # Ensure integers
-    cluster_sizes = {label: labels.count(label) for label in set(labels) if label >= 0}
+    # Counter is O(rows); the former per-label labels.count() was O(rows x clusters).
+    # Same keys, values and iteration order (still iterates set(labels)).
+    counts = Counter(labels)
+    cluster_sizes = {label: counts[label] for label in set(labels) if label >= 0}
 
     # Filter for clusters with size >= 2 (keep the key-value pairs)
 
     data = {label: size for label, size in cluster_sizes.items() if (size >= clusSize)}
     unique_vals = sorted(set(data.values()))
-    df_new = pd.DataFrame(columns=unique_vals)
 
     result = extract_rule_tp_rates(file_path)
     # for rule_name, tp_rate in result.items():
@@ -265,16 +330,5 @@ def Extractor(csv_file, file_path, mr, clusSize=2, short=False):
     if short:
         print("Short mode enabled")
         return df_cluster
-    # Step 3: Populate the new DataFrame
-    for cluster_name, score in df_cluster.items():
-        # Extract the key (e.g., Cluster0 → 0)
-        key = int(cluster_name.replace('Cluster', ''))
-        if key in data:
-            col = data[key]
-            # Find first available empty row index (or append a new one)
-            row_idx = df_new.index[df_new[col].isna()].min() if col in df_new.columns and not df_new.empty else None
-            if pd.isna(row_idx):
-                row_idx = len(df_new)
-                df_new.loc[row_idx] = [None] * len(df_new.columns)
-            df_new.at[row_idx, col] = score
-    return df_new
+    # Step 3: Populate the new DataFrame (one column per cluster size)
+    return _bucket_scores_by_size(df_cluster, data, unique_vals)
