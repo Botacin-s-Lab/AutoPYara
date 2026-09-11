@@ -2,10 +2,12 @@
 """Master runner: regenerate every paper figure from the provided YARA rule sets.
 
 Runs, one after the other and each in its own Python process:
-  1. PlotsSet1_Boxplots.py        -> Figures/Claim1_*, Claim2_*, Claim3_*   (5 PDFs)
-  2. PlotsSet2_ThresholdPlots.py  -> Figures/Claim4_ThresHoldFigures/      (10 PDFs)
+  1. PlotsSet1_Boxplots.py        -> Figures/Claim1_*, Claim2_*, Claim3_*          (5 PDFs)
+  2. PlotsSet2_ThresholdPlots.py  -> Figures/Claim4_ThresHoldFigures/             (10 PDFs)
+  3. PlotsSet3_ThreatHunting.py   -> Figures/Claim5_Threathunting/                (2 PDFs)
+  4. PlotsSet4_yaraBigPicture.py  -> Figures/Claim6_YaraInAllitsConfigurations/   (1 PDF)
 
-Inside each script the rule-file parsing (the slow part) is spread over ``--jobs``
+Inside each script the input parsing (the slow part) is spread over ``--jobs``
 worker processes; plotting itself is quick and sequential. Separate processes keep
 each script's matplotlib settings isolated, exactly as when run by hand.
 
@@ -35,6 +37,8 @@ from plot_common import DEFAULT_DATA_DIR, DEFAULT_OUT_DIR, available_cpus  # noq
 SCRIPTS = {
     'set1': 'PlotsSet1_Boxplots.py',
     'set2': 'PlotsSet2_ThresholdPlots.py',
+    'set3': 'PlotsSet3_ThreatHunting.py',
+    'set4': 'PlotsSet4_yaraBigPicture.py',
 }
 
 

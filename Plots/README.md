@@ -1,16 +1,17 @@
 # Plots — paper figures from the provided YARA rules
 
-This directory regenerates all 15 figures behind the paper's Claims 1–4. You do not
-need to generate any rules. The rule sets are provided under `data/ruleEval/`, and each
-rule carries a comment with its measured true-positive (TP) rate. These scripts
-parse those comments, aggregate them per cluster, and plot the results.
+This directory regenerates all 18 figures behind the paper's Claims 1–6. You do not
+need to generate any rules. The rule sets are provided under `data/ruleEval/`, each
+rule carrying a comment with its measured true-positive (TP) rate, and the threat-hunting
+results are provided under `data/ThreatHunting/`. These scripts parse those results,
+aggregate them per cluster, and plot them.
 
 ## Quick start
 
 ```bash
 cd Plots
 pip install numpy pandas matplotlib tqdm
-python run_all_plots.py --dry-run    # check that all 94 extraction tasks find their inputs
+python run_all_plots.py --dry-run    # check that all 164 extraction tasks find their inputs
 python run_all_plots.py -j 8         # generate every figure with 8 worker processes
 ```
 
@@ -22,27 +23,29 @@ Tested with Python 3.13.5, numpy 1.26.4, pandas 2.2.3, matplotlib 3.10.0 and tqd
 
 | File | Role |
 |---|---|
-| `run_all_plots.py` | Master runner. Runs both figure scripts, each in its own process, and prints a summary. |
+| `run_all_plots.py` | Master runner. Runs the four figure scripts, each in its own process, and prints a summary. |
 | `PlotsSet1_Boxplots.py` | Figure set 1 (Claims 1–3): mean TP-rate bar charts. |
 | `PlotsSet2_ThresholdPlots.py` | Figure set 2 (Claim 4): TP rate vs. cluster size, one line per similarity threshold. |
-| `plot_common.py` | Code shared by the two scripts: parallel extraction, input preflight check, command-line options. |
+| `PlotsSet3_ThreatHunting.py` | Figure set 3 (Claim 5): threat hunting, TP rate on training vs. held-out test samples. |
+| `PlotsSet4_yaraBigPicture.py` | Figure set 4 (Claim 6): all AutoYara/AutoPYara configurations ranked in one chart. |
+| `plot_common.py` | Code shared by the scripts: parallel extraction, input preflight check, command-line options. |
 | `util.py` | Parses the rule files and CSVs (`Extractor`, `rules_to_dataframe`, `ensure_columns`, ...). |
 | `tools.py` | Older plotting helpers. The scripts above don't use it. |
 
 ## Options
 
 ```text
-python run_all_plots.py [-j N] [--only set1 set2] [--data-dir DIR] [--out-dir DIR]
+python run_all_plots.py [-j N] [--only set1 set2 set3 set4] [--data-dir DIR] [--out-dir DIR]
                         [-q] [--log-dir DIR] [--dry-run]
 ```
 
 | Option | Default | Meaning |
 |---|---|---|
 | `-j N`, `--jobs N`, `--cores N` | `0` (all CPUs) | Worker processes per script. Use `1` for a fully sequential run. |
-| `--only set1 set2` | both | Run only the listed figure sets. |
-| `--data-dir DIR` | `../data` (next to `Plots/`) | Root directory that holds `clusterCSV/` and `ruleEval/`. |
+| `--only set1 ...` | all four | Run only the listed figure sets. |
+| `--data-dir DIR` | `../data` (next to `Plots/`) | Root directory that holds `clusterCSV/`, `ruleEval/` and `ThreatHunting/`. |
 | `--out-dir DIR` | `Plots/Figures` | Where the `Claim*/` folders are written. |
-| `-q`, `--quiet` | off | Hide `util.py`'s per-file and per-rule diagnostic prints. |
+| `-q`, `--quiet` | off | Hide the per-file and per-rule diagnostic prints. |
 | `--log-dir DIR` | off | Send each script's full output to `DIR/<script>.log` instead of the terminal. |
 | `--dry-run` | off | List the inputs, report any missing file, and exit without plotting. |
 
@@ -77,16 +80,19 @@ All paths are relative to `--out-dir`.
 | `Claim4_ThresHoldFigures/AutoPYaraUninformedHEUMeanK_SSdeepAVG_ZoomRTBF.pdf` | 4 | Uninformed heuristic: mean K | Set 2 |
 | `Claim4_ThresHoldFigures/AutoPYaraUninformedHEUMaxK_SSdeepAVG_ZoomRTBF.pdf` | 4 | Uninformed heuristic: max K | Set 2 |
 | `Claim4_ThresHoldFigures/AutoPYaraUninformedHEURandomK_SSdeepAVG_ZoomRTBF.pdf` | 4 | Uninformed heuristic: random K | Set 2 |
+| `Claim5_Threathunting/sdhash_WithHeuOnly_IdealPlot.pdf` | 5 | Threat hunting (`Exp1HEUONLYsdhash`): train (left) vs. test (right), AutoPYara vs. AutoYara | Set 3 |
+| `Claim5_Threathunting/sdhash_WithNOHeuOnly_IdealPlot.pdf` | 5 | Same for `Exp1NOHEUsdhash` | Set 3 |
+| `Claim6_YaraInAllitsConfigurations/BigPicutre.pdf` | 6 | Mean TP rate of 15 AutoYara/AutoPYara configurations, ranked | Set 4 |
 
 Each Set 1 chart has one bar group per clustering: SSdeep, J-SDhash (sdhash) and
-VirusTotal. Each Set 2 figure uses the SSdeep clusterings and rules built with the
-retrained bloom filters.
+VirusTotal. Sets 2 and 4 use the SSdeep clusterings; Set 3 uses the sdhash
+threat-hunting experiments.
 
 ## Input data
 
-The scripts read 11 clustering CSVs and 84 merged rule files, about 2.1 GB in total. Directory
-names must match the casing below exactly (for example `Autoyara` vs. `AutoYara`).
-Run `--dry-run` to list every file.
+The scripts read 11 clustering CSVs, 84 merged rule files (about 2.1 GB in total) and
+10 threat-hunting result folders. Directory names must match the casing below exactly
+(for example `Autoyara` vs. `AutoYara`). Run `--dry-run` to list every input.
 
 ```text
 data/
@@ -94,34 +100,40 @@ data/
 │   ├── sdhash/Th{50,60,70,80,90}.csv
 │   ├── ssdeep/th{50,60,70,80,90}.csv
 │   └── virusTotal/MainVtCluster.csv
-└── ruleEval/
-    ├── originalBloomFilters/                 # "Ember" bloom filters
-    │   ├── sdhash/{AutoYara,AutoPYara}/Th<t>rules/merged_group_1.yar
-    │   ├── ssdeep/{AutoYaraBaseline,AutoPYaraBest}/Th<t>rules/merged_group_1.yar
-    │   └── virusTotal/{AutoyaraBaseline/VirusTotal,AutoPYara}/merged_group_1.yar
-    └── retrainedBloomFilters/                # bloom filters retrained on our data
-        ├── sdhash/{AutoYara,AutoPYara}/Th<t>rules/merged_group_1.yar
-        ├── ssdeep/<variant>/Th<t>rules/merged_group_1.yar
-        │     variant ∈ Autoyara, AutoPyara, BestKyara, WorstPyara,
-        │               Heuristics/{avgk,maxk,randomK}, Heuristics/BAD/{Mean,Max,Random}
-        └── virusTotal/{AutoYara,AutoPYara}/merged_group_1.yar
+├── ruleEval/
+│   ├── originalBloomFilters/                 # "Ember" bloom filters
+│   │   ├── sdhash/{AutoYara,AutoPYara}/Th<t>rules/merged_group_1.yar
+│   │   ├── ssdeep/{AutoYaraBaseline,AutoPYaraBest}/Th<t>rules/merged_group_1.yar
+│   │   └── virusTotal/{AutoyaraBaseline/VirusTotal,AutoPYara}/merged_group_1.yar
+│   └── retrainedBloomFilters/                # bloom filters retrained on our data
+│       ├── sdhash/{AutoYara,AutoPYara}/Th<t>rules/merged_group_1.yar
+│       ├── ssdeep/<variant>/Th<t>rules/merged_group_1.yar
+│       │     variant ∈ Autoyara, AutoPyara, BestKyara, WorstPyara,
+│       │               Heuristics/{avgk,maxk,randomK}, Heuristics/BAD/{Mean,Max,Random}
+│       └── virusTotal/{AutoYara,AutoPYara}/merged_group_1.yar
+└── ThreatHunting/
+    └── {Exp1HEUONLYsdhash,Exp1NOHEUsdhash}/Th<t>/Ratio_0.75/cluster_<n>/
+          train_files.txt, test_files.txt, tprate{AutoPYara,AutoyaraBase}_{Train,Test}.txt
 ```
 
 - **CSV:** only the `Cluster_Label` column is used. Labels below 0 (noise) and empty
   labels are ignored.
 - **Rules:** each rule is named `Cluster<i>_<run>` and carries a comment
   `// Input TP Rate: X/Y` (the shorter form `//X/Y` also works).
+- **Threat hunting:** each `tprate*.txt` holds a line such as `TP Rate: 0.4737 (9/19)`.
+  A cluster folder is used only if all six files are present.
 
 ## How the numbers are computed
 
 1. **Per rule:** TP rate = X / Y from the comment. A rule with no comment, or with
    Y = 0, counts as 0.
-2. **Per cluster** (`util.Extractor`): the mean over runs `1..mr`.
+2. **Per cluster** (`util.Extractor`, Sets 1, 2 and 4): the mean over runs `1..mr`.
    - If a run is missing for some clusters, it is filled with that run's median over all clusters.
    - If a run is missing for every cluster, it counts as 0.
    - Clusters in the CSV with at least 2 members but no rules count as 0.
    - Rule cluster `i` is matched to CSV label `i`.
-   - `mr` is 10 for Ember rule sets, 5 for retrained and VirusTotal rule sets, and 1 in Set 2.
+   - `mr` is 10 for Ember rule sets, 5 for retrained and VirusTotal rule sets, and 1 for
+     the best/worst-K and heuristic rule sets.
 3. **Set 1 (bars):** per-cluster values are pooled over the five thresholds (VirusTotal
    has a single clustering). The bar shows the mean, the error bar the population
    standard deviation, both in %.
@@ -131,28 +143,41 @@ data/
    - The dotted line shows the mean of each curve.
    - The y-axis is zoomed to 50–100 %.
    - For the three informed-heuristic datasets, TP = 0 is treated as missing.
+5. **Set 3 (mirrored lines):** the five thresholds are pooled. Cluster size is the number
+   of samples a rule was evaluated on (the `19` in `9/19`). The chart shows the running
+   mean of per-size median TP rates, with training samples on the left and held-out
+   test samples on the right; sizes with a median of 0 are skipped.
+6. **Set 4 (ladder chart):** each bar is the mean of all per-cluster TP rates, pooled over
+   the five thresholds. Bars marked "WF" drop clusters with TP = 0. For the three
+   heuristic bars, a red segment shows how much the mean rises if every cluster the
+   heuristic failed on takes AutoPYara's value instead. Bars at or below 84 % go on the
+   left panel (0–84 %), the rest on the right panel (84–100 %). The module docstring of
+   `PlotsSet4_yaraBigPicture.py` maps every bar label to its rule set.
 
 ## Performance and memory
 
-Parsing the rule files is the slow part. It is spread over `-j` worker processes, and
-the results are put back in their original order before plotting, so every `-j` value
+Parsing the inputs is the slow part. It is spread over `-j` worker processes, and the
+results are put back in their original order before plotting, so every `-j` value
 produces the same figures. Plotting runs sequentially in the main process.
 
 Measured on a 12-CPU server with the full dataset:
 
-| Version | Wall time |
-|---|---|
-| Scripts before this refactor (single core) | ~32 min (Set 1: 7.6 min, Set 2: 24.2 min) |
-| `run_all_plots.py -j 8` | 23 s |
+| Script | Before this refactor (single core) | `run_all_plots.py -j 8` |
+|---|---|---|
+| Set 1 | 7.6 min | 7.3 s |
+| Set 2 | 24.2 min | 13.3 s |
+| Set 3 | 2 s | 2.0 s |
+| Set 4 | 26 s (already used the faster `util.py`) | 11.5 s |
+| **All four** | | **34.5 s** |
 
-The single-process runs peaked at 0.5–0.6 GB of RSS. A worker handles one rule file at a time
-(the largest is about 95 MB on disk), so budget roughly that much per worker and lower `-j` on
-machines with little memory.
+The single-process runs peaked at 0.5–0.7 GB of RSS. A worker handles one input at a time
+(the largest rule file is about 95 MB on disk), so budget roughly that much per worker
+and lower `-j` on machines with little memory.
 
 ## Reproducibility
 
-- **Refactor check:** on the full dataset, all 15 PDFs are byte-identical to the output of the
-  scripts before this refactor, apart from the embedded creation date. The refactor
+- **Refactor check:** on the full dataset, all 18 PDFs are byte-identical to the output of
+  the scripts before this refactor, apart from the embedded creation date. The refactor
   changes no data, statistics or figure content.
 - **Byte-identical reruns:** a PDF normally embeds its creation time. For byte-identical
   PDFs across runs, set a fixed timestamp:
@@ -174,3 +199,4 @@ These quirks are deliberate: fixing any of them would change the published figur
   draws line plots, not boxplots. The name is historical.
 - **Set 1 font size.** Set 1's charts render with font size 28. The original script
   defined the font settings twice, and the second set is the one in effect.
+- **Figure file name.** `BigPicutre.pdf` (sic) keeps its original spelling.
