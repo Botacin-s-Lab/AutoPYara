@@ -1,0 +1,59 @@
+CLAIM 7 - Paper claim 4: similarity threshold and choice of K
+================================================================================
+
+CLAIM (paper claim 4, figures in Claim4_ThresHoldFigures/)
+    On the SSdeep clusterings with retrained Bloom filters, at every similarity
+    threshold (50, 60, 70, 80, 90):
+
+    a. AutoPYara beats AutoYara       (mean of the TP curve: 84.5-88.8 % vs 76.6-85.4 %);
+    b. the choice of K matters: best K > AutoPYara > worst K
+                                      (88.9-92.1 %  >  84.5-88.8 %  >  76.8-84.9 %);
+    c. K chosen by the informed heuristics (mode/average, max, random K) stays
+       above AutoYara                 (84.1-90.8 %);
+    d. K chosen by the uninformed heuristics (mean, max, random) falls below
+       AutoYara                       (57.6-79.2 %).
+
+    (Claim wording derived from the figure names and the plotted values; the
+    numbers are what the provided data produce.)
+
+FIGURES (10, one per rule generator / K strategy)
+    Claim4_ThresHoldFigures/AutoYara_SSdeepAVG_ZoomRTBF.pdf
+    Claim4_ThresHoldFigures/AutoPYara_SSdeepAVG_ZoomRTBF.pdf
+    Claim4_ThresHoldFigures/AutoPYaraBestK_SSdeepAVG_ZoomRTBF.pdf
+    Claim4_ThresHoldFigures/AutoPYaraWorstK_SSdeepAVG_ZoomRTBF.pdf
+    Claim4_ThresHoldFigures/AutoPYaraHEU{ModeK,MaxK,RandomK}_SSdeepAVG_ZoomRTBF.pdf
+    Claim4_ThresHoldFigures/AutoPYaraUninformedHEU{MeanK,MaxK,RandomK}_SSdeepAVG_ZoomRTBF.pdf
+
+    Each figure has one line per threshold: the running mean, over increasing
+    cluster size, of the median TP rate of the clusters of each size. The dotted
+    line in the same colour is that curve's mean; the numbers above are those means.
+
+INPUTS
+    data/clusterCSV/ssdeep/th{50..90}.csv
+    data/ruleEval/retrainedBloomFilters/ssdeep/{Autoyara,AutoPyara,BestKyara,WorstPyara,
+        Heuristics/{avgk,maxk,randomK},Heuristics/BAD/{Mean,Max,Random}}/...
+
+HOW TO RUN
+    ./run.sh [-j N]
+
+    Prerequisites: ../../install.sh and the evaluation data in ../../data.
+    Runtime: about 15 s on 8 cores, about 3 min on 1 core.
+
+WHAT IS VERIFIED (artifact/plots/verify_claims.py)
+    1. All ten figures are regenerated from the data.
+    2. Every plotted number (all curve points and curve means) matches
+       expected/values.json within 1.0 percentage point.
+    3. Statements a-d hold, threshold by threshold, on the regenerated curve means.
+
+EXPECTED RESULT
+    "CLAIM 7: PASS". Reference figures: expected/figures/. Transcript:
+    expected/expected_output.txt.
+
+NOTE
+    The three informed-heuristic datasets treat a TP rate of exactly 0 as "no
+    rule" (as in the paper's plotting code), so their curves are not directly
+    comparable with best K; statement b therefore compares best K only with
+    AutoPYara and worst K.
+
+TOLERANCE / SCOPE
+    As for claim 4.

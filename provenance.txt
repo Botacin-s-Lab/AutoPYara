@@ -1,0 +1,76 @@
+================================================================================
+Data provenance: how the evaluation data were produced
+================================================================================
+
+The artifact's data (published separately on Zenodo, fetched by
+artifact/download_data.py into data/) are the inputs of the paper's figures,
+i.e. of claims 4-9. They are derived results; the malware corpus they were
+derived from is NOT included (see ethics.txt and use.txt, section 4).
+
+Items marked TODO(authors) must be completed by the authors before submission.
+
+--------------------------------------------------------------------------------
+1. THE UNDERLYING MALWARE CORPUS (not distributed)
+--------------------------------------------------------------------------------
+
+    Source:              TODO(authors) - where the samples came from
+    Size:                TODO(authors) - number of samples / families
+    Collection period:   TODO(authors)
+    Family labels:       VirusTotal detection reports (used for the
+                         "VirusTotal" clustering, clusterCSV/virusTotal/)
+                         TODO(authors) - labeling tool/procedure and date
+
+--------------------------------------------------------------------------------
+2. WHAT IS IN THE PUBLISHED DATA
+--------------------------------------------------------------------------------
+
+data/clusterCSV/  - clusterings of the corpus
+    ssdeep/th{50,60,70,80,90}.csv    fuzzy-hash (ssdeep) clustering at five
+                                     similarity thresholds
+    sdhash/Th{50,60,70,80,90}.csv    J-SDhash clustering at the same thresholds
+    virusTotal/MainVtCluster.csv     clustering by VirusTotal family label
+    One row per sample with its cluster label (column Cluster_Label; -1 = noise).
+    The figure scripts use only Cluster_Label; the other columns identify the
+    sample (file name / hash). TODO(authors): list the exact columns.
+
+data/ruleEval/  - the YARA rules generated for every cluster, with their
+                  measured true-positive rate
+    originalBloomFilters/     rules generated with AutoYara's original
+                              (Ember-trained) benign/malicious Bloom filters
+    retrainedBloomFilters/    rules generated with Bloom filters retrained on
+                              the authors' data
+    Sub-folders name the clustering (ssdeep, sdhash, virusTotal), the tool and
+    configuration (AutoYara / AutoYaraBaseline, AutoPYara / AutoPyara,
+    AutoPYaraBest, BestKyara, WorstPyara, Heuristics/{avgk,maxk,randomK},
+    Heuristics/BAD/{Mean,Max,Random}) and the threshold (Th<t>rules).
+
+    Each merged_group_1.yar holds all rules of one configuration. A rule is named
+    Cluster<i>_<run>: the rule generated for cluster <i> in generation run <run>
+    (several runs per cluster for the Ember and retrained comparisons, one run for
+    the K-selection experiments). Its comment "// Input TP Rate: X/Y" records that
+    the rule matched X of the Y samples of its cluster when it was generated.
+    Rules were generated with AutoPYara (https://pypi.org/project/autopyara/,
+    source https://github.com/Botacin-s-Lab/AutoPYaraPyPI) and with AutoYara as
+    the baseline (https://github.com/FutureComputing4AI/AutoYara).
+    TODO(authors): tool versions/commits and the exact generation parameters of
+    each configuration (preset, K, bicluster settings, number of runs).
+
+data/ThreatHunting/  - the threat-hunting experiment
+    <experiment>/Th<t>/Ratio_0.75/cluster_<n>/
+        train_files.txt, test_files.txt     the cluster's samples split into a
+                                            training part (rule generated from
+                                            it) and a held-out test part
+        tprate{AutoPYara,AutoyaraBase}_{Train,Test}.txt
+                                            "TP Rate: r (X/Y)" of the rule on the
+                                            training and on the test samples
+    Experiments: Exp1HEUONLYsdhash, Exp1NOHEUsdhash (sdhash clusterings).
+    TODO(authors): meaning of Ratio_0.75 and of the HEUONLY / NOHEU settings.
+
+--------------------------------------------------------------------------------
+3. WHAT IS PACKAGED
+--------------------------------------------------------------------------------
+
+artifact/package_data.py builds the Zenodo archive from exactly the files the
+figure scripts read (11 CSVs, 84 rule files, and the six listed files of every
+threat-hunting cluster folder), with a SHA-256 manifest of every file.
+artifact/download_data.py verifies each file against that manifest on download.

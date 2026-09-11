@@ -13,7 +13,7 @@ Each figure has one line per threshold. Reading a line from left to right:
   * the dotted horizontal line in the same colour is the mean of that curve.
 The y-axis is zoomed to 50..100 %.
 
-Figures written (under ``--out-dir``, default ``Plots/Figures``), all in
+Figures written (under ``--out-dir``, default ``<repo>/results/figures``), all in
 ``Claim4_ThresHoldFigures/``:
 
 ==========================================================  =====================================
@@ -35,7 +35,7 @@ AutoPYaraUninformedHEURandomK_SSdeepAVG_ZoomRTBF.pdf        uninformed heuristic
 ``util.ensure_columns`` aligns them to sizes 1..max, then TP values of exactly 0 become
 NaN and all-NaN size columns are dropped.
 
-Inputs (relative to ``--data-dir``, default ``../data``):
+Inputs (relative to ``--data-dir``, default ``<repo>/data``):
   clusterCSV/ssdeep/th<t>.csv and ruleEval/retrainedBloomFilters/ssdeep/.../merged_group_1.yar
 The exact list is ``TASKS`` below (``--dry-run`` prints it and checks every file exists).
 

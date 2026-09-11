@@ -9,12 +9,17 @@ Every script follows the same two-phase pattern:
 2. **Plot** - the figure functions run sequentially in the main process, in the
    original order, with the original matplotlib settings.
 
-This module holds phase 1, the default paths and the command-line options shared by
-all scripts. It contains no plotting or scoring logic.
+While plotting, every saved figure's drawn numbers (bar heights, error bars, line
+data, labels, texts) are recorded to ``<out-dir>/<script>.values.json``. The claim
+checks in ``verify_claims.py`` compare those numbers with the reference values.
+
+This module holds phase 1, the recording, the default paths and the command-line
+options shared by all scripts. It contains no plotting or scoring logic.
 """
 import argparse
 import contextlib
 import io
+import json
 import multiprocessing as mp
 import os
 import sys
@@ -26,10 +31,10 @@ from typing import Callable
 from tqdm import tqdm
 
 PLOTS_DIR = os.path.dirname(os.path.abspath(__file__))
-# The scripts historically used the relative paths '../data/...' and 'Figures/...'
-# from inside Plots/. These defaults reproduce that layout from any working directory.
-DEFAULT_DATA_DIR = os.path.normpath(os.path.join(PLOTS_DIR, '..', 'data'))
-DEFAULT_OUT_DIR = os.path.join(PLOTS_DIR, 'Figures')
+REPO_ROOT = os.path.dirname(os.path.dirname(PLOTS_DIR))  # artifact/plots -> repository root
+# Evaluation data (see artifact/download_data.py); override with AUTOPYARA_DATA_DIR or --data-dir.
+DEFAULT_DATA_DIR = os.environ.get('AUTOPYARA_DATA_DIR') or os.path.join(REPO_ROOT, 'data')
+DEFAULT_OUT_DIR = os.path.join(REPO_ROOT, 'results', 'figures')
 
 # Keep each worker process single-threaded (numexpr/BLAS pools would otherwise
 # oversubscribe the CPUs). None of the extraction code uses BLAS; results are unaffected.
@@ -178,6 +183,84 @@ def group_results(tasks, results):
     return datasets
 
 
+# --------------------------------------------------------------------------------------
+# Recording of the plotted numbers (read-only; the figures themselves are unchanged)
+# --------------------------------------------------------------------------------------
+def _floats(values):
+    return [float(v) for v in values]
+
+
+def plotted_data(fig):
+    """Numbers drawn in ``fig``, one entry per Axes.
+
+    bars:  one entry per bar series (``ax.bar`` call): bar centres ``x``, ``bottom``,
+           ``height`` and, if drawn, the half-length ``err`` of each error bar;
+    lines: every Line2D (curves and ``axhline`` reference lines) with its colour and
+           x/y data;
+    xticks: [position, label] of each fixed x tick (bar names), when the axis has
+            explicit labels;
+    texts: every text/annotation drawn inside the Axes.
+    """
+    from matplotlib.colors import to_hex
+    from matplotlib.container import BarContainer
+    from matplotlib.ticker import FixedFormatter, FixedLocator, FuncFormatter
+
+    def xticks(ax):
+        # Pure reads: the fixed locations and the label the formatter gives each one.
+        locator, fmt = ax.xaxis.get_major_locator(), ax.xaxis.get_major_formatter()
+        if not isinstance(locator, FixedLocator) or not isinstance(fmt, (FixedFormatter, FuncFormatter)):
+            return []
+        return [[float(loc), str(fmt(loc, i))] for i, loc in enumerate(locator.locs)]
+
+    axes = []
+    for ax in fig.axes:
+        bars = []
+        for c in ax.containers:
+            if not isinstance(c, BarContainer):
+                continue
+            err = None
+            if c.errorbar is not None and c.errorbar.lines[2]:
+                segments = c.errorbar.lines[2][0].get_segments()
+                err = [float(abs(s[1][1] - s[0][1]) / 2) for s in segments]
+            bars.append({
+                'x': [float(p.get_x() + p.get_width() / 2) for p in c.patches],
+                'bottom': _floats(p.get_y() for p in c.patches),
+                'height': _floats(p.get_height() for p in c.patches),
+                'err': err,
+            })
+        lines = [{'label': str(line.get_label()), 'color': to_hex(line.get_color()),
+                  'x': _floats(line.get_xdata()), 'y': _floats(line.get_ydata())}
+                 for line in ax.get_lines()]
+        axes.append({
+            'bars': bars,
+            'lines': lines,
+            'xticks': xticks(ax),
+            'texts': [t.get_text() for t in ax.texts],
+        })
+    return axes
+
+
+def install_recorder(out_dir):
+    """Wrap ``Figure.savefig`` so each saved figure's numbers are captured first.
+
+    Returns the dict that fills up as figures are saved:
+    {path relative to out_dir: plotted_data(fig)}.
+    """
+    import matplotlib.figure
+
+    original = matplotlib.figure.Figure.savefig
+    records = {}
+
+    def savefig(self, fname, *args, **kwargs):
+        if isinstance(fname, (str, os.PathLike)):
+            rel = os.path.relpath(os.path.abspath(fname), os.path.abspath(out_dir))
+            records[rel.replace(os.sep, '/')] = plotted_data(self)
+        return original(self, fname, *args, **kwargs)
+
+    matplotlib.figure.Figure.savefig = savefig
+    return records
+
+
 def build_arg_parser(description):
     parser = argparse.ArgumentParser(description=description,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -199,7 +282,8 @@ def script_main(description, tasks, make_figures, argv=None):
     """Shared ``main()``: parse args, preflight inputs, extract in parallel, plot.
 
     ``make_figures(datasets, out_dir)`` receives ``group_results(...)`` and must
-    return the list of PDF paths it wrote.
+    return the list of PDF paths it wrote. The plotted numbers of those figures are
+    written to ``<out_dir>/<script name>.values.json``.
     """
     args = build_arg_parser(description).parse_args(argv)
     missing = missing_inputs(tasks, args.data_dir)
@@ -210,6 +294,9 @@ def script_main(description, tasks, make_figures, argv=None):
     for rel in missing:
         print(f'MISSING INPUT: {os.path.join(args.data_dir, rel)}', file=sys.stderr)
     if missing:
+        if not os.path.isdir(args.data_dir):
+            print(f'The data directory {args.data_dir} does not exist; fetch the data with '
+                  f'artifact/download_data.py (see README.txt).', file=sys.stderr)
         return 2
     if args.dry_run:
         return 0
@@ -220,9 +307,17 @@ def script_main(description, tasks, make_figures, argv=None):
     t0 = time.perf_counter()
     results = run_tasks(tasks, args.data_dir, args.jobs, args.quiet)
     t1 = time.perf_counter()
+    records = install_recorder(args.out_dir)
     written = make_figures(group_results(tasks, results), args.out_dir)
     t2 = time.perf_counter()
+
+    name = os.path.splitext(os.path.basename(sys.modules['__main__'].__file__))[0]
+    values_path = os.path.join(args.out_dir, f'{name}.values.json')
+    os.makedirs(args.out_dir, exist_ok=True)
+    with open(values_path, 'w') as fh:
+        json.dump(records, fh, indent=1)
     print(f'extraction {t1 - t0:.1f}s, plotting {t2 - t1:.1f}s; wrote {len(written)} figures:')
     for path in written:
         print(f'  {path}')
+    print(f'plotted values: {values_path}')
     return 0

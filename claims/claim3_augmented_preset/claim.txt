@@ -73,5 +73,6 @@ THESE NUMBERS ARE NOT A BENCHMARK
 
 RELATION TO THE PAPER
     Demonstrates that the paper's contributed pipeline is present and
-    functional. It does not reproduce the paper's numerical results, which
-    require the non-redistributable malware corpus described in ../../use.txt.
+    functional. Re-running it on the paper's malware corpus is not possible (the
+    corpus cannot be redistributed; see ../../use.txt). Instead, claims 4-9
+    reproduce the paper's figures from the rules those runs generated.

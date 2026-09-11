@@ -1,0 +1,73 @@
+Expected output - Claim 5 (paper claim 2)
+================================================================================
+
+SUCCESS CRITERION
+    ./run.sh exits 0 and its last verdict line reads
+
+        CLAIM 5: PASS -- paper claim 2 reproduced from the provided data
+
+    Every check must report [ok]. With the published data, every plotted number
+    matches the reference exactly ("max deviation 0"); the check allows 1.0
+    percentage point for differences between numeric-library versions.
+
+WHAT VARIES BETWEEN ENVIRONMENTS
+    Paths, timings and the number of worker processes. Not the numbers.
+
+COMPARE THE FIGURES
+    The regenerated PDFs are written to <repo>/results/claim5_bloom_filters_matter/ and the
+    reference PDFs are in expected/figures/ (same file names).
+
+REFERENCE TRANSCRIPT
+    Reference platform: Ubuntu Linux x86-64, 12 CPUs, CPython 3.13, numpy 1.26.4,
+    pandas 2.2.3, matplotlib 3.10.0; run as ./run.sh -j 8. Progress bars removed.
+--------------------------------------------------------------------------------
+Running set1 with 8 worker process(es) each; data: <repo>/data; figures: <repo>/results/claim5_bloom_filters_matter
+
+=== PlotsSet1_Boxplots.py ===
+output: <repo>/results/claim5_bloom_filters_matter/logs/PlotsSet1_Boxplots.log
+
+=== summary ===
+PlotsSet1_Boxplots.py          OK                      6.0s
+5 PDFs under <repo>/results/claim5_bloom_filters_matter:
+  Claim1_IncorrectBaseLines/AutoYara_EMBF.pdf
+  Claim1_IncorrectBaseLines/AutoYara_baselineBoxPlotEMBF.pdf
+  Claim2_BloomFiltersMatter/AutoPYara_EmberBloomFiltersVSRetrainedBloomfilters.pdf
+  Claim2_BloomFiltersMatter/AutoYara_EmberBloomFiltersVSRetrainedBloomfilters.pdf
+  Claim3_YaraVsPYara/AutoYaraVSAutoPYaraRTBF.pdf
+================================================================================
+CLAIM 5 (paper claim 2) - the Bloom filters matter
+================================================================================
+
+1. Regenerating the figures (set1) into <repo>/results/claim5_bloom_filters_matter
+  [ok]  figures regenerated from the evaluation data -- ok
+
+2. Figures
+  [ok]  Claim2_BloomFiltersMatter/AutoYara_EmberBloomFiltersVSRetrainedBloomfilters.pdf -- written
+  [ok]  Claim2_BloomFiltersMatter/AutoPYara_EmberBloomFiltersVSRetrainedBloomfilters.pdf -- written
+
+3. Plotted numbers vs. the reference (expected/values.json, tolerance 1.0 pp)
+  [ok]  96 plotted numbers match the reference -- max deviation 0
+
+4. Claim statements, on the regenerated numbers
+     AutoYara  SSdeep      Ember  11.18 %  ->  retrained  92.65 %   (+81.47 pp)
+     AutoYara  J-SDhash    Ember  29.36 %  ->  retrained  92.10 %   (+62.74 pp)
+     AutoYara  VirusTotal  Ember  33.55 %  ->  retrained  36.39 %   ( +2.84 pp)
+     AutoPYara SSdeep      Ember  10.88 %  ->  retrained  93.66 %   (+82.78 pp)
+     AutoPYara J-SDhash    Ember  29.76 %  ->  retrained  92.83 %   (+63.07 pp)
+     AutoPYara VirusTotal  Ember  40.23 %  ->  retrained  44.80 %   ( +4.57 pp)
+  [ok]  AutoYara SSdeep: retrained filters beat Ember filters
+  [ok]  AutoYara SSdeep: gain is at least 50 pp
+  [ok]  AutoYara J-SDhash: retrained filters beat Ember filters
+  [ok]  AutoYara J-SDhash: gain is at least 50 pp
+  [ok]  AutoYara VirusTotal: retrained filters beat Ember filters
+  [ok]  AutoPYara SSdeep: retrained filters beat Ember filters
+  [ok]  AutoPYara SSdeep: gain is at least 50 pp
+  [ok]  AutoPYara J-SDhash: retrained filters beat Ember filters
+  [ok]  AutoPYara J-SDhash: gain is at least 50 pp
+  [ok]  AutoPYara VirusTotal: retrained filters beat Ember filters
+
+================================================================================
+CLAIM 5: PASS -- paper claim 2 reproduced from the provided data
+================================================================================
+Figures: <repo>/results/claim5_bloom_filters_matter   Reference: <repo>/claims/claim5_bloom_filters_matter/expected/figures
+--------------------------------------------------------------------------------

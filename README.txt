@@ -1,134 +1,197 @@
 ================================================================================
-AutoPYara - ACSAC Artifact Evaluation Package
+AutoPYara - ACSAC 2026 Artifact
 ================================================================================
 
-Artifact for the paper describing AutoPYara, a framework for automated YARA
-rule generation from collections of malware samples using Bloom-filtered
-byte n-gram analysis and cluster-aware signature construction.
+Artifact for the ACSAC 2026 paper on AutoPYara, a framework for automated YARA
+rule generation from collections of malware samples (Bloom-filtered byte
+n-gram analysis with cluster-aware signature construction).
+    Paper:   TODO(authors): title and authors (BibTeX: metadata.toml, "citation")
 
-Badges sought:  Artifact Available, Artifact Reviewed
-Not sought:     Results Reproduced (see "Scope and limitations" below)
-
---------------------------------------------------------------------------------
-1. WHAT THIS ARTIFACT IS
---------------------------------------------------------------------------------
-
-AutoPYara is distributed as a working, publicly installable tool, not as a
-one-off experiment script. It consists of two public repositories:
-
-  Python frontend (this repository)
-      https://github.com/Botacin-s-Lab/AutoPYaraPyPI
-      Published on PyPI:  https://pypi.org/project/autopyara/
-
-  Java backend (separate repository, compiled into the embedded jar)
-      https://github.com/Botacin-s-Lab/AutoPYaraBackend
-
-This directory contains everything needed to install the tool and exercise
-it end to end. The tool's own source lives in the parent repository; this
-directory does not duplicate it. See artifact/README.txt.
+Badges sought:  Available, Functional, Reproduced
 
 --------------------------------------------------------------------------------
-2. QUICK START
+PUBLIC RELEASE
 --------------------------------------------------------------------------------
 
-From this directory, on a machine meeting the requirements in
-infrastructure/resources.txt:
+Everything in this artifact is released publicly. Code is under the MIT
+license (LICENSE, license.txt); the evaluation data are published on Zenodo.
 
-    ./install.sh
+    This artifact      https://github.com/Botacin-s-Lab/AutoPYara
+                       Zenodo DOI: TODO(authors)
+    Evaluation data    Zenodo DOI: TODO(authors)  (fetched by artifact/download_data.py)
+    AutoPYara (tool)   https://github.com/Botacin-s-Lab/AutoPYaraPyPI  (tag v0.1.2)
+                       https://pypi.org/project/autopyara/0.1.2/
+    Java backend       https://github.com/Botacin-s-Lab/AutoPYaraBackend
 
-That script installs the tool, verifies the Java runtime, and downloads the
-pre-trained Bloom filter data. Expect it to take 10-25 minutes, dominated by
-a ~600 MB download. It is safe to re-run.
-
-Then run the claims, in order:
-
-    ./claims/claim1_install/run.sh
-    ./claims/claim2_autoyara_preset/run.sh
-    ./claims/claim3_augmented_preset/run.sh
-
-Each prints a PASS/FAIL summary and exits non-zero on failure. Claim 1 alone
-is enough to confirm the installation succeeded, and is the recommended
-"kick the tires" check - it takes well under a minute once install.sh has
-completed.
-
-A Dockerfile is provided if you prefer a contained environment:
-
-    docker build -t autopyara-artifact -f Dockerfile ..
-    docker run --rm -it autopyara-artifact ./claims/claim1_install/run.sh
+Nothing is withheld except the paper's malware corpus, which cannot be
+redistributed (section 6).
 
 --------------------------------------------------------------------------------
-3. DIRECTORY LAYOUT
+1. WHAT THIS ARTIFACT CONTAINS
 --------------------------------------------------------------------------------
 
-    README.txt          This file
-    install.sh          One-command setup
-    license.txt         License names and URLs
-    use.txt             Intended use, limitations, and ethical considerations
-    Dockerfile          Contained environment with pinned dependencies
+  * The AutoPYara tool, installed pinned from PyPI, plus a synthetic proxy corpus
+    to exercise it: claims 1-3 show the tool installs and both rule-generation
+    pipelines run end to end.
+  * The evaluation data behind the paper's results: the clusterings of the
+    malware corpus, every YARA rule generated for every cluster and configuration
+    together with the true-positive (TP) rate it achieved, and the threat-hunting
+    results (provenance.txt).
+  * Scripts that regenerate every figure of the paper from that data and check
+    each paper claim against it: claims 4-9 (artifact/plots/).
 
-    artifact/           Artifact-specific tooling
-        README.txt              Where the tool's source actually lives
-        make_proxy_corpus.py    Generates the synthetic sample corpus
-        requirements-lock.txt   Pinned dependency versions
-
-    infrastructure/     Execution environment
-        resources.txt           Hardware/software requirements, runtimes
-        constraints.txt         Why Google Colab is not viable here
-
-    claims/             One directory per demonstrated claim
-        claim1_install/         Tool installs and the JVM backend initializes
-        claim2_autoyara_preset/ Rule generation via the AutoYara (VBGMM) preset
-        claim3_augmented_preset/Rule generation via the augmented preset
+The rules were generated from a malware corpus that cannot be shared, so
+regenerating the rules themselves is out of scope; as agreed with the AEC,
+evaluators verify the provided rules and regenerate the paper's figures and
+numbers from them.
 
 --------------------------------------------------------------------------------
-4. SCOPE AND LIMITATIONS
+2. CLAIMS
 --------------------------------------------------------------------------------
 
-This artifact demonstrates that the tool installs and functions correctly. It
-deliberately does NOT attempt to regenerate the numerical results in the
-paper, for one reason:
+Every claim has a directory claims/claimN_*/ with claim.txt (the claim and what
+is checked), run.sh (runs it and prints PASS/FAIL) and expected/ (reference
+output; for claims 4-9 also the reference figures and plotted values).
 
-    The paper's experiments were run against a malware corpus that cannot be
-    redistributed. Shipping live malware in a public artifact is neither
-    legally nor ethically appropriate.
+  Artifact  Paper   Claim                                         Figures (results/...)                  Time
+  --------  -----   --------------------------------------------  -------------------------------------  -------
+  claim1    -       tool installs, JVM backend starts             -                                      <1 min
+  claim2    -       AutoYara preset emits a valid YARA rule       -                                      1-3 min
+  claim3    -       AutoPYara preset derives its own K            -                                      1-4 min
+  claim4    1       AutoYara's baseline hides the clusters it     Claim1_IncorrectBaseLines/ (2)          ~10 s
+                    fails on: 87-91 % on non-zero clusters vs
+                    11-34 % over all clusters
+  claim5    2       the Bloom filters matter: retrained filters   Claim2_BloomFiltersMatter/ (2)          ~10 s
+                    lift both tools (e.g. 11 % -> 93 % SSdeep)
+  claim6    3       AutoPYara beats AutoYara on all three         Claim3_YaraVsPYara/ (1)                 ~10 s
+                    clusterings
+  claim7    4       threshold and K: AutoPYara > AutoYara; best   Claim4_ThresHoldFigures/ (10)           ~15 s
+                    K > AutoPYara > worst K; informed K
+                    heuristics > AutoYara > uninformed ones
+  claim8    5       threat hunting: AutoPYara keeps a higher TP   Claim5_Threathunting/ (2)               ~5 s
+                    rate than AutoYara on held-out samples
+  claim9    6       all 15 configurations ranked, from AutoYara   Claim6_YaraInAllitsConfigurations/ (1)  ~10 s
+                    as released (11 %) to AutoPYara best K (96 %)
 
-Following the ACSAC call's provision for proprietary data ("Proxies for
-proprietary data should be included so as to demonstrate the analysis"), this
-artifact ships a SYNTHETIC proxy corpus, generated deterministically at run
-time by artifact/make_proxy_corpus.py. The proxy contains no malicious code
-whatsoever. Each synthetic "family" is built around a large shared contiguous
-core wrapped in per-variant unique regions, mirroring the way real malware
-variants share reused code and embedded resources. That structure matters: it
-is what lets both the n-gram feature path and the fuzzy-hash clustering path
-operate on input of a realistic shape. Run
+  Runtimes are for 8 worker processes (-j 8) on the reference machine.
+  TODO(authors): add the paper's figure number for each figure file.
 
-    python3 artifact/make_proxy_corpus.py --out /tmp/c --report
-
-to see the resulting ssdeep similarity matrix (same-family pairs score in the
-60s-70s, cross-family pairs score 0).
-
-Consequently the YARA rules produced by the claims below are structurally
-valid but not meaningful detection signatures. That is expected. The claims
-verify that the pipeline runs and produces well-formed output, not that it
-detects real malware families.
-
-Note also that the figures the claims print are NOT a benchmark comparing the
-two pipelines against each other. On this corpus both saturate at a 6/6 TP
-rate, so it cannot distinguish them; and synthetic data could not support such
-a comparison in any case. See the "THESE NUMBERS ARE NOT A BENCHMARK" sections
-in the individual claim files.
-
-One further caveat, stated up front: the augmented clustering path uses an
-unseeded random number generator, so repeated runs on identical input can
-yield different cluster counts and different rules. The claim validators
-therefore check structural properties rather than byte-for-byte equality with
-a stored output. See use.txt.
+Claims 4-9 regenerate their figures into results/claimN_*/, compare every
+plotted number with the reference in claims/claimN_*/expected/values.json
+(tolerance 1.0 percentage point; a correct run deviates by exactly 0), and check
+the claim's statements on the regenerated numbers. The regenerated PDFs can be
+compared side by side with claims/claimN_*/expected/figures/.
 
 --------------------------------------------------------------------------------
-5. CONTACT
+3. REQUIREMENTS
 --------------------------------------------------------------------------------
 
-Maintained by Mabon Ninan, Texas A&M University - ninanmm@tamu.edu
+  OS        Linux x86-64 (tested: Ubuntu). macOS/Windows untested; use Docker.
+  Python    3.11 or 3.12, with the venv module (python3-venv on Debian/Ubuntu)
+  Java      JRE 11+ on PATH or JAVA_HOME             (claims 1-3 only)
+  RAM       16 GB for claims 1-3 (fixed 14 GB JVM heap); 8 GB for claims 4-9
+  CPU       any x86-64; claims 4-9 use all cores (-j N to limit)
+  Disk      ~6 GB: evaluation data (TODO(authors): final archive size), 600 MB
+            Bloom filters, ~1 GB Python environment, figures
+  Network   during installation only
+  GPU       not used
 
-Documentation: https://botacin-s-lab.github.io/AutoPYaraPyPI/
-Issue tracker: https://github.com/Botacin-s-Lab/AutoPYaraPyPI/issues
+Or use Docker (section 4), which needs only Docker and 16 GB of RAM.
+Public infrastructure: any standard CloudLab or Chameleon x86-64 node works.
+Google Colab is not suitable for claims 1-3 (infrastructure/constraints.txt).
+Details: infrastructure/resources.txt.
+
+--------------------------------------------------------------------------------
+4. GETTING STARTED
+--------------------------------------------------------------------------------
+
+    git clone https://github.com/Botacin-s-Lab/AutoPYara.git
+    cd AutoPYara
+    ./install.sh               # 10-25 min: .venv, pinned packages, Bloom filters, data
+
+  Kick the tires (about 1 minute):
+
+    ./claims/claim1_install/run.sh                   # the tool works
+    ./claims/claim4_incorrect_baselines/run.sh -j 8  # a paper figure is reproduced
+
+  Everything (about 10 minutes):
+
+    ./run_all_claims.sh -j 8
+
+  Options: SKIP_TOOL=1 ./install.sh sets up only claims 4-9 (no Java needed);
+  SKIP_DATA=1 only claims 1-3. ./run_all_claims.sh --paper / --tool runs one group.
+
+  Docker instead of install.sh:
+
+    docker build -t autopyara-artifact .
+    mkdir -p data results
+    docker run --rm -v "$PWD/data:/opt/artifact/data" autopyara-artifact \
+        python3 artifact/download_data.py
+    docker run --rm -it --memory=16g -v "$PWD/data:/opt/artifact/data" \
+        -v "$PWD/results:/opt/artifact/results" autopyara-artifact ./run_all_claims.sh -j 8
+
+  To regenerate all 18 figures at once (outside the claim checks):
+
+    .venv/bin/python artifact/plots/run_all_plots.py -j 8    # -> results/figures/
+
+--------------------------------------------------------------------------------
+5. DIRECTORY LAYOUT
+--------------------------------------------------------------------------------
+
+    README.txt            this file
+    install.sh            one-command setup
+    run_all_claims.sh     runs claims 1-9, prints a PASS/FAIL summary
+    Dockerfile            contained environment (Python 3.12, OpenJDK 17, pinned)
+    metadata.toml         ACSAC/artmeta packaging metadata
+    use.txt               intended use and limitations
+    license.txt, LICENSE  licenses
+    provenance.txt        how the evaluation data were produced
+    ethics.txt            ethical considerations
+
+    artifact/             the artifact's code (see artifact/README.txt)
+        plots/                figure scripts, claim verification (verify_claims.py)
+        download_data.py      fetch + verify the evaluation data into data/
+        package_data.py       (authors) build the data archive for Zenodo
+        make_proxy_corpus.py  synthetic corpus for claims 1-3
+        requirements-lock.txt pinned dependencies
+    claims/claimN_*/      one directory per claim: claim.txt, run.sh, expected/
+    infrastructure/       resources.txt (requirements, runtimes), constraints.txt
+    data/                 evaluation data (downloaded; not in git)
+    results/              everything the claims generate (not in git)
+
+--------------------------------------------------------------------------------
+6. SCOPE, LIMITATIONS AND KNOWN DIFFICULTIES
+--------------------------------------------------------------------------------
+
+  * The malware corpus is not included (legal and ethical reasons), so the rules
+    cannot be regenerated here. Claims 4-9 start from the generated rules and
+    their recorded TP rates and reproduce every figure and number from them.
+  * Claims 1-3 run on a synthetic corpus that contains no malware. Their rules
+    are valid YARA but not meaningful signatures, and the numbers they print are
+    not a benchmark (both pipelines saturate at 6/6).
+  * The augmented pipeline (claim 3) uses an unseeded random number generator,
+    so its output differs between runs; the check is structural. Claims 4-9 are
+    deterministic.
+  * The JVM backend reserves a fixed 14 GB heap: claims 1-3 need 16 GB of RAM.
+  * The evaluation data DOI above is a placeholder until the Zenodo record is
+    published. TODO(authors).
+  * The figure scripts keep a few quirks of the paper's plotting code on purpose
+    (artifact/plots/README.md, "Notes and known quirks").
+
+--------------------------------------------------------------------------------
+7. BUILDING ON THIS ARTIFACT
+--------------------------------------------------------------------------------
+
+  * Generate rules for your own samples: python -c "from autopyara import
+    AutoPYara; print(AutoPYara().generate(input_files='DIR', preset='AutoPYara',
+    output_format='string')['rule_string'])"   (docs:
+    https://botacin-s-lab.github.io/AutoPYaraPyPI/)
+  * Evaluate new rule sets with the same figures: place them in the data/ layout
+    described in artifact/plots/README.md and run artifact/plots/run_all_plots.py.
+
+--------------------------------------------------------------------------------
+8. CONTACT
+--------------------------------------------------------------------------------
+
+Mabon Ninan, Texas A&M University - ninanmm@tamu.edu
+Issues: https://github.com/Botacin-s-Lab/AutoPYara/issues

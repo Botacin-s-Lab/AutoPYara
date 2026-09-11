@@ -22,7 +22,7 @@ training clusters on the left (x < 0) and test clusters on the right (x > 0).
   * purple = AutoPYara, brown = AutoYara; the dotted lines are each curve's mean;
   * the y-axis is zoomed to 50..100 %.
 
-Figures written (under ``--out-dir``, default ``Plots/Figures``):
+Figures written (under ``--out-dir``, default ``<repo>/results/figures``):
 
 =================================================================  ================================
 File                                                               Experiment folder

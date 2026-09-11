@@ -6,71 +6,71 @@ Execution environment: requirements and expected resource use
 1. HARDWARE REQUIREMENTS
 --------------------------------------------------------------------------------
 
-    RAM         16 GB minimum, 24 GB recommended.   <-- the binding constraint
-    Disk        ~2 GB free (600 MB Bloom filter data, plus dependencies)
-    CPU         Any x86-64 processor; 4+ cores recommended
-    Network     Required during install.sh (~600 MB download)
-    GPU         Not used
+    RAM         16 GB for claims 1-3, which start the JVM backend with a fixed
+                14 GB maximum heap (constraints.txt). Claims 4-9 need under 8 GB
+                with 8 worker processes (about 0.7 GB per worker at most).
+    Disk        ~6 GB free: the evaluation data (TODO(authors): final archive
+                size; the rule files and CSVs alone are ~2.1 GB), 600 MB of
+                Bloom filters, ~1 GB Python environment, <100 MB of results.
+    CPU         Any x86-64 processor. Claims 4-9 use all cores by default
+                (-j N to limit); 4+ cores recommended.
+    Network     Only during installation (packages, Bloom filters, data).
+    GPU         Not used.
 
-The RAM figure is the one that matters. The JVM backend is started with a fixed
-14 GB maximum heap, which is not configurable in the current release. A machine
-with less than 16 GB of physical RAM risks the operating system terminating the
-process partway through a run. See constraints.txt.
+Reference platform for our own verification:
 
-Reference platform used for our own verification:
-
-    Ubuntu Linux, x86-64, 27 GB RAM, OpenJDK 21, CPython 3.9-3.12
+    Ubuntu Linux, x86-64, 12 CPUs, 27 GB RAM, OpenJDK 21, CPython 3.13
 
 --------------------------------------------------------------------------------
 2. SOFTWARE REQUIREMENTS
 --------------------------------------------------------------------------------
 
-    OS          Linux (tested); macOS and Windows untested
-    Python      3.9 - 3.12
-    Java        JRE 11 or newer, on PATH or via JAVA_HOME
-                (verified against OpenJDK 17 in CI and OpenJDK 21 locally)
+    OS          Linux (tested); macOS and Windows untested - use Docker there
+    Python      3.11 or 3.12 with the venv module (pinned dependencies,
+                ../artifact/requirements-lock.txt)
+    Java        JRE 11 or newer, on PATH or via JAVA_HOME (claims 1-3 only)
+    Docker      optional alternative to all of the above (../Dockerfile)
 
-Python dependencies are installed by install.sh and pinned in
-../artifact/requirements-lock.txt. A Dockerfile is provided in the parent
-directory if you would rather not install into the host environment.
+../install.sh creates ../.venv and installs everything into it; nothing is
+installed system-wide.
 
 --------------------------------------------------------------------------------
 3. PUBLIC INFRASTRUCTURE
 --------------------------------------------------------------------------------
 
-This artifact runs on public research infrastructure. Recommended platforms,
-both of which provide bare-metal nodes comfortably exceeding the RAM
-requirement:
+The artifact runs on public research infrastructure. Any standard node of
 
-    CloudLab     https://www.cloudlab.us/       any standard x86-64 node
-    Chameleon    https://www.chameleoncloud.org/ any standard compute node
+    CloudLab     https://www.cloudlab.us/
+    Chameleon    https://www.chameleoncloud.org/
 
-Google Colab is NOT suitable - see constraints.txt for the reason.
-
-No special hardware, licensed software, or institutional access is needed.
-Everything the artifact depends on is publicly downloadable.
+comfortably exceeds the requirements; no special allocation or hardware is
+needed. Google Colab is NOT suitable for claims 1-3 (constraints.txt); claims
+4-9 fit in a Colab runtime. No access to author-controlled machines is needed.
 
 --------------------------------------------------------------------------------
-4. EXPECTED RUNTIME
+4. EXPECTED RUNTIME (reference platform)
 --------------------------------------------------------------------------------
 
-    install.sh                              10 - 25 min   (dominated by the
-                                                           ~600 MB download)
-      of which: pip install                  1 -  3 min
-                Bloom filter download       10 - 20 min
+    install.sh                                  10 - 25 min, dominated by the
+                                                Bloom filter (~600 MB) and data
+                                                downloads
 
-    claims/claim1_install/run.sh            20 - 60 sec
-    claims/claim2_autoyara_preset/run.sh     1 -  3 min
-    claims/claim3_augmented_preset/run.sh    1 -  4 min
+    claims/claim1_install/run.sh                ~2 s     (plus JVM start-up)
+    claims/claim2_autoyara_preset/run.sh        ~30 s    (1-3 min on smaller machines)
+    claims/claim3_augmented_preset/run.sh       ~35 s    (1-4 min on smaller machines)
 
-    Total, excluding install.sh              3 -  8 min
+    with -j 8:
+    claims/claim4_incorrect_baselines/run.sh    ~10 s
+    claims/claim5_bloom_filters_matter/run.sh   ~7 s
+    claims/claim6_autopyara_vs_autoyara/run.sh  ~6 s
+    claims/claim7_thresholds_and_k/run.sh       ~14 s
+    claims/claim8_threat_hunting/run.sh         ~3 s
+    claims/claim9_all_configurations/run.sh     ~11 s
 
-Claim 1 alone is sufficient to confirm the installation is sound, and is the
-recommended check during the "kick the tires" period.
+    run_all_claims.sh -j 8                      ~2 min in total
+    all 18 figures, one core (-j 1)             ~1.0 min
 
-Timings are for the reference platform above and scale with core count and
-disk speed. Every claim uses a small synthetic corpus and is deliberately
-sized to complete in minutes; none of them is a long-running experiment.
+No claim is a long-running experiment; nothing needs to be scaled down.
 
 --------------------------------------------------------------------------------
 5. NETWORK ENDPOINTS CONTACTED
@@ -78,8 +78,9 @@ sized to complete in minutes; none of them is a long-running experiment.
 
 install.sh reaches out to:
 
-    pypi.org                    Python dependencies
-    github.com                  Bloom filter data, from the data-branch of
-                                https://github.com/Botacin-s-Lab/AutoPYaraPyPI
+    pypi.org, files.pythonhosted.org   Python packages
+    github.com                         Bloom filters, from the data-branch of
+                                       https://github.com/Botacin-s-Lab/AutoPYaraPyPI
+    zenodo.org                         the evaluation data
 
-The claims themselves run entirely offline once install.sh has completed.
+The claims run entirely offline once install.sh has completed.

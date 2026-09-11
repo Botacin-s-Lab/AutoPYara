@@ -1,0 +1,70 @@
+Expected output - Claim 9 (paper claim 6)
+================================================================================
+
+SUCCESS CRITERION
+    ./run.sh exits 0 and its last verdict line reads
+
+        CLAIM 9: PASS -- paper claim 6 reproduced from the provided data
+
+    Every check must report [ok]. With the published data, every plotted number
+    matches the reference exactly ("max deviation 0"); the check allows 1.0
+    percentage point for differences between numeric-library versions.
+
+WHAT VARIES BETWEEN ENVIRONMENTS
+    Paths, timings and the number of worker processes. Not the numbers.
+
+COMPARE THE FIGURES
+    The regenerated PDFs are written to <repo>/results/claim9_all_configurations/ and the
+    reference PDFs are in expected/figures/ (same file names).
+
+REFERENCE TRANSCRIPT
+    Reference platform: Ubuntu Linux x86-64, 12 CPUs, CPython 3.13, numpy 1.26.4,
+    pandas 2.2.3, matplotlib 3.10.0; run as ./run.sh -j 8. Progress bars removed.
+--------------------------------------------------------------------------------
+Running set4 with 8 worker process(es) each; data: <repo>/data; figures: <repo>/results/claim9_all_configurations
+
+=== PlotsSet4_yaraBigPicture.py ===
+output: <repo>/results/claim9_all_configurations/logs/PlotsSet4_yaraBigPicture.log
+
+=== summary ===
+PlotsSet4_yaraBigPicture.py    OK                     10.7s
+1 PDFs under <repo>/results/claim9_all_configurations:
+  Claim6_YaraInAllitsConfigurations/BigPicutre.pdf
+================================================================================
+CLAIM 9 (paper claim 6) - AutoYara and AutoPYara in all their configurations
+================================================================================
+
+1. Regenerating the figures (set4) into <repo>/results/claim9_all_configurations
+  [ok]  figures regenerated from the evaluation data -- ok
+
+2. Figures
+  [ok]  Claim6_YaraInAllitsConfigurations/BigPicutre.pdf -- written
+
+3. Plotted numbers vs. the reference (expected/values.json, tolerance 1.0 pp)
+  [ok]  62 plotted numbers match the reference -- max deviation 0
+
+4. Claim statements, on the regenerated numbers
+      1. 'APY EBF'        10.88 %
+      2. 'AY EBF'         11.18 %
+      3. 'AY EBF WF'      87.00 %
+      4. 'APY EBF WF'     87.84 %
+      5. 'APY SH: M'      90.34 %
+      6. 'APY SH:R '      91.82 %
+      7. 'APY SH: Me'     92.15 %
+      8. 'APY Wk'         92.58 %
+      9. 'AY RTBF'        92.65 %
+     10. 'APY'            93.66 %
+     11. 'APY OH:  Mo'    93.81 %
+     12. 'APY OH: R'      94.37 %
+     13. 'APY OH: M'      94.45 %
+     14. 'APY B'          95.61 %
+     15. 'APY B WF'       95.87 %
+  [ok]  the two Ember-filter bars (AY EBF, APY EBF) are the lowest, both below 20 %
+  [ok]  AutoYara reality < AutoYara configured < AutoPYara reality < AutoPYara best K <= ideal case
+  [ok]  the ideal case ('APY B WF') is the highest of the 15 bars
+
+================================================================================
+CLAIM 9: PASS -- paper claim 6 reproduced from the provided data
+================================================================================
+Figures: <repo>/results/claim9_all_configurations   Reference: <repo>/claims/claim9_all_configurations/expected/figures
+--------------------------------------------------------------------------------

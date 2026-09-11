@@ -1,0 +1,48 @@
+CLAIM 6 - Paper claim 3: AutoPYara outperforms AutoYara
+================================================================================
+
+CLAIM (paper claim 3, figure in Claim3_YaraVsPYara/)
+    With retrained Bloom filters for both tools, AutoPYara's rules reach a higher
+    mean TP rate than AutoYara's on every clustering:
+
+                      AutoPYara   AutoYara    difference
+        SSdeep          93.7 %     92.7 %      +1.0 pp
+        J-SDhash        92.8 %     92.1 %      +0.7 pp
+        VirusTotal      44.8 %     36.4 %      +8.4 pp
+
+    (Claim wording derived from the figure name and the plotted values; the
+    numbers are what the provided data produce.)
+
+FIGURE
+    Claim3_YaraVsPYara/AutoYaraVSAutoPYaraRTBF.pdf
+        light bars = AutoPYara, dark bars = AutoYara (both retrained filters)
+
+INPUTS
+    data/clusterCSV/...
+    data/ruleEval/retrainedBloomFilters/{ssdeep/{AutoPyara,Autoyara},
+                                         sdhash/{AutoPYara,AutoYara},
+                                         virusTotal/{AutoPYara,AutoYara}}/...
+
+HOW TO RUN
+    ./run.sh [-j N]
+
+    Prerequisites: ../../install.sh and the evaluation data in ../../data.
+    Runtime: about 10 s on 8 cores.
+
+WHAT IS VERIFIED (artifact/plots/verify_claims.py)
+    1. The figure is regenerated from the data.
+    2. Every plotted number matches expected/values.json within 1.0 percentage point.
+    3. The claim holds: AutoPYara's mean TP rate is higher than AutoYara's for all
+       three clusterings.
+
+EXPECTED RESULT
+    "CLAIM 6: PASS". Reference figure: expected/figures/. Transcript:
+    expected/expected_output.txt.
+
+NOTE ON MARGINS
+    On SSdeep and J-SDhash the two tools are within about one percentage point of
+    each other; the large gap is on the VirusTotal-label clustering. The check
+    therefore asserts only the direction, and reports the margins.
+
+TOLERANCE / SCOPE
+    As for claim 4.

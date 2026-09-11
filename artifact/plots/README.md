@@ -1,88 +1,90 @@
-# Plots — paper figures from the provided YARA rules
+# artifact/plots — the paper's figures and claim checks
 
-This directory regenerates all 18 figures behind the paper's Claims 1–6. You do not
-need to generate any rules. The rule sets are provided under `data/ruleEval/`, each
-rule carrying a comment with its measured true-positive (TP) rate, and the threat-hunting
-results are provided under `data/ThreatHunting/`. These scripts parse those results,
-aggregate them per cluster, and plot them.
+This directory regenerates all 18 figures behind the paper's claims 1–6 (artifact
+claims 4–9) from the evaluation data, and checks each claim against the regenerated
+numbers. No rules are generated here. The rule sets are provided under
+`data/ruleEval/`, each rule carrying a comment with its measured true-positive (TP)
+rate, and the threat-hunting results are provided under `data/ThreatHunting/`. The
+scripts parse those results, aggregate them per cluster, and plot them.
 
 ## Quick start
 
+From the repository root, after `./install.sh` (which creates `.venv` and fetches
+the data into `data/`):
+
 ```bash
-cd Plots
-pip install numpy pandas matplotlib tqdm
-python run_all_plots.py --dry-run    # check that all 164 extraction tasks find their inputs
-python run_all_plots.py -j 8         # generate every figure with 8 worker processes
+.venv/bin/python artifact/plots/run_all_plots.py --dry-run   # check that all 164 extraction tasks find their inputs
+.venv/bin/python artifact/plots/run_all_plots.py -j 8        # regenerate all 18 figures with 8 worker processes
 ```
 
-The figures are written to `Plots/Figures/` (see [Figures](#figures)).
+The figures are written to `results/figures/` (see [Figures](#figures)), next to
+one `<script>.values.json` per script with every plotted number.
 
-Tested with Python 3.13.5, numpy 1.26.4, pandas 2.2.3, matplotlib 3.10.0 and tqdm 4.67.1.
+To check one paper claim the way the AEC does, use its claim script, for example
+`claims/claim4_incorrect_baselines/run.sh -j 8`. That runs
+`verify_claims.py 4`, which regenerates the figures, compares them with the
+reference, and checks the claim's statements.
 
 ## Files
 
 | File | Role |
 |---|---|
 | `run_all_plots.py` | Master runner. Runs the four figure scripts, each in its own process, and prints a summary. |
-| `PlotsSet1_Boxplots.py` | Figure set 1 (Claims 1–3): mean TP-rate bar charts. |
-| `PlotsSet2_ThresholdPlots.py` | Figure set 2 (Claim 4): TP rate vs. cluster size, one line per similarity threshold. |
-| `PlotsSet3_ThreatHunting.py` | Figure set 3 (Claim 5): threat hunting, TP rate on training vs. held-out test samples. |
-| `PlotsSet4_yaraBigPicture.py` | Figure set 4 (Claim 6): all AutoYara/AutoPYara configurations ranked in one chart. |
-| `plot_common.py` | Code shared by the scripts: parallel extraction, input preflight check, command-line options. |
+| `PlotsSet1_Boxplots.py` | Figure set 1 (paper claims 1–3): mean TP-rate bar charts. |
+| `PlotsSet2_ThresholdPlots.py` | Figure set 2 (paper claim 4): TP rate vs. cluster size, one line per similarity threshold. |
+| `PlotsSet3_ThreatHunting.py` | Figure set 3 (paper claim 5): threat hunting, TP rate on training vs. held-out test samples. |
+| `PlotsSet4_yaraBigPicture.py` | Figure set 4 (paper claim 6): all AutoYara/AutoPYara configurations ranked in one chart. |
+| `verify_claims.py` | Checks one artifact claim (4–9): regenerate, compare with `claims/claimN_*/expected/`, check the statements. |
+| `plot_common.py` | Code shared by the scripts: parallel extraction, input preflight check, recording of plotted numbers, command-line options. |
 | `util.py` | Parses the rule files and CSVs (`Extractor`, `rules_to_dataframe`, `ensure_columns`, ...). |
 | `tools.py` | Older plotting helpers. The scripts above don't use it. |
 
 ## Options
 
 ```text
-python run_all_plots.py [-j N] [--only set1 set2 set3 set4] [--data-dir DIR] [--out-dir DIR]
-                        [-q] [--log-dir DIR] [--dry-run]
+run_all_plots.py [-j N] [--only set1 set2 set3 set4] [--data-dir DIR] [--out-dir DIR]
+                 [-q] [--log-dir DIR] [--dry-run]
 ```
 
 | Option | Default | Meaning |
 |---|---|---|
 | `-j N`, `--jobs N`, `--cores N` | `0` (all CPUs) | Worker processes per script. Use `1` for a fully sequential run. |
 | `--only set1 ...` | all four | Run only the listed figure sets. |
-| `--data-dir DIR` | `../data` (next to `Plots/`) | Root directory that holds `clusterCSV/`, `ruleEval/` and `ThreatHunting/`. |
-| `--out-dir DIR` | `Plots/Figures` | Where the `Claim*/` folders are written. |
+| `--data-dir DIR` | `<repo>/data`, or `$AUTOPYARA_DATA_DIR` | Root directory that holds `clusterCSV/`, `ruleEval/` and `ThreatHunting/`. |
+| `--out-dir DIR` | `<repo>/results/figures` | Where the `Claim*/` folders and the `*.values.json` files are written. |
 | `-q`, `--quiet` | off | Hide the per-file and per-rule diagnostic prints. |
 | `--log-dir DIR` | off | Send each script's full output to `DIR/<script>.log` instead of the terminal. |
 | `--dry-run` | off | List the inputs, report any missing file, and exit without plotting. |
 
 Each figure script also runs on its own with the same `-j`, `--data-dir`, `--out-dir`,
-`-q` and `--dry-run` options:
-
-```bash
-python PlotsSet2_ThresholdPlots.py -j 4
-```
-
-Default paths are resolved relative to this directory, so the commands work from any
-working directory.
+`-q` and `--dry-run` options, for example
+`.venv/bin/python artifact/plots/PlotsSet2_ThresholdPlots.py -j 4`.
 
 ## Figures
 
-All paths are relative to `--out-dir`.
+All paths are relative to `--out-dir`. The folder names carry the paper's claim
+numbers; the artifact claim that checks them is in the last column.
 
-| Figure | Claim | Contents | Script |
-|---|---|---|---|
-| `Claim1_IncorrectBaseLines/AutoYara_baselineBoxPlotEMBF.pdf` | 1 | AutoYara with Ember bloom filters; clusters with TP = 0 excluded | Set 1 |
-| `Claim1_IncorrectBaseLines/AutoYara_EMBF.pdf` | 1 | Same, clusters with TP = 0 included | Set 1 |
-| `Claim2_BloomFiltersMatter/AutoYara_EmberBloomFiltersVSRetrainedBloomfilters.pdf` | 2 | AutoYara: Ember (light) vs. retrained (dark) bloom filters | Set 1 |
-| `Claim2_BloomFiltersMatter/AutoPYara_EmberBloomFiltersVSRetrainedBloomfilters.pdf` | 2 | AutoPYara: retrained (light) vs. Ember (dark) bloom filters | Set 1 |
-| `Claim3_YaraVsPYara/AutoYaraVSAutoPYaraRTBF.pdf` | 3 | Retrained filters: AutoPYara (light) vs. AutoYara (dark) | Set 1 |
-| `Claim4_ThresHoldFigures/AutoYara_SSdeepAVG_ZoomRTBF.pdf` | 4 | AutoYara | Set 2 |
-| `Claim4_ThresHoldFigures/AutoPYara_SSdeepAVG_ZoomRTBF.pdf` | 4 | AutoPYara | Set 2 |
-| `Claim4_ThresHoldFigures/AutoPYaraBestK_SSdeepAVG_ZoomRTBF.pdf` | 4 | AutoPYara, best K | Set 2 |
-| `Claim4_ThresHoldFigures/AutoPYaraWorstK_SSdeepAVG_ZoomRTBF.pdf` | 4 | AutoPYara, worst K | Set 2 |
-| `Claim4_ThresHoldFigures/AutoPYaraHEUModeK_SSdeepAVG_ZoomRTBF.pdf` | 4 | Informed heuristic: mode/average K | Set 2 |
-| `Claim4_ThresHoldFigures/AutoPYaraHEUMaxK_SSdeepAVG_ZoomRTBF.pdf` | 4 | Informed heuristic: max K | Set 2 |
-| `Claim4_ThresHoldFigures/AutoPYaraHEURandomK_SSdeepAVG_ZoomRTBF.pdf` | 4 | Informed heuristic: random K | Set 2 |
-| `Claim4_ThresHoldFigures/AutoPYaraUninformedHEUMeanK_SSdeepAVG_ZoomRTBF.pdf` | 4 | Uninformed heuristic: mean K | Set 2 |
-| `Claim4_ThresHoldFigures/AutoPYaraUninformedHEUMaxK_SSdeepAVG_ZoomRTBF.pdf` | 4 | Uninformed heuristic: max K | Set 2 |
-| `Claim4_ThresHoldFigures/AutoPYaraUninformedHEURandomK_SSdeepAVG_ZoomRTBF.pdf` | 4 | Uninformed heuristic: random K | Set 2 |
-| `Claim5_Threathunting/sdhash_WithHeuOnly_IdealPlot.pdf` | 5 | Threat hunting (`Exp1HEUONLYsdhash`): train (left) vs. test (right), AutoPYara vs. AutoYara | Set 3 |
-| `Claim5_Threathunting/sdhash_WithNOHeuOnly_IdealPlot.pdf` | 5 | Same for `Exp1NOHEUsdhash` | Set 3 |
-| `Claim6_YaraInAllitsConfigurations/BigPicutre.pdf` | 6 | Mean TP rate of 15 AutoYara/AutoPYara configurations, ranked | Set 4 |
+| Figure | Paper claim | Contents | Script | Artifact claim |
+|---|---|---|---|---|
+| `Claim1_IncorrectBaseLines/AutoYara_baselineBoxPlotEMBF.pdf` | 1 | AutoYara with Ember bloom filters; clusters with TP = 0 excluded | Set 1 | 4 |
+| `Claim1_IncorrectBaseLines/AutoYara_EMBF.pdf` | 1 | Same, clusters with TP = 0 included | Set 1 | 4 |
+| `Claim2_BloomFiltersMatter/AutoYara_EmberBloomFiltersVSRetrainedBloomfilters.pdf` | 2 | AutoYara: Ember (light) vs. retrained (dark) bloom filters | Set 1 | 5 |
+| `Claim2_BloomFiltersMatter/AutoPYara_EmberBloomFiltersVSRetrainedBloomfilters.pdf` | 2 | AutoPYara: retrained (light) vs. Ember (dark) bloom filters | Set 1 | 5 |
+| `Claim3_YaraVsPYara/AutoYaraVSAutoPYaraRTBF.pdf` | 3 | Retrained filters: AutoPYara (light) vs. AutoYara (dark) | Set 1 | 6 |
+| `Claim4_ThresHoldFigures/AutoYara_SSdeepAVG_ZoomRTBF.pdf` | 4 | AutoYara | Set 2 | 7 |
+| `Claim4_ThresHoldFigures/AutoPYara_SSdeepAVG_ZoomRTBF.pdf` | 4 | AutoPYara | Set 2 | 7 |
+| `Claim4_ThresHoldFigures/AutoPYaraBestK_SSdeepAVG_ZoomRTBF.pdf` | 4 | AutoPYara, best K | Set 2 | 7 |
+| `Claim4_ThresHoldFigures/AutoPYaraWorstK_SSdeepAVG_ZoomRTBF.pdf` | 4 | AutoPYara, worst K | Set 2 | 7 |
+| `Claim4_ThresHoldFigures/AutoPYaraHEUModeK_SSdeepAVG_ZoomRTBF.pdf` | 4 | Informed heuristic: mode/average K | Set 2 | 7 |
+| `Claim4_ThresHoldFigures/AutoPYaraHEUMaxK_SSdeepAVG_ZoomRTBF.pdf` | 4 | Informed heuristic: max K | Set 2 | 7 |
+| `Claim4_ThresHoldFigures/AutoPYaraHEURandomK_SSdeepAVG_ZoomRTBF.pdf` | 4 | Informed heuristic: random K | Set 2 | 7 |
+| `Claim4_ThresHoldFigures/AutoPYaraUninformedHEUMeanK_SSdeepAVG_ZoomRTBF.pdf` | 4 | Uninformed heuristic: mean K | Set 2 | 7 |
+| `Claim4_ThresHoldFigures/AutoPYaraUninformedHEUMaxK_SSdeepAVG_ZoomRTBF.pdf` | 4 | Uninformed heuristic: max K | Set 2 | 7 |
+| `Claim4_ThresHoldFigures/AutoPYaraUninformedHEURandomK_SSdeepAVG_ZoomRTBF.pdf` | 4 | Uninformed heuristic: random K | Set 2 | 7 |
+| `Claim5_Threathunting/sdhash_WithHeuOnly_IdealPlot.pdf` | 5 | Threat hunting (`Exp1HEUONLYsdhash`): train (left) vs. test (right), AutoPYara vs. AutoYara | Set 3 | 8 |
+| `Claim5_Threathunting/sdhash_WithNOHeuOnly_IdealPlot.pdf` | 5 | Same for `Exp1NOHEUsdhash` | Set 3 | 8 |
+| `Claim6_YaraInAllitsConfigurations/BigPicutre.pdf` | 6 | Mean TP rate of 15 AutoYara/AutoPYara configurations, ranked | Set 4 | 9 |
 
 Each Set 1 chart has one bar group per clustering: SSdeep, J-SDhash (sdhash) and
 VirusTotal. Sets 2 and 4 use the SSdeep clusterings; Set 3 uses the sdhash
@@ -91,8 +93,9 @@ threat-hunting experiments.
 ## Input data
 
 The scripts read 11 clustering CSVs, 84 merged rule files (about 2.1 GB in total) and
-10 threat-hunting result folders. Directory names must match the casing below exactly
-(for example `Autoyara` vs. `AutoYara`). Run `--dry-run` to list every input.
+10 threat-hunting result folders. `artifact/download_data.py` fetches them into
+`data/`. Directory names must match the casing below exactly (for example
+`Autoyara` vs. `AutoYara`). Run `--dry-run` to list every input.
 
 ```text
 data/
@@ -154,6 +157,22 @@ data/
    left panel (0–84 %), the rest on the right panel (84–100 %). The module docstring of
    `PlotsSet4_yaraBigPicture.py` maps every bar label to its rule set.
 
+## Recorded values and claim checks
+
+Just before each figure is saved, `plot_common` reads back what the figure draws.
+This is read-only: the PDFs are byte-identical with or without it. It stores the
+numbers in `<out-dir>/<script>.values.json`, keyed by figure path. For each panel it records:
+
+- `bars`: every bar series (centres, bottoms, heights, error-bar half-lengths);
+- `lines`: every curve and reference line (colour, x and y data);
+- `xticks`: the bar names;
+- `texts`: the annotations.
+
+`verify_claims.py N` compares these numbers with `claims/claimN_*/expected/values.json`
+(tolerance 1.0 percentage point) and evaluates the claim's statements on them. The
+reference files were produced with `verify_claims.py N --update-expected --from DIR`
+from a verified run.
+
 ## Performance and memory
 
 Parsing the inputs is the slow part. It is spread over `-j` worker processes, and the
@@ -162,28 +181,28 @@ produces the same figures. Plotting runs sequentially in the main process.
 
 Measured on a 12-CPU server with the full dataset:
 
-| Script | Before this refactor (single core) | `run_all_plots.py -j 8` |
+| Script | Paper's original scripts (single core) | `-j 8` |
 |---|---|---|
-| Set 1 | 7.6 min | 7.3 s |
-| Set 2 | 24.2 min | 13.3 s |
-| Set 3 | 2 s | 2.0 s |
-| Set 4 | 26 s (already used the faster `util.py`) | 11.5 s |
-| **All four** | | **34.5 s** |
+| Set 1 | 7.6 min | 7 s |
+| Set 2 | 24.2 min | 13 s |
+| Set 3 | 2 s | 2 s |
+| Set 4 | 26 s (already used the faster `util.py`) | 11 s |
+| **All four** | ≈ 32 min | **33 s** (single core: ~1.0 min) |
 
-The single-process runs peaked at 0.5–0.7 GB of RSS. A worker handles one input at a time
+Single processes peaked at 0.5–0.7 GB of RSS. A worker handles one input at a time
 (the largest rule file is about 95 MB on disk), so budget roughly that much per worker
 and lower `-j` on machines with little memory.
 
 ## Reproducibility
 
 - **Refactor check:** on the full dataset, all 18 PDFs are byte-identical to the output of
-  the scripts before this refactor, apart from the embedded creation date. The refactor
-  changes no data, statistics or figure content.
+  the paper's original plotting scripts, apart from the embedded creation date. The
+  refactor changes no data, statistics or figure content.
 - **Byte-identical reruns:** a PDF normally embeds its creation time. For byte-identical
   PDFs across runs, set a fixed timestamp:
 
   ```bash
-  SOURCE_DATE_EPOCH=0 python run_all_plots.py -j 8
+  SOURCE_DATE_EPOCH=0 .venv/bin/python artifact/plots/run_all_plots.py -j 8
   ```
 
 ## Notes and known quirks

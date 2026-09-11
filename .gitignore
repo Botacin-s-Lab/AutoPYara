@@ -1,5 +1,20 @@
+# Python / editor
+__pycache__/
 *.pyc
 *.swp
-mlsec-prototype/intermediate/
-data/
-plots/
+
+# Jupyter scratch
+.ipynb_checkpoints/
+.virtual_documents/
+
+# Evaluation data: several GB, published separately on Zenodo.
+# Fetch it with artifact/download_data.sh (see README.txt).
+/data/
+
+# Generated outputs (claims and figure runs write here)
+/results/
+# Data archives built by artifact/package_data.py for the Zenodo upload
+/release/
+
+# Environment created by install.sh
+/.venv/

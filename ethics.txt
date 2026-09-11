@@ -1,0 +1,39 @@
+================================================================================
+Ethical considerations
+================================================================================
+
+NO MALWARE IS DISTRIBUTED
+    Neither the repository nor the Zenodo data archive contains malware or any
+    other executable sample. The paper's malware corpus cannot be redistributed,
+    for legal and ethical reasons, and is not part of this artifact.
+
+    The published data are derived results: cluster assignments of the samples,
+    the YARA rules generated for each cluster together with the TP rate they
+    achieved, and threat-hunting TP rates (see provenance.txt). Samples appear only
+    as identifiers (file names / hashes), which cannot be executed and are the
+    standard way malware is referenced in the literature.
+
+    The tool claims (1-3) run on a synthetic proxy corpus generated at run time
+    (artifact/make_proxy_corpus.py) that contains no malicious code.
+
+NO HUMAN SUBJECTS OR PERSONAL DATA
+    The artifact involves no human subjects, user studies or personal data.
+    TODO(authors): confirm that the file names/paths in the clustering CSVs and
+    threat-hunting file lists contain no personal information (for example
+    usernames in absolute paths); strip or normalise them in the archive if they do.
+
+THIRD-PARTY DATA
+    The VirusTotal clustering is derived from VirusTotal family labels. Only the
+    derived cluster assignment is published, not VirusTotal reports.
+    TODO(authors): confirm this use complies with the VirusTotal terms under which
+    the labels were obtained.
+
+DUAL USE
+    The artifact produces and publishes detection signatures, a defensive output.
+    As with any signature, an attacker who reads a rule learns which byte sequences
+    it keys on; this is inherent to signature-based detection and is why generated
+    rules should be one detection layer among several. See use.txt, section 2.
+
+DESTRUCTIVE ACTIONS
+    None. The scripts only read the provided data and write figures, logs and
+    verification reports under results/ (and install into a local .venv).

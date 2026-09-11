@@ -1,0 +1,62 @@
+Expected output - Claim 6 (paper claim 3)
+================================================================================
+
+SUCCESS CRITERION
+    ./run.sh exits 0 and its last verdict line reads
+
+        CLAIM 6: PASS -- paper claim 3 reproduced from the provided data
+
+    Every check must report [ok]. With the published data, every plotted number
+    matches the reference exactly ("max deviation 0"); the check allows 1.0
+    percentage point for differences between numeric-library versions.
+
+WHAT VARIES BETWEEN ENVIRONMENTS
+    Paths, timings and the number of worker processes. Not the numbers.
+
+COMPARE THE FIGURES
+    The regenerated PDFs are written to <repo>/results/claim6_autopyara_vs_autoyara/ and the
+    reference PDFs are in expected/figures/ (same file names).
+
+REFERENCE TRANSCRIPT
+    Reference platform: Ubuntu Linux x86-64, 12 CPUs, CPython 3.13, numpy 1.26.4,
+    pandas 2.2.3, matplotlib 3.10.0; run as ./run.sh -j 8. Progress bars removed.
+--------------------------------------------------------------------------------
+Running set1 with 8 worker process(es) each; data: <repo>/data; figures: <repo>/results/claim6_autopyara_vs_autoyara
+
+=== PlotsSet1_Boxplots.py ===
+output: <repo>/results/claim6_autopyara_vs_autoyara/logs/PlotsSet1_Boxplots.log
+
+=== summary ===
+PlotsSet1_Boxplots.py          OK                      5.4s
+5 PDFs under <repo>/results/claim6_autopyara_vs_autoyara:
+  Claim1_IncorrectBaseLines/AutoYara_EMBF.pdf
+  Claim1_IncorrectBaseLines/AutoYara_baselineBoxPlotEMBF.pdf
+  Claim2_BloomFiltersMatter/AutoPYara_EmberBloomFiltersVSRetrainedBloomfilters.pdf
+  Claim2_BloomFiltersMatter/AutoYara_EmberBloomFiltersVSRetrainedBloomfilters.pdf
+  Claim3_YaraVsPYara/AutoYaraVSAutoPYaraRTBF.pdf
+================================================================================
+CLAIM 6 (paper claim 3) - AutoPYara outperforms AutoYara
+================================================================================
+
+1. Regenerating the figures (set1) into <repo>/results/claim6_autopyara_vs_autoyara
+  [ok]  figures regenerated from the evaluation data -- ok
+
+2. Figures
+  [ok]  Claim3_YaraVsPYara/AutoYaraVSAutoPYaraRTBF.pdf -- written
+
+3. Plotted numbers vs. the reference (expected/values.json, tolerance 1.0 pp)
+  [ok]  48 plotted numbers match the reference -- max deviation 0
+
+4. Claim statements, on the regenerated numbers
+     SSdeep      AutoPYara  93.66 %   AutoYara  92.65 %   (+1.01 pp)
+     J-SDhash    AutoPYara  92.83 %   AutoYara  92.10 %   (+0.73 pp)
+     VirusTotal  AutoPYara  44.80 %   AutoYara  36.39 %   (+8.40 pp)
+  [ok]  SSdeep: AutoPYara > AutoYara
+  [ok]  J-SDhash: AutoPYara > AutoYara
+  [ok]  VirusTotal: AutoPYara > AutoYara
+
+================================================================================
+CLAIM 6: PASS -- paper claim 3 reproduced from the provided data
+================================================================================
+Figures: <repo>/results/claim6_autopyara_vs_autoyara   Reference: <repo>/claims/claim6_autopyara_vs_autoyara/expected/figures
+--------------------------------------------------------------------------------

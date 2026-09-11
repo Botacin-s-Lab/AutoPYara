@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 """Master runner: regenerate every paper figure from the provided YARA rule sets.
 
-Runs, one after the other and each in its own Python process:
-  1. PlotsSet1_Boxplots.py        -> Figures/Claim1_*, Claim2_*, Claim3_*          (5 PDFs)
-  2. PlotsSet2_ThresholdPlots.py  -> Figures/Claim4_ThresHoldFigures/             (10 PDFs)
-  3. PlotsSet3_ThreatHunting.py   -> Figures/Claim5_Threathunting/                (2 PDFs)
-  4. PlotsSet4_yaraBigPicture.py  -> Figures/Claim6_YaraInAllitsConfigurations/   (1 PDF)
+Runs, one after the other and each in its own Python process (paper claim numbers;
+the artifact's claims/claim4..claim9 wrap them):
+  1. PlotsSet1_Boxplots.py        -> Claim1_*, Claim2_*, Claim3_*                 (5 PDFs)
+  2. PlotsSet2_ThresholdPlots.py  -> Claim4_ThresHoldFigures/                     (10 PDFs)
+  3. PlotsSet3_ThreatHunting.py   -> Claim5_Threathunting/                        (2 PDFs)
+  4. PlotsSet4_yaraBigPicture.py  -> Claim6_YaraInAllitsConfigurations/           (1 PDF)
 
-Inside each script the input parsing (the slow part) is spread over ``--jobs``
-worker processes; plotting itself is quick and sequential. Separate processes keep
-each script's matplotlib settings isolated, exactly as when run by hand.
+Figures go to <repo>/results/figures by default, with one <script>.values.json per
+script holding the plotted numbers. Inside each script the input parsing (the slow
+part) is spread over ``--jobs`` worker processes; plotting itself is quick and
+sequential. Separate processes keep each script's matplotlib settings isolated,
+exactly as when run by hand.
 
 Examples:
   python run_all_plots.py                 # all CPUs
@@ -60,9 +63,9 @@ def main(argv=None):
                         help=f'worker processes per script (0 = all available CPUs '
                              f'[{available_cpus()} here], default 0; 1 = sequential)')
     parser.add_argument('--only', nargs='+', choices=list(SCRIPTS), default=list(SCRIPTS),
-                        help='run only these figure sets (default: both)')
+                        help='run only these figure sets (default: all four)')
     parser.add_argument('--data-dir', default=DEFAULT_DATA_DIR,
-                        help='root holding clusterCSV/ and ruleEval/ (default: %(default)s)')
+                        help='root holding clusterCSV/, ruleEval/ and ThreatHunting/ (default: %(default)s)')
     parser.add_argument('--out-dir', default=DEFAULT_OUT_DIR,
                         help='figure output root (default: %(default)s)')
     parser.add_argument('-q', '--quiet', action='store_true',
@@ -72,6 +75,11 @@ def main(argv=None):
     parser.add_argument('--dry-run', action='store_true',
                         help='list every input file each script needs, check they exist, and exit')
     args = parser.parse_args(argv)
+    # The scripts run with cwd=HERE, so relative paths must be resolved against the
+    # caller's working directory first.
+    args.data_dir, args.out_dir = os.path.abspath(args.data_dir), os.path.abspath(args.out_dir)
+    if args.log_dir:
+        args.log_dir = os.path.abspath(args.log_dir)
 
     check_requirements()
     if args.log_dir:

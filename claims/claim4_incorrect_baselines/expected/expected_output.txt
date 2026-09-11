@@ -1,0 +1,63 @@
+Expected output - Claim 4 (paper claim 1)
+================================================================================
+
+SUCCESS CRITERION
+    ./run.sh exits 0 and its last verdict line reads
+
+        CLAIM 4: PASS -- paper claim 1 reproduced from the provided data
+
+    Every check must report [ok]. With the published data, every plotted number
+    matches the reference exactly ("max deviation 0"); the check allows 1.0
+    percentage point for differences between numeric-library versions.
+
+WHAT VARIES BETWEEN ENVIRONMENTS
+    Paths, timings and the number of worker processes. Not the numbers.
+
+COMPARE THE FIGURES
+    The regenerated PDFs are written to <repo>/results/claim4_incorrect_baselines/ and the
+    reference PDFs are in expected/figures/ (same file names).
+
+REFERENCE TRANSCRIPT
+    Reference platform: Ubuntu Linux x86-64, 12 CPUs, CPython 3.13, numpy 1.26.4,
+    pandas 2.2.3, matplotlib 3.10.0; run as ./run.sh -j 8. Progress bars removed.
+--------------------------------------------------------------------------------
+Running set1 with 8 worker process(es) each; data: <repo>/data; figures: <repo>/results/claim4_incorrect_baselines
+
+=== PlotsSet1_Boxplots.py ===
+output: <repo>/results/claim4_incorrect_baselines/logs/PlotsSet1_Boxplots.log
+
+=== summary ===
+PlotsSet1_Boxplots.py          OK                      9.2s
+5 PDFs under <repo>/results/claim4_incorrect_baselines:
+  Claim1_IncorrectBaseLines/AutoYara_EMBF.pdf
+  Claim1_IncorrectBaseLines/AutoYara_baselineBoxPlotEMBF.pdf
+  Claim2_BloomFiltersMatter/AutoPYara_EmberBloomFiltersVSRetrainedBloomfilters.pdf
+  Claim2_BloomFiltersMatter/AutoYara_EmberBloomFiltersVSRetrainedBloomfilters.pdf
+  Claim3_YaraVsPYara/AutoYaraVSAutoPYaraRTBF.pdf
+================================================================================
+CLAIM 4 (paper claim 1) - AutoYara's baseline numbers hide the clusters it fails on
+================================================================================
+
+1. Regenerating the figures (set1) into <repo>/results/claim4_incorrect_baselines
+  [ok]  figures regenerated from the evaluation data -- ok
+
+2. Figures
+  [ok]  Claim1_IncorrectBaseLines/AutoYara_baselineBoxPlotEMBF.pdf -- written
+  [ok]  Claim1_IncorrectBaseLines/AutoYara_EMBF.pdf -- written
+
+3. Plotted numbers vs. the reference (expected/values.json, tolerance 1.0 pp)
+  [ok]  48 plotted numbers match the reference -- max deviation 0
+
+4. Claim statements, on the regenerated numbers
+     SSdeep      non-zero clusters  87.00 %   all clusters  11.18 %   gap  75.82 pp
+     J-SDhash    non-zero clusters  90.51 %   all clusters  29.36 %   gap  61.14 pp
+     VirusTotal  non-zero clusters  67.71 %   all clusters  33.55 %   gap  34.16 pp
+  [ok]  SSdeep: all-cluster mean is >= 30 pp below the non-zero-cluster mean
+  [ok]  J-SDhash: all-cluster mean is >= 30 pp below the non-zero-cluster mean
+  [ok]  VirusTotal: all-cluster mean is >= 30 pp below the non-zero-cluster mean
+
+================================================================================
+CLAIM 4: PASS -- paper claim 1 reproduced from the provided data
+================================================================================
+Figures: <repo>/results/claim4_incorrect_baselines   Reference: <repo>/claims/claim4_incorrect_baselines/expected/figures
+--------------------------------------------------------------------------------

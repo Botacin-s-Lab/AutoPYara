@@ -37,7 +37,7 @@ failed on (TP 0 or missing) takes the AutoPYara (``APY``) value instead.
 Bars <= 84 % are drawn, sorted, on the left panel (y 0..84); bars > 84 % on the right
 panel (y 84..100), like a broken axis. Five bars carry call-out annotations.
 
-Figure written (under ``--out-dir``, default ``Plots/Figures``):
+Figure written (under ``--out-dir``, default ``<repo>/results/figures``):
   Claim6_YaraInAllitsConfigurations/BigPicutre.pdf
 
 Usage:

@@ -1,19 +1,20 @@
 ================================================================================
-Constraints: why Google Colab is not a viable platform for this artifact
+Constraints: why Google Colab is not a viable platform for claims 1-3
 ================================================================================
 
 The ACSAC call asks that artifacts run on public research infrastructure, and
 lists Google Colab among the options. This artifact runs on CloudLab and
-Chameleon, but NOT on Colab. This file explains why, since the call asks for a
-rationale where a listed platform is not viable.
+Chameleon. Claims 4-9 (the paper's figures) also run on Colab; claims 1-3 (the
+tool itself) do NOT. This file explains why, since the call asks for a rationale
+where a listed platform is not viable.
 
 --------------------------------------------------------------------------------
 THE CONSTRAINT
 --------------------------------------------------------------------------------
 
-AutoPYara starts its JVM backend with a fixed maximum heap of 14 GB:
+AutoPYara starts its JVM backend with a fixed maximum heap of 14 GB
+(autopyara/interface.py in https://github.com/Botacin-s-Lab/AutoPYaraPyPI):
 
-    autopyara/interface.py:
         jpype.startJVM(
             jpype.getDefaultJVMPath(),
             f"-Djava.class.path={jar_path}",
@@ -40,25 +41,23 @@ the kernel's out-of-memory killer terminates the process mid-run. In Colab this
 surfaces as "Your session crashed after using all available RAM", with nothing
 pointing at a heap setting as the cause.
 
-Note the perverse part: a SMALLER heap setting would survive. Given a ceiling
-that fits the machine, the JVM simply collects more often - slower, but it
-completes. The oversized fixed ceiling is what turns a memory-tight run into a
-crash.
+A SMALLER heap setting would survive: given a ceiling that fits the machine, the
+JVM simply collects more often. The oversized fixed ceiling is what turns a
+memory-tight run into a crash.
 
 --------------------------------------------------------------------------------
 CONSEQUENCE FOR EVALUATION
 --------------------------------------------------------------------------------
 
-Use a platform with at least 16 GB of RAM. Both recommended platforms in
-resources.txt satisfy this comfortably with their standard node types, need no
-special allocation or hardware request, and are open to reviewers:
+Run claims 1-3 on a machine with at least 16 GB of RAM. Standard CloudLab and
+Chameleon nodes satisfy this without any special allocation:
 
     CloudLab     https://www.cloudlab.us/
     Chameleon    https://www.chameleoncloud.org/
 
-Any ordinary Linux machine or cloud VM with >= 16 GB RAM works equally well;
-nothing about the artifact requires those specific platforms. A local machine
-meeting the requirement is entirely sufficient.
+Any ordinary Linux machine or cloud VM with >= 16 GB RAM works equally well.
+Claims 4-9 start no JVM and fit in 8 GB (with -j 8), so they can also run on
+Colab: install with SKIP_TOOL=1 ./install.sh.
 
 --------------------------------------------------------------------------------
 STATUS
@@ -66,10 +65,9 @@ STATUS
 
 This is a known limitation of the current release rather than a fundamental
 design constraint - the heap size is a single hard-coded string. Making it
-configurable (for example from an environment variable) would let the tool run
-within a smaller budget and would remove this restriction. It is recorded here
-so that reviewers can size their environment correctly rather than discovering
-it through an opaque crash.
+configurable (for example from an environment variable) would remove this
+restriction. It is recorded here so that reviewers can size their environment
+correctly rather than discovering it through an opaque crash.
 
 No remote access to author-controlled infrastructure is required to evaluate
 this artifact; see resources.txt.

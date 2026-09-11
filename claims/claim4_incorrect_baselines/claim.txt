@@ -1,0 +1,56 @@
+CLAIM 4 - Paper claim 1: AutoYara's baseline numbers hide the clusters it fails on
+================================================================================
+
+CLAIM (paper claim 1, figures in Claim1_IncorrectBaseLines/)
+    With its original (Ember) Bloom filters, AutoYara looks accurate only if the
+    clusters it fails on are left out. Averaged over the clusters where its rule
+    reached a non-zero TP rate, its mean TP rate is 87.0 % (SSdeep clusters),
+    90.5 % (J-SDhash) and 67.7 % (VirusTotal). Averaged over ALL clusters, which is
+    the correct baseline, it is only 11.2 %, 29.4 % and 33.6 %.
+
+    (Claim wording derived from the figure names and the plotted values; the
+    numbers are what the provided data produce.)
+
+FIGURES
+    Claim1_IncorrectBaseLines/AutoYara_baselineBoxPlotEMBF.pdf   zero-TP clusters excluded
+    Claim1_IncorrectBaseLines/AutoYara_EMBF.pdf                  all clusters
+
+    Each bar is the mean TP rate of all clusters, pooled over the five similarity
+    thresholds (50-90) of the SSdeep and J-SDhash clusterings, and over the single
+    VirusTotal-label clustering. Error bars are the standard deviation.
+
+INPUTS
+    data/clusterCSV/{ssdeep,sdhash,virusTotal}/...
+    data/ruleEval/originalBloomFilters/{ssdeep/AutoYaraBaseline,sdhash/AutoYara,
+                                        virusTotal/AutoyaraBaseline}/...
+    Every rule carries the TP rate it achieved on its cluster ("// Input TP Rate: X/Y").
+
+HOW TO RUN
+    ./run.sh [-j N]          (N worker processes; default: all CPUs)
+
+    Prerequisites: ../../install.sh has been run and the evaluation data is in
+    ../../data (artifact/download_data.py). Runtime: about 10 s on 8 cores,
+    under 1 min on 1 core.
+
+WHAT IS VERIFIED (artifact/plots/verify_claims.py)
+    1. Both figures are regenerated from the data.
+    2. Every plotted number (bar heights and error bars) matches the reference
+       values in expected/values.json within 1.0 percentage point.
+    3. The claim holds on the regenerated numbers: for every clustering, the mean
+       over all clusters is at least 30 percentage points below the mean over the
+       non-zero clusters.
+
+EXPECTED RESULT
+    "CLAIM 4: PASS". The reference figures are in expected/figures/ and the full
+    transcript is in expected/expected_output.txt.
+
+TOLERANCE
+    The figures are a deterministic function of the provided data, so a correct
+    run matches the reference exactly (deviation 0.00). The 1.0-point tolerance
+    only absorbs differences between numeric-library versions.
+
+SCOPE
+    The rule-generation runs that produced the evaluated rules need the paper's
+    malware corpus, which cannot be redistributed. As agreed with the AEC, the
+    artifact ships the generated rules with their measured TP rates, and this
+    claim regenerates the paper's figure and numbers from them.

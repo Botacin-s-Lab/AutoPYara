@@ -57,5 +57,6 @@ THESE NUMBERS ARE NOT A BENCHMARK
 
 RELATION TO THE PAPER
     Demonstrates the baseline pipeline the paper's AutoYara-preset results were
-    produced with. It does not reproduce those numerical results, which require
-    the non-redistributable malware corpus described in ../../use.txt.
+    produced with. Re-running it on the paper's malware corpus is not possible
+    (the corpus cannot be redistributed; see ../../use.txt). Instead, claims 4-9
+    reproduce the paper's figures from the rules those runs generated.

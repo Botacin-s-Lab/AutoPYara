@@ -1,0 +1,72 @@
+# Artifact metadata for ACSAC 2026, in the format of the artmeta packaging tool
+# (https://github.com/jelenamirkovic/artmeta). Pre-filled from this repository;
+# run `python artmeta.py` in this directory to review every answer (it resumes
+# from this file), then submit the resulting metadata.toml to HotCRP.
+# Lines containing TODO(authors) still need the authors' input.
+
+badge = "r"
+artifact_url = "https://github.com/Botacin-s-Lab/AutoPYara"
+cd = "b"
+citation = """
+TODO(authors): replace with the BibTeX of the accepted paper, e.g.
+@inproceedings{autopyara2026,
+  title     = {TODO},
+  author    = {TODO},
+  booktitle = {Proceedings of the Annual Computer Security Applications Conference (ACSAC)},
+  year      = {2026}
+}
+"""
+license_url = "https://github.com/Botacin-s-Lab/AutoPYara/blob/main/license.txt"
+
+infrastructure_url = "https://www.cloudlab.us/"
+infrastructure_resources = "https://github.com/Botacin-s-Lab/AutoPYara/blob/main/infrastructure/resources.txt"
+infrastructure_allocation = "No special allocation: any standard x86-64 CloudLab or Chameleon node (or any Linux machine) with at least 16 GB of RAM. Claims 4-9 alone need 8 GB and no Java."
+
+install_script = "https://github.com/Botacin-s-Lab/AutoPYara/blob/main/install.sh"
+use = "Defensive malware analysis: AutoPYara generates YARA detection rules from samples of one family. The artifact ships no malware: claims 1-3 use a synthetic proxy corpus, claims 4-9 regenerate the paper's figures from the published rules and their recorded TP rates. The paper's malware corpus cannot be redistributed, so the rules themselves cannot be regenerated. See https://github.com/Botacin-s-Lab/AutoPYara/blob/main/use.txt"
+destructive = "None. The scripts only read the provided data and write under the repository's results/ directory; install.sh installs into the repository's .venv only."
+
+claim1 = "AutoPYara installs from the pinned release, its Java backend starts under JPype, and its pre-trained Bloom filters are present."
+script1 = "https://github.com/Botacin-s-Lab/AutoPYara/blob/main/claims/claim1_install/run.sh"
+expected1 = "All checks [ok] and 'CLAIM 1: PASS', exit code 0 (claims/claim1_install/expected/expected_output.txt)."
+
+claim2 = "The AutoYara (VBGMM) preset runs end to end and emits a valid YARA rule that compiles and can scan files."
+script2 = "https://github.com/Botacin-s-Lab/AutoPYara/blob/main/claims/claim2_autoyara_preset/run.sh"
+expected2 = "All checks [ok] and 'CLAIM 2: PASS', exit code 0. The rule content varies between runs; the checks are structural."
+
+claim3 = "The augmented AutoPYara preset runs end to end, derives its own cluster count K, and emits a valid YARA rule."
+script3 = "https://github.com/Botacin-s-Lab/AutoPYara/blob/main/claims/claim3_augmented_preset/run.sh"
+expected3 = "All checks [ok] and 'CLAIM 3: PASS', exit code 0. The pipeline uses an unseeded RNG, so the rule differs between runs; the checks are structural."
+
+claim4 = "Paper claim 1: AutoYara's baseline numbers hide the clusters it fails on. With Ember Bloom filters its mean TP rate is 87.0/90.5/67.7% (SSdeep/J-SDhash/VirusTotal clusters) over clusters with a non-zero TP rate, but 11.2/29.4/33.6% over all clusters."
+script4 = "https://github.com/Botacin-s-Lab/AutoPYara/blob/main/claims/claim4_incorrect_baselines/run.sh"
+expected4 = "'CLAIM 4: PASS': both figures regenerated, every plotted number within 1.0 percentage point of expected/values.json (in practice identical), and for every clustering the all-cluster mean is at least 30 points below the non-zero-cluster mean."
+
+claim5 = "Paper claim 2: the Bloom filters matter. Retrained filters raise the mean TP rate over Ember filters for both tools: AutoYara 11.2->92.7% (SSdeep), 29.4->92.1% (J-SDhash), 33.6->36.4% (VirusTotal); AutoPYara 10.9->93.7%, 29.8->92.8%, 40.2->44.8%."
+script5 = "https://github.com/Botacin-s-Lab/AutoPYara/blob/main/claims/claim5_bloom_filters_matter/run.sh"
+expected5 = "'CLAIM 5: PASS': figures regenerated, plotted numbers within 1.0 point of the reference, retrained > Ember for both tools and all clusterings, with gains of at least 50 points on SSdeep and J-SDhash."
+
+claim6 = "Paper claim 3: with retrained filters AutoPYara beats AutoYara on every clustering: 93.7 vs 92.7% (SSdeep), 92.8 vs 92.1% (J-SDhash), 44.8 vs 36.4% (VirusTotal)."
+script6 = "https://github.com/Botacin-s-Lab/AutoPYara/blob/main/claims/claim6_autopyara_vs_autoyara/run.sh"
+expected6 = "'CLAIM 6: PASS': figure regenerated, plotted numbers within 1.0 point of the reference, AutoPYara > AutoYara for all three clusterings."
+
+claim7 = "Paper claim 4: at every SSdeep similarity threshold (50-90), AutoPYara beats AutoYara; best K > AutoPYara > worst K; informed K heuristics stay above AutoYara and uninformed ones fall below it."
+script7 = "https://github.com/Botacin-s-Lab/AutoPYara/blob/main/claims/claim7_thresholds_and_k/run.sh"
+expected7 = "'CLAIM 7: PASS': ten figures regenerated, all plotted numbers within 1.0 point of the reference, and the four orderings hold at all five thresholds."
+
+claim8 = "Paper claim 5: in threat hunting, AutoPYara's rules keep a higher TP rate than AutoYara's on held-out test samples: 80.8 vs 69.4% (heuristics only) and 76.3 vs 75.8% (no heuristics)."
+script8 = "https://github.com/Botacin-s-Lab/AutoPYara/blob/main/claims/claim8_threat_hunting/run.sh"
+expected8 = "'CLAIM 8: PASS': both figures regenerated, plotted numbers within 1.0 point of the reference, AutoPYara > AutoYara on test samples in both experiments."
+
+claim9 = "Paper claim 6: ranked by mean TP rate, AutoYara as released (Ember filters) is at 11.2%, configured with retrained filters 92.7%, AutoPYara in practice 94.5%, AutoPYara with the best K 95.6% (95.9% ideal case)."
+script9 = "https://github.com/Botacin-s-Lab/AutoPYara/blob/main/claims/claim9_all_configurations/run.sh"
+expected9 = "'CLAIM 9: PASS': figure regenerated, plotted numbers within 1.0 point of the reference, the two Ember-filter bars lowest, the reality/configured/best-K ladder ordered as stated, the ideal case highest."
+
+hw = "x86-64 CPU; 16 GB RAM for claims 1-3 (fixed 14 GB JVM heap), 8 GB for claims 4-9; ~6 GB disk. No GPU or special hardware."
+sw = "Linux, Python 3.11 or 3.12 with venv, Java 11+ (claims 1-3 only); or Docker (Dockerfile provided)."
+api = ""
+gui = "n"
+
+provenance = "https://github.com/Botacin-s-Lab/AutoPYara/blob/main/provenance.txt"
+ethics = "https://github.com/Botacin-s-Lab/AutoPYara/blob/main/ethics.txt"
+readme = "https://github.com/Botacin-s-Lab/AutoPYara/blob/main/README.txt"

@@ -1,0 +1,85 @@
+Expected output - Claim 7 (paper claim 4)
+================================================================================
+
+SUCCESS CRITERION
+    ./run.sh exits 0 and its last verdict line reads
+
+        CLAIM 7: PASS -- paper claim 4 reproduced from the provided data
+
+    Every check must report [ok]. With the published data, every plotted number
+    matches the reference exactly ("max deviation 0"); the check allows 1.0
+    percentage point for differences between numeric-library versions.
+
+WHAT VARIES BETWEEN ENVIRONMENTS
+    Paths, timings and the number of worker processes. Not the numbers.
+
+COMPARE THE FIGURES
+    The regenerated PDFs are written to <repo>/results/claim7_thresholds_and_k/ and the
+    reference PDFs are in expected/figures/ (same file names).
+
+REFERENCE TRANSCRIPT
+    Reference platform: Ubuntu Linux x86-64, 12 CPUs, CPython 3.13, numpy 1.26.4,
+    pandas 2.2.3, matplotlib 3.10.0; run as ./run.sh -j 8. Progress bars removed.
+--------------------------------------------------------------------------------
+Running set2 with 8 worker process(es) each; data: <repo>/data; figures: <repo>/results/claim7_thresholds_and_k
+
+=== PlotsSet2_ThresholdPlots.py ===
+output: <repo>/results/claim7_thresholds_and_k/logs/PlotsSet2_ThresholdPlots.log
+
+=== summary ===
+PlotsSet2_ThresholdPlots.py    OK                     13.5s
+10 PDFs under <repo>/results/claim7_thresholds_and_k:
+  Claim4_ThresHoldFigures/AutoPYaraBestK_SSdeepAVG_ZoomRTBF.pdf
+  Claim4_ThresHoldFigures/AutoPYaraHEUMaxK_SSdeepAVG_ZoomRTBF.pdf
+  Claim4_ThresHoldFigures/AutoPYaraHEUModeK_SSdeepAVG_ZoomRTBF.pdf
+  Claim4_ThresHoldFigures/AutoPYaraHEURandomK_SSdeepAVG_ZoomRTBF.pdf
+  Claim4_ThresHoldFigures/AutoPYaraUninformedHEUMaxK_SSdeepAVG_ZoomRTBF.pdf
+  Claim4_ThresHoldFigures/AutoPYaraUninformedHEUMeanK_SSdeepAVG_ZoomRTBF.pdf
+  Claim4_ThresHoldFigures/AutoPYaraUninformedHEURandomK_SSdeepAVG_ZoomRTBF.pdf
+  Claim4_ThresHoldFigures/AutoPYaraWorstK_SSdeepAVG_ZoomRTBF.pdf
+  Claim4_ThresHoldFigures/AutoPYara_SSdeepAVG_ZoomRTBF.pdf
+  Claim4_ThresHoldFigures/AutoYara_SSdeepAVG_ZoomRTBF.pdf
+================================================================================
+CLAIM 7 (paper claim 4) - similarity threshold and choice of K
+================================================================================
+
+1. Regenerating the figures (set2) into <repo>/results/claim7_thresholds_and_k
+  [ok]  figures regenerated from the evaluation data -- ok
+
+2. Figures
+  [ok]  Claim4_ThresHoldFigures/AutoYara_SSdeepAVG_ZoomRTBF.pdf -- written
+  [ok]  Claim4_ThresHoldFigures/AutoPYara_SSdeepAVG_ZoomRTBF.pdf -- written
+  [ok]  Claim4_ThresHoldFigures/AutoPYaraBestK_SSdeepAVG_ZoomRTBF.pdf -- written
+  [ok]  Claim4_ThresHoldFigures/AutoPYaraWorstK_SSdeepAVG_ZoomRTBF.pdf -- written
+  [ok]  Claim4_ThresHoldFigures/AutoPYaraHEUModeK_SSdeepAVG_ZoomRTBF.pdf -- written
+  [ok]  Claim4_ThresHoldFigures/AutoPYaraHEUMaxK_SSdeepAVG_ZoomRTBF.pdf -- written
+  [ok]  Claim4_ThresHoldFigures/AutoPYaraHEURandomK_SSdeepAVG_ZoomRTBF.pdf -- written
+  [ok]  Claim4_ThresHoldFigures/AutoPYaraUninformedHEUMeanK_SSdeepAVG_ZoomRTBF.pdf -- written
+  [ok]  Claim4_ThresHoldFigures/AutoPYaraUninformedHEUMaxK_SSdeepAVG_ZoomRTBF.pdf -- written
+  [ok]  Claim4_ThresHoldFigures/AutoPYaraUninformedHEURandomK_SSdeepAVG_ZoomRTBF.pdf -- written
+
+3. Plotted numbers vs. the reference (expected/values.json, tolerance 1.0 pp)
+  [ok]  7964 plotted numbers match the reference -- max deviation 0
+
+4. Claim statements, on the regenerated numbers
+     threshold                  50      60      70      80      90
+     AutoYara                76.58   78.00   81.45   82.24   85.39
+     AutoPYara               84.54   84.82   85.77   87.06   88.84
+     best K                  89.02   89.54   88.87   91.92   92.11
+     worst K                 76.76   78.17   80.31   81.76   84.89
+     informed mode K         84.08   84.70   86.28   85.97   86.70
+     informed max K          89.46   88.22   89.35   89.50   90.82
+     informed random K       87.95   87.67   88.86   88.58   88.83
+     uninformed mean K       66.72   68.25   67.85   75.12   79.22
+     uninformed max K        57.63   58.23   64.02   68.99   71.76
+     uninformed random K     70.35   71.32   75.11   76.88   76.50
+  [ok]  a. AutoPYara > AutoYara at every threshold
+  [ok]  b. best K > AutoPYara > worst K at every threshold
+  [ok]  c. every informed heuristic > AutoYara at every threshold
+  [ok]  d. every uninformed heuristic < AutoYara at every threshold
+
+================================================================================
+CLAIM 7: PASS -- paper claim 4 reproduced from the provided data
+================================================================================
+Figures: <repo>/results/claim7_thresholds_and_k   Reference: <repo>/claims/claim7_thresholds_and_k/expected/figures
+--------------------------------------------------------------------------------

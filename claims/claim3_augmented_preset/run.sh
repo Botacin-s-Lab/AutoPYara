@@ -10,6 +10,8 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ARTIFACT_DIR="$(cd "$HERE/../.." && pwd)"
+# Use the environment created by install.sh, if there is one.
+if [ -z "${VIRTUAL_ENV:-}" ] && [ -f "$ARTIFACT_DIR/.venv/bin/activate" ]; then . "$ARTIFACT_DIR/.venv/bin/activate"; fi
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 

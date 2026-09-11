@@ -35,5 +35,6 @@ EXPECTED RESULT
     "CLAIM 1: PASS", exiting 0. See expected/expected_output.txt.
 
 RELATION TO THE PAPER
-    Supporting infrastructure. This claim demonstrates the artifact is
-    functional; it does not correspond to a numerical result in the paper.
+    Supporting infrastructure. This claim demonstrates the tool is functional;
+    it does not correspond to a numerical result in the paper. The paper's
+    results are reproduced by claims 4-9.

@@ -1,0 +1,58 @@
+Expected output - Claim 8 (paper claim 5)
+================================================================================
+
+SUCCESS CRITERION
+    ./run.sh exits 0 and its last verdict line reads
+
+        CLAIM 8: PASS -- paper claim 5 reproduced from the provided data
+
+    Every check must report [ok]. With the published data, every plotted number
+    matches the reference exactly ("max deviation 0"); the check allows 1.0
+    percentage point for differences between numeric-library versions.
+
+WHAT VARIES BETWEEN ENVIRONMENTS
+    Paths, timings and the number of worker processes. Not the numbers.
+
+COMPARE THE FIGURES
+    The regenerated PDFs are written to <repo>/results/claim8_threat_hunting/ and the
+    reference PDFs are in expected/figures/ (same file names).
+
+REFERENCE TRANSCRIPT
+    Reference platform: Ubuntu Linux x86-64, 12 CPUs, CPython 3.13, numpy 1.26.4,
+    pandas 2.2.3, matplotlib 3.10.0; run as ./run.sh -j 8. Progress bars removed.
+--------------------------------------------------------------------------------
+Running set3 with 8 worker process(es) each; data: <repo>/data; figures: <repo>/results/claim8_threat_hunting
+
+=== PlotsSet3_ThreatHunting.py ===
+output: <repo>/results/claim8_threat_hunting/logs/PlotsSet3_ThreatHunting.log
+
+=== summary ===
+PlotsSet3_ThreatHunting.py     OK                      2.0s
+2 PDFs under <repo>/results/claim8_threat_hunting:
+  Claim5_Threathunting/sdhash_WithHeuOnly_IdealPlot.pdf
+  Claim5_Threathunting/sdhash_WithNOHeuOnly_IdealPlot.pdf
+================================================================================
+CLAIM 8 (paper claim 5) - threat hunting on held-out samples
+================================================================================
+
+1. Regenerating the figures (set3) into <repo>/results/claim8_threat_hunting
+  [ok]  figures regenerated from the evaluation data -- ok
+
+2. Figures
+  [ok]  Claim5_Threathunting/sdhash_WithHeuOnly_IdealPlot.pdf -- written
+  [ok]  Claim5_Threathunting/sdhash_WithNOHeuOnly_IdealPlot.pdf -- written
+
+3. Plotted numbers vs. the reference (expected/values.json, tolerance 1.0 pp)
+  [ok]  850 plotted numbers match the reference -- max deviation 0
+
+4. Claim statements, on the regenerated numbers
+     with heuristics only  train: AutoPYara  81.94 %  AutoYara  69.76 %   test: AutoPYara  80.83 %  AutoYara  69.43 %
+     without heuristics    train: AutoPYara  80.40 %  AutoYara  75.04 %   test: AutoPYara  76.28 %  AutoYara  75.77 %
+  [ok]  with heuristics only: AutoPYara > AutoYara on held-out test samples
+  [ok]  without heuristics: AutoPYara > AutoYara on held-out test samples
+
+================================================================================
+CLAIM 8: PASS -- paper claim 5 reproduced from the provided data
+================================================================================
+Figures: <repo>/results/claim8_threat_hunting   Reference: <repo>/claims/claim8_threat_hunting/expected/figures
+--------------------------------------------------------------------------------

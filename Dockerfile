@@ -1,73 +1,62 @@
-# Contained environment for the AutoPYara ACSAC artifact.
+# Contained environment for the AutoPYara ACSAC 2026 artifact.
 #
-# Provides a pinned Python + JRE + dependency set, so evaluation does not depend
-# on what happens to be installed on the host, or on what PyPI resolves to on
-# the day it is run.
+# Pinned Python 3.12 + OpenJDK 17 + the dependency set in
+# artifact/requirements-lock.txt, so evaluation does not depend on the host.
 #
-# BUILD  (note the context is the REPOSITORY ROOT, not this directory, because
-#         the image installs the package from source)
+# BUILD (from the repository root; ~10-20 min, most of it the Bloom filter download)
 #
-#     docker build -t autopyara-artifact -f ACSACArtifact/Dockerfile .
+#     docker build -t autopyara-artifact .
+#
+# FETCH THE EVALUATION DATA onto the host once (claims 4-9), then mount it:
+#
+#     mkdir -p data
+#     docker run --rm -v "$PWD/data:/opt/artifact/data" autopyara-artifact \
+#         python3 artifact/download_data.py
 #
 # RUN
 #
-#     # quick check (~1 min once built)
-#     docker run --rm -it autopyara-artifact ./claims/claim1_install/run.sh
+#     # every claim
+#     docker run --rm -it --memory=16g -v "$PWD/data:/opt/artifact/data" \
+#         autopyara-artifact ./run_all_claims.sh -j 8
 #
-#     # the functional claims
-#     docker run --rm -it autopyara-artifact ./claims/claim2_autoyara_preset/run.sh
-#     docker run --rm -it autopyara-artifact ./claims/claim3_augmented_preset/run.sh
+#     # a single claim, or an interactive shell
+#     docker run --rm -it --memory=16g autopyara-artifact ./claims/claim1_install/run.sh
+#     docker run --rm -it --memory=16g -v "$PWD/data:/opt/artifact/data" autopyara-artifact bash
 #
-#     # interactive shell
-#     docker run --rm -it autopyara-artifact bash
+#     # keep the regenerated figures: also mount results/
+#     ... -v "$PWD/results:/opt/artifact/results" ...
 #
-# MEMORY -- IMPORTANT
-#     The JVM backend is started with a fixed 14 GB maximum heap, which is not
-#     configurable in this release. Give the container enough memory or the
-#     kernel will terminate it partway through a run:
-#
-#         docker run --rm -it --memory=16g autopyara-artifact ...
-#
-#     See infrastructure/constraints.txt for the full explanation.
-#
-# NOTE ON IMAGE SIZE
-#     The image does NOT bake in the ~600 MB Bloom filter data; it is fetched on
-#     first use and lives only in the running container. To avoid re-downloading
-#     it on every `docker run`, mount a volume over the data directory, or run
-#     the claims from a single long-lived container started with `bash`.
+# MEMORY
+#     The JVM of claims 1-3 is started with a fixed 14 GB maximum heap; give the
+#     container at least 16 GB or the kernel may kill it mid-run. Claims 4-9 need
+#     well under 8 GB. See infrastructure/constraints.txt.
 
-FROM eclipse-temurin:17-jdk-jammy
+FROM python:3.12-slim-bookworm
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    MPLBACKEND=Agg
 
-# Python 3.10 is the jammy default and sits inside the supported 3.9-3.12 range.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        python3 \
-        python3-pip \
-        python3-dev \
-        build-essential \
+        openjdk-17-jre-headless \
         ca-certificates \
-        git \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /opt/autopyara
+WORKDIR /opt/artifact
 
-# Dependencies first, pinned, so this layer caches independently of source edits.
-COPY ACSACArtifact/artifact/requirements-lock.txt /tmp/requirements-lock.txt
-RUN python3 -m pip install --upgrade pip \
-    && python3 -m pip install -r /tmp/requirements-lock.txt
+# Dependencies first (pinned, including autopyara==0.1.2), so this layer caches
+# independently of the artifact's own files.
+COPY artifact/requirements-lock.txt /tmp/requirements-lock.txt
+RUN python3 -m pip install -r /tmp/requirements-lock.txt
 
-# Then the package itself, installed without dependency resolution so the pins
-# above are what actually get used.
-COPY . /opt/autopyara
-RUN python3 -m pip install --no-deps /opt/autopyara
+# AutoPYara's pre-trained Bloom filters (~600 MB), baked in so the tool claims run offline.
+RUN autopyara-download
 
-# Fail fast at build time if the JVM cannot start, rather than at evaluation time.
+# Fail at build time, not at evaluation time, if the JVM cannot start.
 RUN python3 -c "from autopyara import AutoPYara; AutoPYara(); print('JVM OK')"
 
-WORKDIR /opt/autopyara/ACSACArtifact
-RUN chmod +x install.sh claims/*/run.sh artifact/make_proxy_corpus.py
+COPY . /opt/artifact
+RUN chmod +x install.sh run_all_claims.sh claims/*/run.sh
 
-CMD ["bash", "-lc", "echo 'AutoPYara artifact container. Run e.g. ./claims/claim1_install/run.sh'; exec bash"]
+CMD ["bash", "-lc", "echo 'AutoPYara artifact container. Try: ./run_all_claims.sh -j 8 (mount the data at /opt/artifact/data)'; exec bash"]

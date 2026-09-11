@@ -1,30 +1,30 @@
-# Pinned dependency versions for the AutoPYara ACSAC artifact.
+# Pinned dependency versions for the AutoPYara ACSAC 2026 artifact.
 #
 # WHY THIS FILE EXISTS
-#     setup.py declares loose constraints (e.g. "scikit-learn>=1.0") so that
-#     ordinary users get current releases. That is right for a published
+#     autopyara's setup.py declares loose constraints (e.g. "scikit-learn>=1.0") so
+#     that ordinary users get current releases. That is right for a published
 #     package but wrong for an artifact: a reviewer installing months after
 #     submission would resolve different versions than we verified against.
-#     These pins are the exact versions the claims were verified with.
 #
-# HOW TO USE
-#     install.sh does NOT use this file by default -- it installs the package
-#     normally, which is the path a real user takes and therefore the more
-#     honest thing to evaluate.
+# HOW IT IS USED
+#     install.sh installs exactly this file into ./.venv; the Dockerfile installs it
+#     into the image. To install by hand:
 #
-#     Use these pins if you hit a dependency-resolution problem, or to
-#     reproduce our environment exactly:
-#
+#         python3.12 -m venv .venv && . .venv/bin/activate
 #         pip install -r artifact/requirements-lock.txt
-#         pip install --no-deps <repo root>
 #
-#     The provided Dockerfile uses these pins.
+# PYTHON VERSION
+#     Python 3.11 or 3.12. scikit-learn 1.8.0 needs Python >= 3.11, and numpy 1.26.4
+#     publishes no wheels for Python 3.13. All pins below ship Linux x86-64 wheels
+#     for 3.11 and 3.12.
 #
 # VERIFIED ON
-#     Ubuntu Linux x86-64, OpenJDK 21, CPython 3.9-3.12
-#     (CI additionally verifies 3.9, 3.10, 3.11 and 3.12 against current
-#      releases rather than these pins, so both paths are covered.)
+#     Ubuntu Linux x86-64, OpenJDK 17/21.
 
+# The tool (source: https://github.com/Botacin-s-Lab/AutoPYaraPyPI, tag v0.1.2)
+autopyara==0.1.2
+
+# The tool's runtime dependencies (claims 1-3)
 jpype1==1.6.0
 yara-python==4.5.4
 yaramod==4.5.2
@@ -33,5 +33,7 @@ numpy==1.26.4
 packaging==26.3
 ppdeep==20251115
 
-# Only needed to run the package's own unit tests, not the claims.
-pytest==8.3.4
+# Figure regeneration and claim verification (claims 4-9)
+pandas==2.2.3
+matplotlib==3.10.0
+tqdm==4.67.1

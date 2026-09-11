@@ -1,0 +1,53 @@
+CLAIM 9 - Paper claim 6: AutoYara and AutoPYara in all their configurations
+================================================================================
+
+CLAIM (paper claim 6, figure in Claim6_YaraInAllitsConfigurations/)
+    Ranking 15 configurations by mean TP rate (SSdeep clusterings, thresholds
+    50-90 pooled) gives a clear ladder:
+
+        AutoYara as released          ("AutoYara Reality",   AY EBF)       11.2 %
+        AutoYara, retrained filters   ("AutoYara Configured", AY RTBF)     92.7 %
+        AutoPYara in practice         ("AutoPYara Reality",  APY OH: M)    94.5 %
+        AutoPYara, best K             ("AutoPYara Best k",   APY B)        95.6 %
+        AutoPYara, best K, zero-TP clusters dropped
+                                      ("Ideal Case",         APY B WF)     95.9 %
+
+    The two configurations that use the original Ember Bloom filters (AY EBF,
+    APY EBF) are the lowest of all, at about 11 %.
+
+    (Claim wording derived from the figure's name, bar labels and annotations; the
+    numbers are what the provided data produce.)
+
+FIGURE
+    Claim6_YaraInAllitsConfigurations/BigPicutre.pdf   (file name spelled as in the paper sources)
+
+    Bars at or below 84 % are on the left panel (0-84 %), the rest on the right
+    panel (84-100 %). For the three "OH" (heuristic K) bars, the red segment is the
+    gain from falling back to AutoPYara's rule where the heuristic produced none.
+    The module docstring of artifact/plots/PlotsSet4_yaraBigPicture.py maps every
+    bar label to its rule set.
+
+INPUTS
+    data/clusterCSV/ssdeep/th{50..90}.csv
+    data/ruleEval/{originalBloomFilters,retrainedBloomFilters}/ssdeep/...  (12 rule sets)
+
+HOW TO RUN
+    ./run.sh [-j N]
+
+    Prerequisites: ../../install.sh and the evaluation data in ../../data.
+    Runtime: about 12 s on 8 cores.
+
+WHAT IS VERIFIED (artifact/plots/verify_claims.py)
+    1. The figure is regenerated from the data.
+    2. Every plotted number (all bar heights and stacked segments) matches
+       expected/values.json within 1.0 percentage point.
+    3. The claim holds: the two Ember-filter bars are the lowest (both below 20 %);
+       AutoYara reality < AutoYara configured < AutoPYara reality < AutoPYara best K
+       <= ideal case; and the ideal case is the highest bar.
+
+EXPECTED RESULT
+    "CLAIM 9: PASS". Reference figure: expected/figures/. Transcript:
+    expected/expected_output.txt.
+
+TOLERANCE / SCOPE
+    As for claim 4.

@@ -6,7 +6,7 @@ cluster: its TP rate averaged over ``mr`` generation runs. Each bar below is the
 (error bar = population std) of all those per-cluster values, pooled over the five
 similarity thresholds (50..90) of a clustering, and shown in percent.
 
-Figures written (under ``--out-dir``, default ``Plots/Figures``):
+Figures written (under ``--out-dir``, default ``<repo>/results/figures``):
 
 ====================================================================================  =============================================
 File                                                                                  Bars
@@ -20,7 +20,7 @@ Claim2_BloomFiltersMatter/AutoPYara_EmberBloomFiltersVSRetrainedBloomfilters.pdf
 
 Each chart has three bar groups: SSdeep, J-SDhash (sdhash) and VirusTotal clusterings.
 
-Inputs (relative to ``--data-dir``, default ``../data``):
+Inputs (relative to ``--data-dir``, default ``<repo>/data``):
   clusterCSV/{sdhash/Th<t>.csv, ssdeep/th<t>.csv, virusTotal/MainVtCluster.csv}
   ruleEval/{originalBloomFilters,retrainedBloomFilters}/.../merged_group_1.yar
 The exact list is ``TASKS`` below (``--dry-run`` prints it and checks every file exists).
