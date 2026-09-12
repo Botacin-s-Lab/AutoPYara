@@ -5,7 +5,10 @@ AutoPYara - ACSAC 2026 Artifact
 Artifact for the ACSAC 2026 paper on AutoPYara, a framework for automated YARA
 rule generation from collections of malware samples (Bloom-filtered byte
 n-gram analysis with cluster-aware signature construction).
-    Paper:   TODO(authors): title and authors (BibTeX: metadata.toml, "citation")
+    Paper:   Mabon Ninan*, Nhat Minh Nguyen*, Soumyajyoti Dutta, Sidharth Anil,
+             and Marcus Botacin. "AutoPYara: Next-Gen YARA Rule Generator for
+             Malware Family Clustering." To appear, ACSAC 2026.
+             (*Equal contribution. BibTeX: metadata.toml, "citation")
 
 Badges sought:  Available, Functional, Reproduced
 
@@ -193,5 +196,17 @@ Details: infrastructure/resources.txt.
 8. CONTACT
 --------------------------------------------------------------------------------
 
-Mabon Ninan, Texas A&M University - ninanmm@tamu.edu
+Authors (Texas A&M University), in citation order:
+  Mabon Ninan*         ninanmm@tamu.edu
+  Nhat Minh Nguyen*    nmnguy29@tamu.edu
+  Soumyajyoti Dutta    soumyajyoti1998@tamu.edu
+  Sidharth Anil        sid.anil@tamu.edu
+  Marcus Botacin       botacin@tamu.edu
+  (*equal contribution)
+
+Corresponding author: Mabon Ninan - ninanmm@tamu.edu
 Issues: https://github.com/Botacin-s-Lab/AutoPYara/issues
+
+Related thesis: Nhat Minh Nguyen. "AutoPYara: A Python/Java Framework for
+Automatic YARA Rule Generation Using Semi-Supervised Clustering." M.S.
+Thesis, Texas A&M University, Spring 2025.
