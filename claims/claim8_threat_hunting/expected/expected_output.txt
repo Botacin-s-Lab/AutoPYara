@@ -28,7 +28,8 @@ output: <repo>/results/claim8_threat_hunting/logs/PlotsSet3_ThreatHunting.log
 
 === summary ===
 PlotsSet3_ThreatHunting.py     OK                      2.0s
-2 PDFs under <repo>/results/claim8_threat_hunting:
+3 PDFs under <repo>/results/claim8_threat_hunting:
+  Claim5_Threathunting/sdhash_RealWorldStream_PHeuPlot.pdf
   Claim5_Threathunting/sdhash_WithHeuOnly_IdealPlot.pdf
   Claim5_Threathunting/sdhash_WithNOHeuOnly_IdealPlot.pdf
 ================================================================================
@@ -41,15 +42,18 @@ CLAIM 8 (paper claim 5) - threat hunting on held-out samples
 2. Figures
   [ok]  Claim5_Threathunting/sdhash_WithHeuOnly_IdealPlot.pdf -- written
   [ok]  Claim5_Threathunting/sdhash_WithNOHeuOnly_IdealPlot.pdf -- written
+  [ok]  Claim5_Threathunting/sdhash_RealWorldStream_PHeuPlot.pdf -- written
 
 3. Plotted numbers vs. the reference (expected/values.json, tolerance 1.0 pp)
-  [ok]  850 plotted numbers match the reference -- max deviation 0
+  [ok]  1240 plotted numbers match the reference -- max deviation 0
 
 4. Claim statements, on the regenerated numbers
      with heuristics only  train: AutoPYara  81.94 %  AutoYara  69.76 %   test: AutoPYara  80.83 %  AutoYara  69.43 %
      without heuristics    train: AutoPYara  80.40 %  AutoYara  75.04 %   test: AutoPYara  76.28 %  AutoYara  75.77 %
+     real-world stream     train: AutoPYara  84.77 %  AutoYara  76.25 %   test: AutoPYara  82.19 %  AutoYara  75.92 %
   [ok]  with heuristics only: AutoPYara > AutoYara on held-out test samples
   [ok]  without heuristics: AutoPYara > AutoYara on held-out test samples
+  [ok]  real-world stream: AutoPYara > AutoYara on held-out test samples
 
 ================================================================================
 CLAIM 8: PASS -- paper claim 5 reproduced from the provided data

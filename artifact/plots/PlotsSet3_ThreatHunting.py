@@ -27,8 +27,9 @@ Figures written (under ``--out-dir``, default ``<repo>/results/figures``):
 =================================================================  ================================
 File                                                               Experiment folder
 =================================================================  ================================
-Claim5_Threathunting/sdhash_WithHeuOnly_IdealPlot.pdf              ThreatHunting/Exp1HEUONLYsdhash
-Claim5_Threathunting/sdhash_WithNOHeuOnly_IdealPlot.pdf            ThreatHunting/Exp1NOHEUsdhash
+Claim5_Threathunting/sdhash_WithHeuOnly_IdealPlot.pdf              ThreatHunting/IdealStream_HEU
+Claim5_Threathunting/sdhash_WithNOHeuOnly_IdealPlot.pdf            ThreatHunting/NonIdealStream_RDM
+Claim5_Threathunting/sdhash_RealWorldStream_PHeuPlot.pdf           ThreatHunting/RealWorldStream_PHeu
 =================================================================  ================================
 
 Usage:
@@ -131,8 +132,9 @@ def check_and_extract(folder_path):
 # --------------------------------------------------------------------------------------
 THRESHOLDS = (50, 60, 70, 80, 90)
 EXPERIMENTS = [  # (experiment folder under ThreatHunting/, output figure)
-    ('Exp1HEUONLYsdhash', 'Claim5_Threathunting/sdhash_WithHeuOnly_IdealPlot.pdf'),
-    ('Exp1NOHEUsdhash', 'Claim5_Threathunting/sdhash_WithNOHeuOnly_IdealPlot.pdf'),
+    ('IdealStream_HEU', 'Claim5_Threathunting/sdhash_WithHeuOnly_IdealPlot.pdf'),
+    ('NonIdealStream_RDM', 'Claim5_Threathunting/sdhash_WithNOHeuOnly_IdealPlot.pdf'),
+    ('RealWorldStream_PHeu', 'Claim5_Threathunting/sdhash_RealWorldStream_PHeuPlot.pdf'),
 ]
 TASKS = [PathTask(exp, check_and_extract, (f'ThreatHunting/{exp}/Th{t}/Ratio_0.75',))
          for exp, _ in EXPERIMENTS for t in THRESHOLDS]

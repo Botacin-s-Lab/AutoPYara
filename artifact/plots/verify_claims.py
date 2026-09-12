@@ -156,7 +156,8 @@ def check_7(v):
 def check_8(v):
     rows, checks = [], []
     for name, fig in (('with heuristics only', 'sdhash_WithHeuOnly_IdealPlot.pdf'),
-                      ('without heuristics', 'sdhash_WithNOHeuOnly_IdealPlot.pdf')):
+                      ('without heuristics', 'sdhash_WithNOHeuOnly_IdealPlot.pdf'),
+                      ('real-world stream', 'sdhash_RealWorldStream_PHeuPlot.pdf')):
         h = hunting_means(v, C5 + fig)
         rows.append(f'{name:21s} train: AutoPYara {h["AutoPYara", "train"]:6.2f} %  AutoYara '
                     f'{h["AutoYara", "train"]:6.2f} %   test: AutoPYara {h["AutoPYara", "test"]:6.2f} %'
@@ -195,7 +196,8 @@ CLAIMS = {
             title='similarity threshold and choice of K', figures=[C4 + f for f in FIG7.values()]),
     8: dict(dir='claim8_threat_hunting', paper=5, set='set3', check=check_8,
             title='threat hunting on held-out samples',
-            figures=[C5 + 'sdhash_WithHeuOnly_IdealPlot.pdf', C5 + 'sdhash_WithNOHeuOnly_IdealPlot.pdf']),
+            figures=[C5 + 'sdhash_WithHeuOnly_IdealPlot.pdf', C5 + 'sdhash_WithNOHeuOnly_IdealPlot.pdf',
+                     C5 + 'sdhash_RealWorldStream_PHeuPlot.pdf']),
     9: dict(dir='claim9_all_configurations', paper=6, set='set4', check=check_9,
             title='AutoYara and AutoPYara in all their configurations', figures=[C6 + 'BigPicutre.pdf']),
 }

@@ -82,8 +82,9 @@ numbers; the artifact claim that checks them is in the last column.
 | `Claim4_ThresHoldFigures/AutoPYaraUninformedHEUMeanK_SSdeepAVG_ZoomRTBF.pdf` | 4 | Uninformed heuristic: mean K | Set 2 | 7 |
 | `Claim4_ThresHoldFigures/AutoPYaraUninformedHEUMaxK_SSdeepAVG_ZoomRTBF.pdf` | 4 | Uninformed heuristic: max K | Set 2 | 7 |
 | `Claim4_ThresHoldFigures/AutoPYaraUninformedHEURandomK_SSdeepAVG_ZoomRTBF.pdf` | 4 | Uninformed heuristic: random K | Set 2 | 7 |
-| `Claim5_Threathunting/sdhash_WithHeuOnly_IdealPlot.pdf` | 5 | Threat hunting (`Exp1HEUONLYsdhash`): train (left) vs. test (right), AutoPYara vs. AutoYara | Set 3 | 8 |
-| `Claim5_Threathunting/sdhash_WithNOHeuOnly_IdealPlot.pdf` | 5 | Same for `Exp1NOHEUsdhash` | Set 3 | 8 |
+| `Claim5_Threathunting/sdhash_WithHeuOnly_IdealPlot.pdf` | 5 | Threat hunting (`IdealStream_HEU`): train (left) vs. test (right), AutoPYara vs. AutoYara | Set 3 | 8 |
+| `Claim5_Threathunting/sdhash_WithNOHeuOnly_IdealPlot.pdf` | 5 | Same for `NonIdealStream_RDM` | Set 3 | 8 |
+| `Claim5_Threathunting/sdhash_RealWorldStream_PHeuPlot.pdf` | 5 | Same for `RealWorldStream_PHeu` | Set 3 | 8 |
 | `Claim6_YaraInAllitsConfigurations/BigPicutre.pdf` | 6 | Mean TP rate of 15 AutoYara/AutoPYara configurations, ranked | Set 4 | 9 |
 
 Each Set 1 chart has one bar group per clustering: SSdeep, J-SDhash (sdhash) and
@@ -93,7 +94,7 @@ threat-hunting experiments.
 ## Input data
 
 The scripts read 11 clustering CSVs, 84 merged rule files (about 2.1 GB in total) and
-10 threat-hunting result folders. `artifact/download_data.py` fetches them into
+15 threat-hunting result folders. `artifact/download_data.py` fetches them into
 `data/`. Directory names must match the casing below exactly (for example
 `Autoyara` vs. `AutoYara`). Run `--dry-run` to list every input.
 
@@ -115,7 +116,7 @@ data/
 │       │               Heuristics/{avgk,maxk,randomK}, Heuristics/BAD/{Mean,Max,Random}
 │       └── virusTotal/{AutoYara,AutoPYara}/merged_group_1.yar
 └── ThreatHunting/
-    └── {Exp1HEUONLYsdhash,Exp1NOHEUsdhash}/Th<t>/Ratio_0.75/cluster_<n>/
+    └── {IdealStream_HEU,NonIdealStream_RDM,RealWorldStream_PHeu}/Th<t>/Ratio_0.75/cluster_<n>/
           train_files.txt, test_files.txt, tprate{AutoPYara,AutoyaraBase}_{Train,Test}.txt
 ```
 

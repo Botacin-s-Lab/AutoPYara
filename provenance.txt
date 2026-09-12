@@ -63,8 +63,9 @@ data/ThreatHunting/  - the threat-hunting experiment
         tprate{AutoPYara,AutoyaraBase}_{Train,Test}.txt
                                             "TP Rate: r (X/Y)" of the rule on the
                                             training and on the test samples
-    Experiments: Exp1HEUONLYsdhash, Exp1NOHEUsdhash (sdhash clusterings).
-    TODO(authors): meaning of Ratio_0.75 and of the HEUONLY / NOHEU settings.
+    Experiments: IdealStream_HEU, NonIdealStream_RDM, RealWorldStream_PHeu (sdhash
+    clusterings).
+    TODO(authors): meaning of Ratio_0.75 and of the HEU / RDM / PHeu settings.
 
 --------------------------------------------------------------------------------
 3. WHAT IS PACKAGED
