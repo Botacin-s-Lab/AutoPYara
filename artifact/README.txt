@@ -14,9 +14,10 @@ WHAT IS IN THIS DIRECTORY
         plot_common.py, util.py shared code: parallel extraction, rule parsing,
                                 recording of the plotted numbers
 
-    download_data.py        downloads the evaluation data from Zenodo, verifies
-                            every file against its SHA-256 manifest, unpacks it
-                            into ../data
+    download_data.py        older fetcher, built around a single combined archive;
+                            superseded by ../loadData.sh, which fetches the actual
+                            published (multi-archive) Zenodo record and is what
+                            ../install.sh calls
     package_data.py         (authors only) builds that archive from exactly the
                             files the figure scripts read
 
@@ -57,5 +58,6 @@ DATA
     AutoPYara's Bloom filters (~600 MB, claims 1-3) are downloaded by install.sh
     (autopyara-download) from https://github.com/Botacin-s-Lab/AutoPYaraPyPI/tree/data-branch
 
-    The evaluation data (claims 4-9) are downloaded by download_data.py from
-    Zenodo into ../data. Layout: plots/README.md; provenance: ../provenance.txt.
+    The evaluation data (claims 4-9) are downloaded by ../loadData.sh from Zenodo
+    (https://doi.org/10.5281/zenodo.22665898; see ../zenodo/README.md) into
+    ../data. Layout: plots/README.md; provenance: ../provenance.txt.

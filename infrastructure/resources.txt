@@ -9,9 +9,11 @@ Execution environment: requirements and expected resource use
     RAM         16 GB for claims 1-3, which start the JVM backend with a fixed
                 14 GB maximum heap (constraints.txt). Claims 4-9 need under 8 GB
                 with 8 worker processes (about 0.7 GB per worker at most).
-    Disk        ~6 GB free: the evaluation data (TODO(authors): final archive
-                size; the rule files and CSVs alone are ~2.1 GB), 600 MB of
-                Bloom filters, ~1 GB Python environment, <100 MB of results.
+    Disk        ~60 GB free: the evaluation data once unpacked by loadData.sh
+                (~3.4 GB download; the files the figure scripts actually read
+                are ~2.1 GB, but the published archives unpack to much more -
+                see zenodo/README.md), 600 MB of Bloom filters, ~1 GB Python
+                environment, <100 MB of results.
     CPU         Any x86-64 processor. Claims 4-9 use all cores by default
                 (-j N to limit); 4+ cores recommended.
     Network     Only during installation (packages, Bloom filters, data).

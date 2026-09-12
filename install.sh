@@ -113,14 +113,15 @@ else
     if python "$HERE/artifact/plots/run_all_plots.py" --dry-run -q >/dev/null 2>&1; then
         ok "all inputs of the figure scripts are present in $HERE/data"
     else
+        note "Downloading from Zenodo (https://doi.org/10.5281/zenodo.22665898)."
+        note "Only the 3 archives claims 4-9 need; ~3.4 GB download, ~60 GB once unpacked."
         set +e
-        python "$HERE/artifact/download_data.py"
+        "$HERE/loadData.sh" --yes
         rc=$?
         set -e
         case "$rc" in
             0) ok "downloaded and verified into $HERE/data" ;;
-            2) warn "the data archive is not published yet; claims 4-9 need it (see README.txt)." ;;
-            *) fail "data download or verification failed (exit $rc)." ;;
+            *) fail "data download or verification failed (exit $rc); see zenodo/README.md." ;;
         esac
     fi
 fi

@@ -21,7 +21,9 @@ license (LICENSE, license.txt); the evaluation data are published on Zenodo.
 
     This artifact      https://github.com/Botacin-s-Lab/AutoPYara
                        Zenodo DOI: TODO(authors)
-    Evaluation data    Zenodo DOI: TODO(authors)  (fetched by artifact/download_data.py)
+    Evaluation data    Zenodo DOI: 10.5281/zenodo.22665898
+                       https://doi.org/10.5281/zenodo.22665898  (fetched by ./loadData.sh;
+                       see zenodo/README.md for what each archive contains)
     AutoPYara (tool)   https://github.com/Botacin-s-Lab/AutoPYaraPyPI  (tag v0.1.2)
                        https://pypi.org/project/autopyara/0.1.2/
     Java backend       https://github.com/Botacin-s-Lab/AutoPYaraBackend
@@ -94,8 +96,9 @@ compared side by side with claims/claimN_*/expected/figures/.
   Java      JRE 11+ on PATH or JAVA_HOME             (claims 1-3 only)
   RAM       16 GB for claims 1-3 (fixed 14 GB JVM heap); 8 GB for claims 4-9
   CPU       any x86-64; claims 4-9 use all cores (-j N to limit)
-  Disk      ~6 GB: evaluation data (TODO(authors): final archive size), 600 MB
-            Bloom filters, ~1 GB Python environment, figures
+  Disk      ~60 GB: evaluation data unpacked (~3.4 GB download; loadData.sh's
+            default fetches only the 3 archives claims 4-9 need), 600 MB Bloom
+            filters, ~1 GB Python environment, figures
   Network   during installation only
   GPU       not used
 
@@ -129,7 +132,7 @@ Details: infrastructure/resources.txt.
     docker build -t autopyara-artifact .
     mkdir -p data results
     docker run --rm -v "$PWD/data:/opt/artifact/data" autopyara-artifact \
-        python3 artifact/download_data.py
+        ./loadData.sh --yes
     docker run --rm -it --memory=16g -v "$PWD/data:/opt/artifact/data" \
         -v "$PWD/results:/opt/artifact/results" autopyara-artifact ./run_all_claims.sh -j 8
 
@@ -143,6 +146,9 @@ Details: infrastructure/resources.txt.
 
     README.txt            this file
     install.sh            one-command setup
+    loadData.sh           fetch + verify the evaluation data from Zenodo (called
+                          by install.sh; --all also fetches the supplementary
+                          archives; see zenodo/README.md)
     run_all_claims.sh     runs claims 1-9, prints a PASS/FAIL summary
     Dockerfile            contained environment (Python 3.12, OpenJDK 17, pinned)
     metadata.toml         ACSAC/artmeta packaging metadata
@@ -150,10 +156,12 @@ Details: infrastructure/resources.txt.
     license.txt, LICENSE  licenses
     provenance.txt        how the evaluation data were produced
     ethics.txt            ethical considerations
+    zenodo/README.md      description of every archive in the Zenodo data record
 
     artifact/             the artifact's code (see artifact/README.txt)
         plots/                figure scripts, claim verification (verify_claims.py)
-        download_data.py      fetch + verify the evaluation data into data/
+        download_data.py      older single-archive fetcher; superseded by
+                              ../loadData.sh, not currently used by install.sh
         package_data.py       (authors) build the data archive for Zenodo
         make_proxy_corpus.py  synthetic corpus for claims 1-3
         requirements-lock.txt pinned dependencies
@@ -176,8 +184,6 @@ Details: infrastructure/resources.txt.
     so its output differs between runs; the check is structural. Claims 4-9 are
     deterministic.
   * The JVM backend reserves a fixed 14 GB heap: claims 1-3 need 16 GB of RAM.
-  * The evaluation data DOI above is a placeholder until the Zenodo record is
-    published. TODO(authors).
   * The figure scripts keep a few quirks of the paper's plotting code on purpose
     (artifact/plots/README.md, "Notes and known quirks").
 

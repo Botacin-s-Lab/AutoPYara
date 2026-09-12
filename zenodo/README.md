@@ -7,6 +7,8 @@ the clusterings, generated YARA rules, threat-hunting results, and supporting
 raw data the paper's figures and claims are computed from. **No malware or
 other executable sample is included** — see [What is NOT included](#what-is-not-included).
 
+**Zenodo record:** https://doi.org/10.5281/zenodo.22665898
+
 This file is kept under version control in the artifact repository at
 [`zenodo/README.md`](https://github.com/Botacin-s-Lab/AutoPYara/blob/main/zenodo/README.md)
 and is also published as part of this Zenodo record.
@@ -37,7 +39,7 @@ Please also consider citing this dataset itself via its Zenodo DOI:
   author    = {Ninan, Mabon and Nguyen, Nhat Minh and Dutta, Soumyajyoti and Anil, Sidharth and Botacin, Marcus},
   year      = {2026},
   publisher = {Zenodo},
-  doi       = {TODO(authors): fill in once this record is published}
+  doi       = {10.5281/zenodo.22665898}
 }
 ```
 
@@ -67,9 +69,11 @@ keep that spelling for consistency with the uploaded archive names.)
 
 The AutoPYara artifact (claims 4-9; see the
 [artifact README](https://github.com/Botacin-s-Lab/AutoPYara/blob/main/README.txt))
-regenerates every paper figure from three archives. Unzip each into the
-matching subfolder of the artifact's `data/` directory (created by
-`./install.sh` / `artifact/download_data.py`):
+regenerates every paper figure from three archives. `./install.sh` fetches
+them automatically (via
+[`loadData.sh`](https://github.com/Botacin-s-Lab/AutoPYara/blob/main/loadData.sh)),
+or run `./loadData.sh` directly. Each unzips into a matching subfolder of the
+artifact's `data/` directory:
 
 | Archive | Unzips into | Contents |
 |---|---|---|
@@ -80,11 +84,12 @@ matching subfolder of the artifact's `data/` directory (created by
 Full field-by-field detail is in
 [`artifact/plots/README.md`](https://github.com/Botacin-s-Lab/AutoPYara/blob/main/artifact/plots/README.md)
 and [`provenance.txt`](https://github.com/Botacin-s-Lab/AutoPYara/blob/main/provenance.txt)
-in the artifact repository. `artifact/download_data.py` is being updated to
-fetch and verify these three files automatically once this record is
-published; until then, download and verify them manually (see
-[Verifying a download](#verifying-a-download) below) and unzip them into the
-paths above.
+in the artifact repository. `loadData.sh` downloads only these three
+archives by default (pass `--all` for the four supplementary ones below),
+verifies each against the MD5s in [Contents](#contents), and unzips them
+into the paths above; note the warning it prints first — the unpacked data
+is much larger than the download (see the size table it prints, or run it
+with `--yes` to skip the confirmation prompt in a script).
 
 ### Supplementary archives
 
