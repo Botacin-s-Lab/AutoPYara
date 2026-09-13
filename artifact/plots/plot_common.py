@@ -296,7 +296,7 @@ def script_main(description, tasks, make_figures, argv=None):
     if missing:
         if not os.path.isdir(args.data_dir):
             print(f'The data directory {args.data_dir} does not exist; fetch the data with '
-                  f'artifact/download_data.py (see README.txt).', file=sys.stderr)
+                  f'./loadData.sh (see README.md).', file=sys.stderr)
         return 2
     if args.dry_run:
         return 0

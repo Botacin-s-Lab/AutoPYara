@@ -68,7 +68,7 @@ keep that spelling for consistency with the uploaded archive names.)
 ### What the artifact evaluation needs
 
 The AutoPYara artifact (claims 4-9; see the
-[artifact README](https://github.com/Botacin-s-Lab/AutoPYara/blob/main/README.txt))
+[artifact README](https://github.com/Botacin-s-Lab/AutoPYara/blob/main/README.md))
 regenerates every paper figure from three archives. `./install.sh` fetches
 them automatically (via
 [`loadData.sh`](https://github.com/Botacin-s-Lab/AutoPYara/blob/main/loadData.sh)),

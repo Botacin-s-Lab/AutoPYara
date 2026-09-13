@@ -86,7 +86,7 @@ if [ -n "${USE_CONDA:-}" ] || [ -z "${PYTHON:-}" ]; then
        conda/mamba on PATH either. Either install python3-venv (Debian/Ubuntu:
        sudo apt-get install python3.12-venv) or install Miniconda/Anaconda, then
        re-run ./install.sh (set USE_CONDA=1 to force conda once it's installed),
-       or use the Docker image described in README.txt."
+       or use the Docker image described in README.md."
     if [ -n "${USE_CONDA:-}" ]; then
         note "Using $CONDA_BIN to provision the environment (USE_CONDA=$USE_CONDA)."
     else
@@ -234,6 +234,6 @@ or individual claims, e.g. the two quick checks:
     ./claims/claim1_install/run.sh                 tool installs, JVM starts   (<1 min)
     ./claims/claim4_incorrect_baselines/run.sh     first paper figure          (~10 s)
 
-The claim scripts activate .venv themselves. See README.txt for the claim list.
+The claim scripts activate .venv themselves. See README.md for the claim list.
 ================================================================================
 EOF

@@ -8,7 +8,7 @@ __pycache__/
 .virtual_documents/
 
 # Evaluation data: several GB, published separately on Zenodo.
-# Fetch it with artifact/download_data.sh (see README.txt).
+# Fetch it with ./loadData.sh (see README.md).
 /data/
 
 # Generated outputs (claims and figure runs write here)
