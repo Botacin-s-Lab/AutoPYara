@@ -13,6 +13,12 @@
 #         python3.12 -m venv .venv && . .venv/bin/activate
 #         pip install -r artifact/requirements-lock.txt
 #
+#     No python3.12 or venv module available? Use conda instead (install.sh does
+#     this automatically, or force it with USE_CONDA=1):
+#
+#         conda create --prefix .venv python=3.12 pip && conda activate ./.venv
+#         pip install -r artifact/requirements-lock.txt
+#
 # PYTHON VERSION
 #     Python 3.11 or 3.12. scikit-learn 1.8.0 needs Python >= 3.11, and numpy 1.26.4
 #     publishes no wheels for Python 3.13. All pins below ship Linux x86-64 wheels

@@ -29,11 +29,15 @@ Reference platform for our own verification:
 
     OS          Linux (tested); macOS and Windows untested - use Docker there
     Python      3.11 or 3.12 with the venv module (pinned dependencies,
-                ../artifact/requirements-lock.txt)
+                ../artifact/requirements-lock.txt); if venv isn't usable
+                (e.g. python3-venv isn't installed), conda or mamba on PATH
+                works too - ../install.sh falls back to it automatically, or
+                force it with USE_CONDA=1
     Java        JRE 11 or newer, on PATH or via JAVA_HOME (claims 1-3 only)
     Docker      optional alternative to all of the above (../Dockerfile)
 
-../install.sh creates ../.venv and installs everything into it; nothing is
+../install.sh creates ../.venv (a venv, or a conda environment at the same
+path if conda was used instead) and installs everything into it; nothing is
 installed system-wide.
 
 --------------------------------------------------------------------------------

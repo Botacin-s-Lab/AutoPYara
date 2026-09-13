@@ -92,7 +92,9 @@ compared side by side with claims/claimN_*/expected/figures/.
 --------------------------------------------------------------------------------
 
   OS        Linux x86-64 (tested: Ubuntu). macOS/Windows untested; use Docker.
-  Python    3.11 or 3.12, with the venv module (python3-venv on Debian/Ubuntu)
+  Python    3.11 or 3.12, with the venv module (python3-venv on Debian/Ubuntu);
+            if that's not available, install.sh falls back to "conda create"
+            when conda/mamba is on PATH (or force it with USE_CONDA=1)
   Java      JRE 11+ on PATH or JAVA_HOME             (claims 1-3 only)
   RAM       16 GB for claims 1-3 (fixed 14 GB JVM heap); 8 GB for claims 4-9
   CPU       any x86-64; claims 4-9 use all cores (-j N to limit)
@@ -125,7 +127,9 @@ Details: infrastructure/resources.txt.
     ./run_all_claims.sh -j 8
 
   Options: SKIP_TOOL=1 ./install.sh sets up only claims 4-9 (no Java needed);
-  SKIP_DATA=1 only claims 1-3. ./run_all_claims.sh --paper / --tool runs one group.
+  SKIP_DATA=1 only claims 1-3. USE_CONDA=1 ./install.sh uses conda instead of venv
+  (auto-selected already if python3 -m venv isn't usable but conda/mamba is).
+  ./run_all_claims.sh --paper / --tool runs one group.
 
   Docker instead of install.sh:
 
