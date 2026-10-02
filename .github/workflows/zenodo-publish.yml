@@ -1,0 +1,115 @@
+name: Publish artifact snapshot to Zenodo
+
+# Manual only: a real Zenodo publish mints a permanent, undeletable DOI.
+# Defaults to the Zenodo Sandbox so you can rehearse before using sandbox: false
+# for the real zenodo.org deposit. Requires a ZENODO_TOKEN repo secret
+# (a personal access token with deposit:write / deposit:actions scopes,
+# created on https://zenodo.org/account/settings/applications/tokens/ or the
+# sandbox equivalent for a dry run).
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Git tag to archive and publish"
+        required: true
+        default: "v1.0.0"
+      sandbox:
+        description: "Use sandbox.zenodo.org instead of the real zenodo.org"
+        type: boolean
+        required: true
+        default: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Build source archive
+        run: git archive --format=zip --output="${{ runner.temp }}/AutoPYara-${{ inputs.tag }}.zip" HEAD
+
+      - name: Create and publish Zenodo deposition
+        env:
+          ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}
+          TAG: ${{ inputs.tag }}
+          ARCHIVE: ${{ runner.temp }}/AutoPYara-${{ inputs.tag }}.zip
+        run: |
+          set -euo pipefail
+
+          if [ "${{ inputs.sandbox }}" = "true" ]; then
+            API="https://sandbox.zenodo.org/api"
+          else
+            API="https://zenodo.org/api"
+          fi
+
+          echo "Using API: $API"
+
+          # 1. Create an empty deposition, grab its id and upload bucket.
+          create_resp=$(curl -sS -X POST "$API/deposit/depositions" \
+            -H "Authorization: Bearer $ZENODO_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{}')
+          dep_id=$(echo "$create_resp" | jq -r '.id')
+          bucket_url=$(echo "$create_resp" | jq -r '.links.bucket')
+          if [ "$dep_id" = "null" ] || [ -z "$dep_id" ]; then
+            echo "Failed to create deposition:"
+            echo "$create_resp"
+            exit 1
+          fi
+          echo "Created deposition $dep_id"
+
+          # 2. Upload the source archive to the bucket.
+          curl -sS -X PUT "$bucket_url/AutoPYara-${TAG}.zip" \
+            -H "Authorization: Bearer $ZENODO_TOKEN" \
+            --upload-file "$ARCHIVE" > /dev/null
+
+          # 3. Attach metadata.
+          metadata=$(jq -n --arg version "$TAG" '{
+            metadata: {
+              title: "AutoPYara: Next-Gen YARA Rule Generator for Malware Family Clustering",
+              upload_type: "software",
+              description: "Source code release of AutoPYara, the artifact accompanying the ACSAC 2026 paper \"AutoPYara: Next-Gen YARA Rule Generator for Malware Family Clustering.\" See https://github.com/Botacin-s-Lab/AutoPYara for documentation. Companion evaluation data and generated YARA rules are archived separately at https://doi.org/10.5281/zenodo.22665898.",
+              creators: [
+                {name: "Ninan, Mabon", affiliation: "Texas A&M University"},
+                {name: "Nguyen, Nhat Minh", affiliation: "Texas A&M University"},
+                {name: "Dutta, Soumyajyoti", affiliation: "Texas A&M University"},
+                {name: "Anil, Sidharth", affiliation: "Texas A&M University"},
+                {name: "Botacin, Marcus", affiliation: "Texas A&M University"}
+              ],
+              license: "mit",
+              version: $version,
+              related_identifiers: [
+                {identifier: "https://github.com/Botacin-s-Lab/AutoPYara", relation: "isSupplementTo", resource_type: "software", scheme: "url"},
+                {identifier: "10.5281/zenodo.22665898", relation: "isSupplementedBy", resource_type: "dataset"}
+              ]
+            }
+          }')
+          curl -sS -X PUT "$API/deposit/depositions/$dep_id" \
+            -H "Authorization: Bearer $ZENODO_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$metadata" > /dev/null
+
+          # 4. Publish.
+          publish_resp=$(curl -sS -X POST "$API/deposit/depositions/$dep_id/actions/publish" \
+            -H "Authorization: Bearer $ZENODO_TOKEN")
+          doi=$(echo "$publish_resp" | jq -r '.doi')
+          record_url=$(echo "$publish_resp" | jq -r '.links.record_html // .links.html')
+
+          if [ "$doi" = "null" ] || [ -z "$doi" ]; then
+            echo "Publish failed:"
+            echo "$publish_resp"
+            exit 1
+          fi
+
+          echo "Published DOI: $doi"
+          echo "Record URL: $record_url"
+          {
+            echo "### Zenodo deposit published"
+            echo ""
+            echo "- DOI: \`$doi\`"
+            echo "- Record: $record_url"
+            echo "- Mode: $([ "${{ inputs.sandbox }}" = "true" ] && echo sandbox || echo production)"
+          } >> "$GITHUB_STEP_SUMMARY"
