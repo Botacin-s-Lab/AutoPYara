@@ -50,7 +50,7 @@ free, long-term archive for research data.
 
 | What | Where |
 | --- | --- |
-| This artifact | <https://github.com/Botacin-s-Lab/AutoPYara> — Zenodo DOI: TODO(authors) |
+| This artifact | <https://github.com/Botacin-s-Lab/AutoPYara> — Zenodo DOI (v1.0.0, the evaluated snapshot): [10.5281/zenodo.23107801](https://doi.org/10.5281/zenodo.23107801) |
 | Evaluation data | Zenodo DOI [10.5281/zenodo.22665898](https://doi.org/10.5281/zenodo.22665898) — fetched automatically by `./loadData.sh`; see `zenodo/README.md` for what each archive contains |
 | AutoPYara (the tool) | <https://github.com/Botacin-s-Lab/AutoPYaraPyPI> (tag `v0.1.2`) and <https://pypi.org/project/autopyara/0.1.2/> |
 | Java backend | <https://github.com/Botacin-s-Lab/AutoPYaraBackend> |
