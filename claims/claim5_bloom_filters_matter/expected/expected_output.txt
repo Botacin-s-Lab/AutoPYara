@@ -18,7 +18,7 @@ COMPARE THE FIGURES
     reference PDFs are in expected/figures/ (same file names).
 
 REFERENCE TRANSCRIPT
-    Reference platform: Ubuntu Linux x86-64, 12 CPUs, CPython 3.13, numpy 1.26.4,
+    Reference platform: Ubuntu Linux x86-64, 12 CPUs, CPython 3.12, numpy 1.26.4,
     pandas 2.2.3, matplotlib 3.10.0; run as ./run.sh -j 8. Progress bars removed.
 --------------------------------------------------------------------------------
 Running set1 with 8 worker process(es) each; data: <repo>/data; figures: <repo>/results/claim5_bloom_filters_matter

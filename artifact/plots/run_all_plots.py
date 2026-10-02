@@ -24,7 +24,7 @@ Examples:
 
 Memory: each worker holds one rule file (largest ~95 MB on disk) plus its parsed
 form, i.e. a few hundred MB at peak; lower ``-j`` on small machines.
-Requirements: numpy, pandas, matplotlib, tqdm (tested with Python 3.13, numpy 1.26,
+Requirements: numpy, pandas, matplotlib, tqdm (tested with Python 3.12, numpy 1.26,
 pandas 2.2, matplotlib 3.10).
 """
 import argparse

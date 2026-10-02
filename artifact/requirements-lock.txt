@@ -20,9 +20,11 @@
 #         pip install -r artifact/requirements-lock.txt
 #
 # PYTHON VERSION
-#     Python 3.11 or 3.12. scikit-learn 1.8.0 needs Python >= 3.11, and numpy 1.26.4
-#     publishes no wheels for Python 3.13. All pins below ship Linux x86-64 wheels
-#     for 3.11 and 3.12.
+#     Python 3.11 or 3.12 for this artifact. scikit-learn 1.8.0 needs Python >= 3.11,
+#     and numpy 1.26.4 publishes no wheels for Python 3.13, so 3.13 isn't supported
+#     either. All pins below ship Linux x86-64 wheels for 3.11 and 3.12. (The autopyara
+#     package itself more broadly supports Python 3.9-3.12; this lock file's narrower
+#     range is just what's needed for exact reproducibility of this pinned artifact.)
 #
 # VERIFIED ON
 #     Ubuntu Linux x86-64, OpenJDK 17/21.

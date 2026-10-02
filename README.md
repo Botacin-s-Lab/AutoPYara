@@ -96,15 +96,14 @@ itself). Each claim has its own folder, `claims/claimN_*/`, containing:
 | `claim1` | — | The tool installs and its Java backend starts | — | < 1 min |
 | `claim2` | — | The AutoYara preset emits a valid YARA rule | — | 1-3 min |
 | `claim3` | — | The AutoPYara preset derives its own cluster count (K) | — | 1-4 min |
-| `claim4` | 1 | AutoYara's usual "headline" number hides the clusters it fails on: 87-91% on the clusters where it has *any* success, vs. only 11-34% averaged over *all* clusters | `Claim1_IncorrectBaseLines/` (2 figures) | ~10 s |
-| `claim5` | 2 | The Bloom filters matter: retraining them lifts both tools' scores a lot (e.g. 11% → 93% on the SSdeep clustering) | `Claim2_BloomFiltersMatter/` (2 figures) | ~10 s |
-| `claim6` | 3 | AutoPYara beats AutoYara on all three clustering methods | `Claim3_YaraVsPYara/` (1 figure) | ~10 s |
-| `claim7` | 4 | AutoPYara beats AutoYara at every similarity threshold; the best choice of K beats AutoPYara's automatic choice, which beats the worst K; smarter ("informed") ways of picking K beat AutoYara, dumber ("uninformed") ones don't | `Claim4_ThresHoldFigures/` (10 figures) | ~15 s |
-| `claim8` | 5 | In simulated threat hunting, AutoPYara keeps a higher detection rate than AutoYara on samples neither tool has seen before | `Claim5_Threathunting/` (2 figures) | ~5 s |
-| `claim9` | 6 | Ranking all 15 configurations from worst to best: AutoYara as released (11%) up to AutoPYara with the best K (96%) | `Claim6_YaraInAllitsConfigurations/` (1 figure) | ~10 s |
+| `claim4` | 1 | AutoYara's usual "headline" number hides the clusters it fails on: 87-91% on the clusters where it has *any* success, vs. only 11-34% averaged over *all* clusters | `Claim1_IncorrectBaseLines/` (2 figures — paper Fig. 3) | ~10 s |
+| `claim5` | 2 | The Bloom filters matter: retraining them lifts both tools' scores a lot (e.g. 11% → 93% on the SSdeep clustering) | `Claim2_BloomFiltersMatter/` (2 figures — paper Figs. 4, 8) | ~10 s |
+| `claim6` | 3 | AutoPYara beats AutoYara on all three clustering methods | `Claim3_YaraVsPYara/` (1 figure — paper Fig. 6) | ~10 s |
+| `claim7` | 4 | AutoPYara beats AutoYara at every similarity threshold; the best choice of K beats AutoPYara's automatic choice, which beats the worst K; smarter ("informed") ways of picking K beat AutoYara, dumber ("uninformed") ones don't | `Claim4_ThresHoldFigures/` (10 figures — paper Figs. 5, 7, 9) | ~15 s |
+| `claim8` | 5 | In simulated threat hunting, AutoPYara keeps a higher detection rate than AutoYara on samples neither tool has seen before | `Claim5_Threathunting/` (3 figures — paper Fig. 11) | ~5 s |
+| `claim9` | 6 | Ranking all 15 configurations from worst to best: AutoYara as released (11%) up to AutoPYara with the best K (96%) | `Claim6_YaraInAllitsConfigurations/` (1 figure — paper Fig. 12) | ~10 s |
 
 *Runtimes are measured with 8 worker processes (`-j 8`) on our reference machine.*
-*TODO(authors): add the paper's figure number for each figure file.*
 
 For claims 4-9, the script regenerates the figures into `results/claimN_*/`, compares
 every plotted number against the reference in `claims/claimN_*/expected/values.json`
@@ -122,20 +121,26 @@ You don't need all of these if you use Docker — see the note below the table.
 | Requirement | Details |
 | --- | --- |
 | OS | Linux, x86-64 (tested on Ubuntu). macOS/Windows are untested — use Docker instead. |
-| Python | 3.11 or 3.12, with the `venv` module (`python3-venv` on Debian/Ubuntu). If that's not available, `install.sh` automatically falls back to using `conda create` instead, as long as `conda` or `mamba` is on your `PATH` (or force this with `USE_CONDA=1`). |
+| Python | 3.11 or 3.12 for this artifact specifically, with the `venv` module (`python3-venv` on Debian/Ubuntu) — the pinned `scikit-learn==1.8.0` (`artifact/requirements-lock.txt`) needs >= 3.11, and numpy 1.26.4 ships no 3.13 wheels, so 3.13 isn't supported either. (The `autopyara` package itself more broadly supports Python 3.9-3.12; this narrower range is just for exact reproducibility of the pinned artifact.) If venv isn't available, `install.sh` automatically falls back to using `conda create` instead, as long as `conda` or `mamba` is on your `PATH` (or force this with `USE_CONDA=1`). |
 | Java | A JRE 11 or newer, on your `PATH` or via `JAVA_HOME` — **only needed for claims 1-3.** |
 | RAM | 16 GB for claims 1-3 (the tool reserves a fixed 14 GB of memory for its Java backend); 8 GB is enough for claims 4-9. |
 | CPU | Any x86-64 processor. Claims 4-9 use all your CPU cores by default (pass `-j N` to limit that). |
 | Disk | About 60 GB free: the evaluation data once unpacked (a ~3.4 GB download — `loadData.sh`'s default only fetches the 3 archives claims 4-9 actually need), 600 MB of Bloom filters, ~1 GB for the Python environment, plus the generated figures. |
 | Network | Only needed while installing (to download packages, Bloom filters, and data). |
 | GPU | Not used. |
+| `unzip` | Needed by `loadData.sh` to unpack the evaluation data archives. Usually preinstalled; if not: `sudo apt-get install -y unzip`. |
 
 Prefer not to install anything locally? Use **Docker** instead (see
 [Getting started](#4-getting-started)) — it only needs Docker itself and 16 GB of RAM.
 
 This also runs fine on public research infrastructure: any standard
 [CloudLab](https://www.cloudlab.us/) or [Chameleon](https://www.chameleoncloud.org/)
-x86-64 node works out of the box. Google Colab is **not** suitable for claims 1-3 (see
+x86-64 node works, though their default Ubuntu 22.04 image ships neither a JRE nor
+`unzip`, and its system Python is 3.10 — `sudo apt-get install -y default-jre unzip`
+covers the first two, and `install.sh` will automatically fall back to `conda create`
+for the third (see the Python row above; install
+[Miniconda](https://docs.conda.io/en/latest/miniconda.html) first if `conda`/`mamba`
+isn't already on your `PATH`). Google Colab is **not** suitable for claims 1-3 (see
 `infrastructure/constraints.txt`). Full details: `infrastructure/resources.txt`.
 
 ---

@@ -21,7 +21,7 @@ Execution environment: requirements and expected resource use
 
 Reference platform for our own verification:
 
-    Ubuntu Linux, x86-64, 12 CPUs, 27 GB RAM, OpenJDK 21, CPython 3.13
+    Ubuntu Linux, x86-64, 12 CPUs, 27 GB RAM, OpenJDK 21, CPython 3.12
 
 --------------------------------------------------------------------------------
 2. SOFTWARE REQUIREMENTS

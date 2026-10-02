@@ -99,7 +99,11 @@ if [ -n "${USE_CONDA:-}" ] || [ -z "${PYTHON:-}" ]; then
        different install method or an interrupted run); rebuilding it."
             rm -rf "$VENV"
         fi
-        "$CONDA_BIN" create --prefix "$VENV" --yes "python=$CONDA_PY" pip || fail "$CONDA_BIN could not create $VENV."
+        # --override-channels -c conda-forge: a fresh Miniconda's default "defaults"
+        # channel (repo.anaconda.com) now requires interactively accepting Anaconda's
+        # Terms of Service, which fails non-interactively with CondaToSNonInteractiveError.
+        # conda-forge has no such gate.
+        "$CONDA_BIN" create --prefix "$VENV" --yes --override-channels -c conda-forge "python=$CONDA_PY" pip || fail "$CONDA_BIN could not create $VENV."
     fi
     CONDA_BASE_DIR="$("$CONDA_BIN" info --base)"
     # shellcheck disable=SC1091

@@ -14,7 +14,7 @@ WHAT VARIES BETWEEN ENVIRONMENTS
     the verdict. The check labels and the PASS line are what matter.
 
 REFERENCE TRANSCRIPT
-    Captured on the reference platform (Ubuntu, OpenJDK 21, CPython 3.13).
+    Captured on the reference platform (Ubuntu, OpenJDK 21, CPython 3.12).
     Lines beginning "[*] Initializing Backend" come from the JVM starting and
     are expected.
 
