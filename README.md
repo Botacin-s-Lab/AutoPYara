@@ -52,7 +52,7 @@ free, long-term archive for research data.
 | --- | --- |
 | This artifact | <https://github.com/Botacin-s-Lab/AutoPYara> — Zenodo DOI (v1.0.0, the evaluated snapshot): [10.5281/zenodo.23107801](https://doi.org/10.5281/zenodo.23107801) |
 | Evaluation data | Zenodo DOI [10.5281/zenodo.22665898](https://doi.org/10.5281/zenodo.22665898) — fetched automatically by `./loadData.sh`; see `zenodo/README.md` for what each archive contains |
-| AutoPYara (the tool) | <https://github.com/Botacin-s-Lab/AutoPYaraPyPI> (tag `v0.1.2`) and <https://pypi.org/project/autopyara/0.1.2/> |
+| AutoPYara (the tool) | <https://github.com/Botacin-s-Lab/AutoPYaraPyPI> (tag `v0.1.3`) and <https://pypi.org/project/autopyara/0.1.3/> |
 | Java backend | <https://github.com/Botacin-s-Lab/AutoPYaraBackend> |
 
 The only thing *not* included is the paper's malware corpus itself, which cannot be
@@ -123,7 +123,7 @@ You don't need all of these if you use Docker — see the note below the table.
 | OS | Linux, x86-64 (tested on Ubuntu). macOS/Windows are untested — use Docker instead. |
 | Python | 3.11 or 3.12 for this artifact specifically, with the `venv` module (`python3-venv` on Debian/Ubuntu) — the pinned `scikit-learn==1.8.0` (`artifact/requirements-lock.txt`) needs >= 3.11, and numpy 1.26.4 ships no 3.13 wheels, so 3.13 isn't supported either. (The `autopyara` package itself more broadly supports Python 3.9-3.12; this narrower range is just for exact reproducibility of the pinned artifact.) If venv isn't available, `install.sh` automatically falls back to using `conda create` instead, as long as `conda` or `mamba` is on your `PATH` (or force this with `USE_CONDA=1`). |
 | Java | A JRE 11 or newer, on your `PATH` or via `JAVA_HOME` — **only needed for claims 1-3.** |
-| RAM | 16 GB for claims 1-3 (the tool reserves a fixed 14 GB of memory for its Java backend); 8 GB is enough for claims 4-9. |
+| RAM | 16 GB for claims 1-3 (the tool's Java backend defaults to a 14 GB heap; configurable since `autopyara` 0.1.3 via the `AUTOPYARA_JVM_HEAP` environment variable, e.g. `AUTOPYARA_JVM_HEAP=4g`, to run on smaller machines); 8 GB is enough for claims 4-9. |
 | CPU | Any x86-64 processor. Claims 4-9 use all your CPU cores by default (pass `-j N` to limit that). |
 | Disk | About 60 GB free: the evaluation data once unpacked (a ~3.4 GB download — `loadData.sh`'s default only fetches the 3 archives claims 4-9 actually need), 600 MB of Bloom filters, ~1 GB for the Python environment, plus the generated figures. |
 | Network | Only needed while installing (to download packages, Bloom filters, and data). |
@@ -247,8 +247,10 @@ results/                everything the claims generate (not tracked in git)
   differs a little between runs; that check is structural (it checks the *shape* of
   the output, not exact values) rather than exact-match. Claims 4-9 are fully
   deterministic and will match exactly.
-- **The Java backend reserves a fixed 14 GB of memory**, so claims 1-3 need at least
-  16 GB of RAM to run.
+- **The Java backend defaults to a 14 GB heap**, so claims 1-3 need at least 16 GB of
+  RAM to run with the default settings. As of `autopyara` 0.1.3 this is configurable:
+  set `AUTOPYARA_JVM_HEAP` (e.g. `AUTOPYARA_JVM_HEAP=4g`) before running a claim to
+  lower it for a smaller machine — see `infrastructure/constraints.txt`.
 - The figure-generation scripts intentionally preserve a few small quirks from the
   original paper's plotting code — see "Notes and known quirks" in
   `artifact/plots/README.md` for details.

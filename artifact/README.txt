@@ -36,8 +36,8 @@ WHERE THE AUTOPYARA TOOL'S SOURCE LIVES
 The tool is not copied into this repository; install.sh installs the released
 package, pinned, so evaluators run exactly the published version.
 
-    Python frontend     autopyara==0.1.2 on PyPI
-                        https://github.com/Botacin-s-Lab/AutoPYaraPyPI (tag v0.1.2)
+    Python frontend     autopyara==0.1.3 on PyPI
+                        https://github.com/Botacin-s-Lab/AutoPYaraPyPI (tag v0.1.3)
         autopyara/core.py                 generate() and train(); the main API
         autopyara/interface.py            JVM lifecycle, Java<->Python conversion
         autopyara/augmented_predictor/    ssdeep + DBSCAN pre-clustering

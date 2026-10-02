@@ -6,9 +6,10 @@ Execution environment: requirements and expected resource use
 1. HARDWARE REQUIREMENTS
 --------------------------------------------------------------------------------
 
-    RAM         16 GB for claims 1-3, which start the JVM backend with a fixed
-                14 GB maximum heap (constraints.txt). Claims 4-9 need under 8 GB
-                with 8 worker processes (about 0.7 GB per worker at most).
+    RAM         16 GB for claims 1-3, which start the JVM backend with a 14 GB
+                maximum heap by default - configurable via AUTOPYARA_JVM_HEAP
+                since autopyara 0.1.3 (constraints.txt). Claims 4-9 need under
+                8 GB with 8 worker processes (about 0.7 GB per worker at most).
     Disk        ~60 GB free: the evaluation data once unpacked by loadData.sh
                 (~3.4 GB download; the files the figure scripts actually read
                 are ~2.1 GB, but the published archives unpack to much more -

@@ -4,7 +4,7 @@
 #
 #   1. picks a Python 3.11/3.12 interpreter and creates ./.venv
 #   2. installs the pinned dependencies (artifact/requirements-lock.txt), including
-#      the tool itself (autopyara==0.1.2 from PyPI) and the plotting stack
+#      the tool itself (autopyara==0.1.3 from PyPI) and the plotting stack
 #   3. checks Java                                  (tool claims 1-3 only)
 #   4. fetches AutoPYara's Bloom filters, ~600 MB   (tool claims 1-3 only)
 #   5. fetches the evaluation data into ./data      (paper claims 4-9)

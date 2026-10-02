@@ -58,9 +58,11 @@ The augmented pipeline is not bit-reproducible (claim 3).
     Claims 4-9 are unaffected: they only read the provided rules.
 
 Substantial memory requirement (claims 1-3).
-    The JVM backend is started with a fixed 14 GB maximum heap, not
-    configurable in the current release. See infrastructure/constraints.txt.
-    Claims 4-9 do not start a JVM and need well under 8 GB.
+    The JVM backend defaults to a 14 GB maximum heap. As of autopyara 0.1.3
+    this is configurable via the AUTOPYARA_JVM_HEAP environment variable
+    (e.g. AUTOPYARA_JVM_HEAP=4g) to run on smaller machines. See
+    infrastructure/constraints.txt. Claims 4-9 do not start a JVM and need
+    well under 8 GB.
 
 Rule quality depends on input quality.
     The tool assumes the input samples genuinely belong to one family. Given a

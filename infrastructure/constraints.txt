@@ -12,18 +12,25 @@ where a listed platform is not viable.
 THE CONSTRAINT
 --------------------------------------------------------------------------------
 
-AutoPYara starts its JVM backend with a fixed maximum heap of 14 GB
+AutoPYara starts its JVM backend with a maximum heap that defaults to 14 GB
 (autopyara/interface.py in https://github.com/Botacin-s-Lab/AutoPYaraPyPI):
 
+        heap = os.getenv("AUTOPYARA_JVM_HEAP", "14g")
         jpype.startJVM(
             jpype.getDefaultJVMPath(),
             f"-Djava.class.path={jar_path}",
-            "-Xmx14g",          # <-- fixed; not configurable in this release
+            f"-Xmx{heap}",      # override with the AUTOPYARA_JVM_HEAP env var
             convertStrings=True
         )
 
-Google Colab's free tier provides roughly 12.7 GB of RAM. The JVM is therefore
-permitted to grow beyond the total memory available to the runtime.
+As of autopyara 0.1.3 this is configurable via the AUTOPYARA_JVM_HEAP
+environment variable (see STATUS below); this file otherwise describes the
+default (unset AUTOPYARA_JVM_HEAP, i.e. 14 GB) configuration, which is still
+what install.sh and the claim scripts use unless you set it yourself.
+
+Google Colab's free tier provides roughly 12.7 GB of RAM. At the 14 GB
+default, the JVM is therefore permitted to grow beyond the total memory
+available to the runtime.
 
 --------------------------------------------------------------------------------
 WHY THIS BREAKS, PRECISELY
@@ -42,32 +49,44 @@ surfaces as "Your session crashed after using all available RAM", with nothing
 pointing at a heap setting as the cause.
 
 A SMALLER heap setting would survive: given a ceiling that fits the machine, the
-JVM simply collects more often. The oversized fixed ceiling is what turns a
-memory-tight run into a crash.
+JVM simply collects more often. The oversized default ceiling is what turns a
+memory-tight run into a crash - see STATUS below for how to set one.
 
 --------------------------------------------------------------------------------
 CONSEQUENCE FOR EVALUATION
 --------------------------------------------------------------------------------
 
-Run claims 1-3 on a machine with at least 16 GB of RAM. Standard CloudLab and
-Chameleon nodes satisfy this without any special allocation:
+With the default 14 GB heap, run claims 1-3 on a machine with at least 16 GB of
+RAM. Standard CloudLab and Chameleon nodes satisfy this without any special
+allocation:
 
     CloudLab     https://www.cloudlab.us/
     Chameleon    https://www.chameleoncloud.org/
 
 Any ordinary Linux machine or cloud VM with >= 16 GB RAM works equally well.
 Claims 4-9 start no JVM and fit in 8 GB (with -j 8), so they can also run on
-Colab: install with SKIP_TOOL=1 ./install.sh.
+Colab regardless: install with SKIP_TOOL=1 ./install.sh.
+
+For a memory-constrained machine (including, plausibly, Colab's ~12.7 GB free
+tier), set AUTOPYARA_JVM_HEAP below the available RAM before running a claim,
+e.g.:
+
+    AUTOPYARA_JVM_HEAP=10g ./claims/claim1_install/run.sh
+
+This has not been specifically verified on Colab itself; the reasoning in WHY
+THIS BREAKS, PRECISELY above is why it is expected to help, not a confirmed
+result for that platform.
 
 --------------------------------------------------------------------------------
 STATUS
 --------------------------------------------------------------------------------
 
-This is a known limitation of the current release rather than a fundamental
-design constraint - the heap size is a single hard-coded string. Making it
-configurable (for example from an environment variable) would remove this
-restriction. It is recorded here so that reviewers can size their environment
-correctly rather than discovering it through an opaque crash.
+Fixed as of autopyara 0.1.3 (https://pypi.org/project/autopyara/0.1.3/, this
+artifact's pinned version): the heap is no longer a hard-coded string, and is
+read from the AUTOPYARA_JVM_HEAP environment variable, defaulting to 14g when
+unset. This file is kept because the 14 GB default - and therefore the >= 16 GB
+recommendation above - still applies to every claim script as shipped, unless
+you explicitly set AUTOPYARA_JVM_HEAP yourself.
 
 No remote access to author-controlled infrastructure is required to evaluate
 this artifact; see resources.txt.

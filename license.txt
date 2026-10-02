@@ -21,10 +21,10 @@ Contents: clusterings, generated YARA rules with their TP rates, threat-hunting
           zenodo/README.md (what each archive contains).
 
 
-AUTOPYARA PYTHON FRONTEND  (installed from PyPI: autopyara==0.1.2)
+AUTOPYARA PYTHON FRONTEND  (installed from PyPI: autopyara==0.1.3)
 --------------------------------------------------------------------------------
 License:  MIT License
-Source:   https://github.com/Botacin-s-Lab/AutoPYaraPyPI  (tag v0.1.2)
+Source:   https://github.com/Botacin-s-Lab/AutoPYaraPyPI  (tag v0.1.3)
 
 
 AUTOPYARA JAVA BACKEND  (compiled into the AutoYara.jar shipped in the package)

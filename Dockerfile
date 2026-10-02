@@ -45,7 +45,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /opt/artifact
 
-# Dependencies first (pinned, including autopyara==0.1.2), so this layer caches
+# Dependencies first (pinned, including autopyara==0.1.3), so this layer caches
 # independently of the artifact's own files.
 COPY artifact/requirements-lock.txt /tmp/requirements-lock.txt
 RUN python3 -m pip install -r /tmp/requirements-lock.txt
